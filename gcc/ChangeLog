@@ -1,3 +1,174 @@
+2013-02-28  Konstantin Serebryany  <konstantin.s.serebryany@gmail.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR sanitizer/56454
+	* asan.c (gate_asan): Lookup no_sanitize_address instead of
+	no_address_safety_analysis attribute.
+	* doc/extend.texi (no_address_safety_attribute): Rename to
+	no_sanitize_address attribute, mention no_address_safety_analysis
+	attribute as deprecated alias.
+
+2013-02-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/56461
+	* tree-vectorizer.h (vect_get_slp_defs): Change 3rd argument
+	type to vec<vec<tree> > *.
+	* tree-vect-slp.c (vect_get_slp_defs): Likewise.  Change vec_defs
+	to be vec<tree> instead of vec<tree> *, set vec_defs
+	to vNULL and call vec_defs.create (number_of_vects), adjust other
+	uses of vec_defs.
+	* tree-vect-stmts.c (vect_get_vec_defs, vectorizable_call,
+	vectorizable_condition): Adjust vect_get_slp_defs callers.
+
+2013-02-28  James Greenhalgh  <james.greenhalgh@arm.com>
+
+	* config/aarch64/aarch64.c
+	(aarch64_float_const_representable): Remove unused variable.
+
+2013-02-28  James Greenhalgh  <james.greenhalgh@arm.com>
+
+	* config/aarch64/aarch64.c (aarch64_mangle_type): Make static.
+
+2013-02-28  James Greenhalgh  <james.greenhalgh@arm.com>
+
+	* config/aarch64/aarch64-builtins.c
+	(aarch64_init_simd_builtins): Make static.
+
+2013-02-28  James Greenhalgh  <james.greenhalgh@arm.com>
+
+	* config/aarch64/aarch64.c
+	(aarch64_simd_make_constant): Make static.
+
+2013-02-28  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (load_assign_lhs_subreplacements): Do not put replacements
+	with no initialization to the RHS of debug statements.
+
+2013-02-28  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/56294
+	* tree-sra.c (analyze_access_subtree): Create replacement declarations.
+	Adjust dumping.
+	(get_access_replacement): Do not call create_access_replacement.
+	Assert a replacement exists.
+	(get_repl_default_def_ssa_name): Create the replacement declaration
+	itself.
+
+2013-02-28  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.c (arm_output_mi_thunk): Call final_start_function and
+	final_end_function.
+
+2013-02-28  Marek Polacek  <polacek@redhat.com>
+
+	PR rtl-optimization/56466
+	* loop-unroll.c (unroll_and_peel_loops): Call fix_loop_structure
+	if we're changing a loop.
+	(peel_loops_completely): Likewise.
+
+2013-02-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/55813
+	* doc/invoke.texi ([-Wctor-dtor-privacy]): Complete.
+
+2013-02-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/56445
+	* config/avr/avr.c (avr_init_builtins): Use 'n' instead of empty
+	macro parameters with: FX_FTYPE_FX, FX_FTYPE_FX_INT, INT_FTYPE_FX,
+	INTX_FTYPE_FX, FX_FTYPE_INTX.
+	* config/avr/builtins.def: Adjust respective DEF_BUILTIN.
+
+2013-02-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	* avr/avr-mcus.def (ata5272, ata5505, attiny1634, ata6285)
+	(ata6286, atmega8a, atmega48pa, ata5790, ata5790n, ata5795)
+	(atmega164pa, atmega165pa, atmega168pa, atmega16hva, atmega16hvb)
+	(atmega16hvbrevb, atmega16m1, atmega16u4, atmega26hvg, atmega32a)
+	(atmega32a, atmega3250pa, atmega3290pa, atmega32c1, atmega32m1)
+	(atmega32u4, atmega32u6, atmega64a, atmega6490a, atmega6490p)
+	(atmega64c1, atmega64m1, atmega64rfa2, atmega64rfr2, atmega32hvb)
+	(atmega32hvbrevb, atmega16hva2, atmega48hvf, at90pwm161)
+	(atmega128a, atmega1284, atmxt112sl, atmxt224, atmxt224e)
+	(atmxt336s, atxmega16a4u, atxmega16c4, atxmega32a4u, atxmega32c4)
+	(atxmega32e5, atxmega64a3u, atxmega64a4u, atxmega64b1, atxmega64b3)
+	(atxmega64c3, atxmega64d4, atxmega128a3u, atxmega128b1)
+	(atxmega128b3, atxmega128c3, atxmega128d4, atmxt540s, atmxt540sreva)
+	(atxmega192a3u, atxmega192c3, atxmega256a3u, atxmega256c3)
+	(atxmega384c3, atxmega384d3, atxmega128a4u): New AVR_MCU.
+	(avrxmega6): Increase max flash segments from 5 to 6.
+	* config/avr/t-multilib: Regenerate.
+	* config/avr/avr-tables.opt: Regenerate.
+	* doc/avr-mmcu.texi: Regenerate.
+
+2013-02-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.h (device_to_arch): Rename to device_to_ld.
+	(avr_device_to_arch): Rename to avr_device_to_ld.
+	(avr_device_to_as): New prototype.
+	(EXTRA_SPEC_FUNCTIONS): Add device_to_as.
+	(ASM_SPEC): Use device_to_as to get -mmcu= and -mno-skip-bug=.
+	* config/avr/driver-avr.c (avr_device_to_as): New.
+	(avr_device_to_arch): Rename to avr_device_to_ld.
+
+2013-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/56461
+	* tree-vect-data-refs.c (vect_permute_load_chain): Avoid using copy
+	method on dr_chain and result_chain.
+
+	PR middle-end/56461
+	* tree-ssa-loop-niter.c (maybe_lower_iteration_bound): Call
+	pointer_set_destroy on not_executed_last_iteration.
+
+	PR middle-end/56461
+	* tree-vect-loop.c (vectorizable_reduction): Release vect_defs
+	vector.
+
+	PR middle-end/56461
+	* ipa-pure-const.c (propagate): Use FOR_EACH_FUNCTION instead of
+	FOR_EACH_DEFINED_FUNCTION when freeing state.
+
+	PR middle-end/56461
+	* df-scan.c (df_insn_delete): Use df_scan_free_mws_vec before
+	pool_free.
+	(df_insn_rescan_debug_internal): Use df_scan_free_mws_vec before
+	overwriting it.
+
+	PR middle-end/56461
+	* ipa-cp.c (decide_whether_version_node): Call vec_free on
+	known_aggs[i].items and release known_aggs vector.
+
+	PR middle-end/56461
+	* ipa-reference.c (propagate): Free node_info even for alias nodes.
+
+2013-02-27  Edgar E. Iglesias  <edgar.iglesias@gmail.com>
+
+	* config/microblaze/microblaze.c (microblaze_emit_compare):
+	Use xor for EQ/NE comparisions.
+	* config/microblaze/microblaze.md (cstoresf4): Add constraints
+	(cbranchsf4): Adjust operator to comparison_operator.
+
+2013-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/56461
+	* tree-flow.h (edge_var_map_vector): Change into va_heap, vl_embed
+	vector.
+	* tree-ssa.c (redirect_edge_var_map_add): Use vec_safe_reserve and
+	vec_safe_push, always update *slot.
+	(redirect_edge_var_map_clear): Use vec_free.
+	(redirect_edge_var_map_dup): Use vec_safe_copy and vec_safe_reserve.
+	(free_var_map_entry): Use vec_free.
+	* tree-cfgcleanup.c (remove_forwarder_block_with_phi): Use
+	FOR_EACH_VEC_SAFE_ELT instead of FOR_EACH_VEC_ELT.
+
+2013-02-27  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR middle-end/45472
+	* sel-sched-ir.c (merge_expr): Also change vinsn of merged expr
+	when the may_trap_p bit of the exprs being merged differs.
+	Reorder tests for speculativeness in the logical and operator.
+
 2013-02-27  Jakub Jelinek  <jakub@redhat.com>
 
 	* incpath.c (add_standard_paths): Use reconcat instead of concat

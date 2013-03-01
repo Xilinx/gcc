@@ -1,3 +1,26 @@
+2013-03-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* decl.c (grokdeclarator): Remove dead code.
+
+2013-02-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/56481
+	* semantics.c (potential_constant_expression_1): Use
+	cxx_eval_outermost_constant_expr rather than maybe_constant_value.
+
+	PR c++/56243
+	* call.c (build_over_call): Avoid virtual lookup in a template.
+
+2013-02-27  Jason Merrill  <jason@redhat.com>
+
+	PR c++/56358
+	PR c++/56323
+	* name-lookup.c (do_class_using_decl): Use ctor_identifier instead
+	of the base name for inheriting ctors.
+	(push_class_level_binding_1): Remove inheriting ctor handling.
+	* pt.c (tsubst_decl) [USING_DECL]: Likewise.
+	* class.c (add_implicitly_declared_members): Adjust.
+
 2013-02-26  David Binderman  <dcb314@hotmail.com>
 
 	PR c++/55632
