@@ -651,8 +651,8 @@ scanning variables.}#
 ;; of a given partester return the list of updated testers, ie the
 ;; updatlist - which should be null initially
 (defun set_new_tester_all_elses (newtester partester updatlist)
-  (debug "set_new_tester_all_elses newtester" newtester)
-  (debug "set_new_tester_all_elses partester" partester)
+  (debug "set_new_tester_all_elses newtester=" newtester 
+	 "\n.. partester" partester "\n.. updatlist=" updatlist)
   (shortbacktrace_dbg "set_new_tester_all_elses start" 15)
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check partester" (is_a partester class_normtester_any))
@@ -672,7 +672,7 @@ scanning variables.}#
        (cond
 	((null eltest)
 	 (put_fields partester :ntest_else newtester)
-	 (debug "set_new_tester_all_elses updated partester" partester)
+	 (debug "set_new_tester_all_elses updated partester=" partester)
 	 (list_append updatlist partester)
 	 )
 	(:else
@@ -686,6 +686,8 @@ scanning variables.}#
 	  )
 	 (setq partester eltest))
 	)
+       (debug "set_new_tester_all_elses here partester=" partester
+	      "\n thtest=" thtest)
        (cond ( (is_a thtest class_normtester_anytester)
 	 (foreach_in_list
 	  (updatlist)
@@ -771,7 +773,7 @@ scanning variables.}#
 	      (lambda (tester)
 		(shortbacktrace_dbg "normvarpat_genreusetest lambda curhdler" 15)
 		(put_fields tstuff :ntest_else tester)
-		(debug "normvarpat_genreusetest lambda curhdler updatelse of tstuff" tstuff)
+		(debug "normvarpat_genreusetest lambda curhdler updatelse of tstuff=" tstuff)
 		(list_append (get_field :ntest_comefrom tester) tstuff)
 		))
 	)
@@ -997,7 +999,7 @@ scanning variables.}#
 	     (lambda (tester)
 	       (shortbacktrace_dbg "normpat_instancepat lambda" 15)
 	       (put_fields tstuff :ntest_else tester)
-	       (debug "normpat_instancepat lambda updatelse of tstuff" tstuff)
+	       (debug "normpat_instancepat lambda updatelse of tstuff=" tstuff)
 	       (list_append (get_field :ntest_comefrom tester) tstuff)
 	       ))
        )
@@ -1190,7 +1192,7 @@ scanning variables.}#
 	     (lambda (tester)
 	       (shortbacktrace_dbg "normpat_instancepat lambda" 15)
 	       (put_fields tstuff :ntest_else tester)
-	       (debug "normpat_tuplepat lambda updatelse of tstuff" tstuff)
+	       (debug "normpat_tuplepat lambda updatelse of tstuff=" tstuff)
 	       (list_append (get_field :ntest_comefrom tester) tstuff)
 	       ))
        )
@@ -1339,6 +1341,7 @@ scanning variables.}#
       )))
 (install_method class_source_pattern_tuple normal_pattern normpat_tuplepat)
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -1374,12 +1377,12 @@ scanning variables.}#
      (conjpats)
      (subpat :long subix)
      (debug "normpat_andpat  before normal_pattern testercont=" testercont 
-	    " subpat=" subpat)
+	    "\n.. subpat=" subpat " subix=" subix "\n ..nmatch=" nmatch)
      (normal_pattern subpat nmatch subhdler pcn)
      (debug "normpat_andpat after normal_pattern subpat=" subpat
 	    " testercont=" testercont)
      )
-    (debug "normpat_andpat recv end" recv)
+    (debug "normpat_andpat  end recv=" recv " testercont=" testercont)
     ))
 (install_method class_source_pattern_and normal_pattern normpat_andpat)
 
@@ -1885,7 +1888,7 @@ scanning variables.}#
 		(lambda (tester)
 		  (put_fields tstuff :ntest_else tester)
 		  (shortbacktrace_dbg "normpat_constpat lambda updatelse" 15)
-		  (debug "normpat_constpat lambda updatelse tstuff" tstuff)
+		  (debug "normpat_constpat lambda updatelse tstuff=" tstuff)
 		  (list_append (get_field :ntest_comefrom tester) tstuff)
 		  ))
 	  )
@@ -3182,7 +3185,8 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;; method to putelse inside then-steps
 (defun putelse_matchstepthen (recv elsestep)
-  (debug "putelse_matchstepthen recv" recv)
+  (debug "putelse_matchstepthen recv=" recv "\n elsestep=" elsestep)
+  (shortbacktrace_dbg "putelse_matchstepthen" 10)
   (assert_msg "check recv" (is_a recv class_match_step_then))
   (debug "putelse_matchstepthen elsestep" elsestep)
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
@@ -3217,9 +3221,9 @@ the flags of the $STEP with an extra context $CTX.}#
 	  
 ;; method to putelse inside tests
 (defun putelse_matchtest (recv elsestep)
-  (debug "putelse_matchtest recv" recv)
+  (debug "putelse_matchtest recv=" recv " elsestep=" elsestep)
+  (shortbacktrace_dbg "putelse_matchtest" 10)
   (assert_msg "check recv" (is_a recv class_match_step_test))
-  (debug "putelse_matchtest elsestep" elsestep)
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
   (compile_warning "temporary check for application depth..."
 		   (assert_msg "putelse_matchtest check shallow100" 
@@ -3231,26 +3235,26 @@ the flags of the $STEP with an extra context $CTX.}#
 	)
     (cond 
      ( (== recv elsestep)
-       (debug "putelse_matchtest recv same as elsestep" recv)
+       (debug "putelse_matchtest recv same as elsestep=" recv)
        (return))
      ( (== recv elsestart)
-       (debug "putelse_matchtest recv same as elsestart" recv)
+       (debug "putelse_matchtest recv same as elsestart=" recv)
        (return))
      ( (== myelse elsestart)
-       (debug "putelse_matchtest myelse same as elsestart" recv)
+       (debug "putelse_matchtest myelse same as elsestart=" recv)
        (return))
      ( (== myelse elsestep)
-       (debug "putelse_matchtest myelse same as elsestep" recv)
+       (debug "putelse_matchtest myelse same as elsestep=" recv)
        (return))
      ( (== mythen elsestep)
-       (debug "putelse_matchtest mythen same as elsestep" recv)
+       (debug "putelse_matchtest mythen same as elsestep=" recv)
        (return))
      ( (== mythen elsestart)
-       (debug "putelse_matchtest mythen same as elsestart" recv)
+       (debug "putelse_matchtest mythen same as elsestart=" recv)
        (return))
      ( (null myelse)
        (unsafe_put_fields recv :mstep_else elsestart)
-       (debug "putelse_matchtest updated recv" recv)
+       (debug "putelse_matchtest updated recv=" recv)
        (shortbacktrace_dbg "putelse_matchtest" 12)
        )
      (:else
@@ -3260,54 +3264,53 @@ the flags of the $STEP with an extra context $CTX.}#
      )
     (if mythen
 	(progn
-	  (debug "putelse_matchtest recursing in mythen" mythen)
-	  (debug "putelse_matchtest recursing with elsestart" elsestart)
+	  (debug "putelse_matchtest recursing in mythen=" mythen 
+		 "\n..with elsestart=" elsestart)
 	  (put_else_match mythen elsestart)))
     ;;
-    (debug "putelse_matchtest end recv" recv)
+    (debug "putelse_matchtest end recv=" recv)
     ))
 (install_method class_match_step_test put_else_match putelse_matchtest)
 
 
 ;;;;;;;;;;;;;;;;
 (defun putelse_matchgroup (recv elsestep)
-  (debug "putelse_matchgroup recv" recv)
+  (debug "putelse_matchgroup recv=" recv "\n elsestep=" elsestep)
   (assert_msg "check recv" (is_a recv class_match_step_test_group))
-  (debug "putelse_matchgroup elsestep" elsestep)
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
+  (shortbacktrace_dbg "putelse_matchgroup" 10)
   (let ( (elsegroup (unsafe_get_field :mstgroup_else recv)) 
 	 (elsestart (start_step elsestep))
 	 (startgroup (unsafe_get_field :mstgroup_start recv))
 	 )
-    (debug "putelse_matchgroup elsestart" elsestart)
-    (if startgroup
-	(progn
-	  (debug "putelse_matchgroup recursing startgroup" startgroup)
-	  (put_else_match startgroup elsestart)
-	  ))
-    (debug "putelse_matchgroup elsegroup" elsegroup)
+    (debug "putelse_matchgroup elsestart=" elsestart "\n startgroup=" startgroup)
+    (when startgroup
+      (debug "putelse_matchgroup recursing startgroup=" startgroup)
+      (put_else_match startgroup elsestart)
+	  )
+    (debug "putelse_matchgroup elsegroup=" elsegroup)
     (cond 
      ((null elsegroup)
       ())
      ((is_a elsegroup class_match_step)
-      (debug "putelse_matchgroup elsegroup step" elsegroup)
+      (debug "putelse_matchgroup elsegroup=" elsegroup)
       (put_else_match elsegroup elsestart))
      ((is_list elsegroup)
       (foreach_in_list
        (elsegroup)
        (curpair curelse)
-       (debug "putelse_matchgroup curelse from list" curelse)
+       (debug "putelse_matchgroup  from list curelse=" curelse)
        (put_else_match curelse elsestart)))
      ((is_multiple elsegroup)
       (foreach_in_multiple
        (elsegroup)
        (curelse :long thix)
-       (debug "putelse_matchgroup curelse from tuple" curelse)
+       (debug "putelse_matchgroup  from tuple curelse=" curelse)
        (put_else_match curelse elsestart)))
      (:else
-      (debug "putelse_matchgroup bad elsegroup" elsegroup)
+      (debug "putelse_matchgroup bad elsegroup=" elsegroup)
       (assert_msg "bad elsegroup" ())))
-    (debug "putelse_matchgroup end recv" recv)
+    (debug "putelse_matchgroup end recv=" recv)
     ))
 (install_method class_match_step_test_group put_else_match putelse_matchgroup)
 
@@ -3474,11 +3477,11 @@ the flags of the $STEP with an extra context $CTX.}#
 			       :msteptestconst_bind nbindconst
 			       ))
 	   )
-       (debug "translpat_constpat flagstep" flagstep)
+       (debug "translpat_constpat flagstep=" flagstep)
        (list_append steplist steptest)
        (list_append steplist flagstep)
-       (debug "translpat_constpat return steptest" steptest)
-       (debug "translpat_constpat return mflag" mflag)
+       (debug "translpat_constpat return steptest=" steptest 
+	      "\n.. mflag=" mflag)
        (return steptest mflag)
        ;;
        ))))
@@ -3950,17 +3953,16 @@ the flags of the $STEP with an extra context $CTX.}#
 			    ))
 	)
     (assert_msg "check sconj" (is_multiple sconj))
-    (debug "translpat_andpat flagstep" flagstep)
+    (debug "translpat_andpat flagstep" flagstep " sconj=" sconj)
     (put_fields mflag :mflag_setstep flagstep)
     (foreach_in_multiple
      (sconj)
      (curconj :long conjix)
-     (debug "translpat_andpat curconj" curconj)
+     (debug "translpat_andpat curconj=" curconj " conjix=" conjix)
      (multicall 
       (conjstep conjflag)
       (translate_pattern curconj mdata mcase varmap sloc)
-      (debug "translpat_andpat conjstep" conjstep)
-      (debug "translpat_andpat conjflag" conjflag)
+      (debug "translpat_andpat conjstep=" conjstep "\n.. conjflag=" conjflag)
       (if conjstep
 	  (progn
 	    (if (null curstep)
@@ -6691,12 +6693,12 @@ normalized expression.}#
 			      ))
 	    )
        (debug "normexp_matchalt matctyp=" matctyp
-	      "\n mdata=" mdata "\n matctx=" matctx)
+	      "\n mdata=" mdata "\n matctx=" matctx "\n scases=" scases)
        ;; build each match case
        (foreach_in_multiple
 	(scases)
 	(curscas :long curix)
-	(debug "normexp_matchalt curscas" curscas)
+	(debug "normexp_matchalt curscas=" curscas " curix=" curix)
 	(assert_msg "check  curscas" (is_a curscas class_source_match_case))
 	(let ( (curmcase (instance class_match_case
 				   :mcase_mctxt matctx
@@ -6706,7 +6708,9 @@ normalized expression.}#
 				   )
 			 )
 	       )
+	  (debug "normexp_matchalt empty curmcase=" curmcase)
 	  (fill_matchcase curmcase sloc)
+	  (debug "normexp_matchalt filled curmcase=" curmcase)
 	  (multiple_put_nth mcasetup curix curmcase)
 	  ))
        (debug "normexp_matchalt mcasetup" mcasetup)
@@ -6750,8 +6754,8 @@ normalized expression.}#
 			(get_ctype lastnbody newcurenv)
 			)))
 		   )
-	       (debug "normexp_matchalt lastnbody" lastnbody)
-	       (debug "normexp_matchalt lastctyp" lastctyp)
+	       (debug "normexp_matchalt lastnbody=" lastnbody
+		      "\n.. lastctyp=" lastctyp)
 	       (assert_msg "check lastctyp" (is_a lastctyp class_ctype))
 	       (cond ( (null matresctyp)
 		       (setq matresctyp lastctyp))
@@ -6771,10 +6775,9 @@ normalized expression.}#
 	    (debug "normexp_matchalt updated prevstep" prevstep)
 	    ))			     ;end foreach_in_multiple mcasetup
 	 ;;
-	 (debug "normexp_matchalt firststep" firststep)
-	 (debug "normexp_matchalt matresctyp" matresctyp)
-	 ;;
-	 (debug "normexp_matchalt updated mdata" mdata)
+	 (debug "normexp_matchalt firststep=" firststep 
+		"\n.. matresctyp=" matresctyp
+		"\n..updated mdata=" mdata)
 	 (if (melt_need_dbg 1)
 	     (let ( (dotprefix (get_field :referenced_value match_graphic_dot_prefix)) )
 	       (debug "normexp_matchalt dotprefix=" dotprefix
@@ -6897,6 +6900,7 @@ normalized expression.}#
 		 ))))))))))
 (install_method class_source_matchalt normal_exp normexp_matchalt)
 
+;;;;;;;;;;;;;;;;
 (defun alternate_match_optset (optsymb :cstring opts)
   (debug "alternate_match_optset optsymb" optsymb)
   (informsg_plain "exchange alternate matching implementation")
@@ -7281,5 +7285,4 @@ normalized expression.}#
  normal_pattern
  )
 
-(export_synonym class_nrep_altmatch class_nrep_matchalt)
 ;; eof warmelt-normatch.melt

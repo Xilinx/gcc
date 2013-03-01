@@ -1,5 +1,15 @@
 
 
+2013-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{some mstep_else are missing for tmatch-5.melt case tmini5}}
+	* melt/warmelt-normatch.melt (set_new_tester_all_elses)
+	(normvarpat_genreusetest, normpat_tuplepat, normpat_andpat)
+	(normpat_constpat, putelse_matchstepthen, putelse_matchtest)
+	(putelse_matchgroup, translpat_andpat, translpat_constpat)
+	(normexp_matchalt): More debug.
+	(class_nrep_altmatch): Remove synonym.
+
 2013-02-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (upgrade-warmelt): Make a backup copy only of
 	already existing files.
