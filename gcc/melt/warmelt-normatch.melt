@@ -3253,7 +3253,7 @@ the flags of the $STEP with an extra context $CTX.}#
        (debug "putelse_matchtest mythen same as elsestart=" recv)
        (return))
      ( (null myelse)
-       (unsafe_put_fields recv :mstep_else elsestart)
+       (put_fields recv :mstep_else elsestart)
        (debug "putelse_matchtest updated recv=" recv)
        (shortbacktrace_dbg "putelse_matchtest" 12)
        )
@@ -3904,6 +3904,8 @@ the flags of the $STEP with an extra context $CTX.}#
 	  (debug "translpat_varpat made steptest" steptest)
 	  (if laststeptest
 	      (progn
+		(debug "translpat_varpat before put_else_match laststeptest=" laststeptest 
+		       "\n.. steptest=" steptest)
 		(put_else_match laststeptest steptest)
 		(debug "translpat_varpat updated laststeptest" laststeptest)))
 	  (foreach_in_list
@@ -4071,10 +4073,10 @@ the flags of the $STEP with an extra context $CTX.}#
 	    (progn 
 	      (cond 
 	       ( (is_a prevstep class_match_step_clear)
-		 (debug "translpat_orpat prevstep clear so putthen" prevstep)
+		 (debug "translpat_orpat prevstep clear so putthen prevstep=" prevstep)
 		 (put_then_match prevstep disjstep))
 	       ( prevstep
-		 (debug "translpat_orpat prevstep notnull so putelse" prevstep)
+		 (debug "translpat_orpatnotnull so putelse  prevstep=" prevstep)
 		 (put_else_match prevstep disjstep)))
 	      (if (>i (mapobject_count newvarmap) 0)
 		  (let ( 
@@ -4092,7 +4094,7 @@ the flags of the $STEP with an extra context $CTX.}#
 					     )
 				   )
 			)
-		    (debug "translpat_orpat erasestep" erasestep)
+		    (debug "translpat_orpat disjstep=" disjstep "\n.. erasestep=" erasestep)
 		    (put_else_match disjstep erasestep)
 		    (setq prevstep erasestep)
 		    (debug "translpat_orpat prevstep is erasestep" prevstep)
