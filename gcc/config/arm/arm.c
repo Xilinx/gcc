@@ -24326,6 +24326,8 @@ arm_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
   if (mi_delta < 0)
     mi_delta = - mi_delta;
 
+  final_start_function (emit_barrier (), file, 1);
+
   if (TARGET_THUMB1)
     {
       int labelno = thunk_label++;
@@ -24442,6 +24444,8 @@ arm_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
         fputs ("(PLT)", file);
       fputc ('\n', file);
     }
+
+  final_end_function ();
 }
 
 int
