@@ -1026,22 +1026,8 @@ destroy_loop_vec_info (loop_vec_info loop_vinfo, bool clean_stmts)
   loop = LOOP_VINFO_LOOP (loop_vinfo);
 
   bbs = LOOP_VINFO_BBS (loop_vinfo);
-  nbbs = loop->num_nodes;
+  nbbs = clean_stmts ? loop->num_nodes : 0;
   swapped = LOOP_VINFO_OPERANDS_SWAPPED (loop_vinfo);
-
-  if (!clean_stmts)
-    {
-      free (LOOP_VINFO_BBS (loop_vinfo));
-      free_data_refs (LOOP_VINFO_DATAREFS (loop_vinfo));
-      free_dependence_relations (LOOP_VINFO_DDRS (loop_vinfo));
-      LOOP_VINFO_LOOP_NEST (loop_vinfo).release ();
-      LOOP_VINFO_MAY_MISALIGN_STMTS (loop_vinfo).release ();
-      LOOP_VINFO_MAY_ALIAS_DDRS (loop_vinfo).release ();
-
-      free (loop_vinfo);
-      loop->aux = NULL;
-      return;
-    }
 
   for (j = 0; j < nbbs; j++)
     {
@@ -1423,7 +1409,7 @@ vect_analyze_loop_form (struct loop *loop)
 	    error_at (vect_location, "loop not vectorized. " 
 		      "Exiting as requested by Pragma SIMD"); 
       if (inner_loop_vinfo)
-        destroy_loop_vec_info (inner_loop_vinfo, false);
+        destroy_loop_vec_info (inner_loop_vinfo, true);
       return NULL;
     }
 
@@ -5439,6 +5425,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
                                     double_reduc, slp_node);
 
   phis.release ();
+  vect_defs.release ();
   vec_oprnds0.release ();
   vec_oprnds1.release ();
 

@@ -2949,10 +2949,6 @@ cp_install_body_with_frame_cleanup (tree fndecl, tree body)
   append_to_statement_list (except_data, &catch_list);
   append_to_statement_list (do_begin_catch (), &catch_list);
   append_to_statement_list (build_throw (NULL_TREE), &catch_list);
-  #if 1
-  append_to_statement_list (build_cilk_function_exit (frame, false, false),
-			    &catch_list);
-  #endif
   catch_tf_expr = build_stmt (EXPR_LOCATION (body), TRY_FINALLY_EXPR,
 			      catch_list, do_end_catch (NULL_TREE));
   catch_list = build2 (CATCH_EXPR, void_type_node, NULL_TREE, catch_tf_expr);

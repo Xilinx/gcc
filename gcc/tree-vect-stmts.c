@@ -1790,7 +1790,7 @@ vect_get_vec_defs (tree op0, tree op1, gimple stmt,
       int nops = (op1 == NULL_TREE) ? 1 : 2;
       vec<tree> ops;
       ops.create (nops);
-      vec<slp_void_p> vec_defs;
+      vec<vec<tree> > vec_defs;
       vec_defs.create (nops);
 
       ops.quick_push (op0);
@@ -1799,9 +1799,9 @@ vect_get_vec_defs (tree op0, tree op1, gimple stmt,
 
       vect_get_slp_defs (ops, slp_node, &vec_defs, reduc_index);
 
-      *vec_oprnds0 = *((vec<tree> *) vec_defs[0]);
+      *vec_oprnds0 = vec_defs[0];
       if (op1)
-        *vec_oprnds1 = *((vec<tree> *) vec_defs[1]);
+	*vec_oprnds1 = vec_defs[1];
 
       ops.release ();
       vec_defs.release ();
@@ -2109,14 +2109,14 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 
 	  if (slp_node)
 	    {
-	      vec<slp_void_p> vec_defs;
+	      vec<vec<tree> > vec_defs;
 	      vec_defs.create (nargs);
 	      vec<tree> vec_oprnds0;
 
 	      for (i = 0; i < nargs; i++)
 		vargs.quick_push (gimple_call_arg (stmt, i));
 	      vect_get_slp_defs (vargs, slp_node, &vec_defs, -1);
-	      vec_oprnds0 = *((vec<tree> *) vec_defs[0]);
+	      vec_oprnds0 = vec_defs[0];
 
 	      /* Arguments are ready.  Create the new vector stmt.  */
 	      FOR_EACH_VEC_ELT (vec_oprnds0, i, vec_oprnd0)
@@ -2124,7 +2124,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 		  size_t k;
 		  for (k = 0; k < nargs; k++)
 		    {
-		      vec<tree> vec_oprndsk = *((vec<tree> *) vec_defs[k]);
+		      vec<tree> vec_oprndsk = vec_defs[k];
 		      vargs[k] = vec_oprndsk[i];
 		    }
 		  new_stmt = gimple_build_call_vec (fndecl, vargs);
@@ -2138,7 +2138,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 
 	      for (i = 0; i < nargs; i++)
 		{
-		  vec<tree> vec_oprndsi = *((vec<tree> *) vec_defs[i]);
+		  vec<tree> vec_oprndsi = vec_defs[i];
 		  vec_oprndsi.release ();
 		}
 	      vec_defs.release ();
@@ -2205,14 +2205,14 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 
 	  if (slp_node)
 	    {
-	      vec<slp_void_p> vec_defs;
+	      vec<vec<tree> > vec_defs;
 	      vec_defs.create (nargs);
 	      vec<tree> vec_oprnds0;
 
 	      for (i = 0; i < nargs; i++)
 		vargs.quick_push (gimple_call_arg (stmt, i));
 	      vect_get_slp_defs (vargs, slp_node, &vec_defs, -1);
-	      vec_oprnds0 = *((vec<tree> *) vec_defs[0]);
+	      vec_oprnds0 = vec_defs[0];
 
 	      /* Arguments are ready.  Create the new vector stmt.  */
 	      for (i = 0; vec_oprnds0.iterate (i, &vec_oprnd0); i += 2)
@@ -2221,7 +2221,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 		  vargs.truncate (0);
 		  for (k = 0; k < nargs; k++)
 		    {
-		      vec<tree> vec_oprndsk = *((vec<tree> *) vec_defs[k]);
+		      vec<tree> vec_oprndsk = vec_defs[k];
 		      vargs.quick_push (vec_oprndsk[i]);
 		      vargs.quick_push (vec_oprndsk[i + 1]);
 		    }
@@ -2234,7 +2234,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 
 	      for (i = 0; i < nargs; i++)
 		{
-		  vec<tree> vec_oprndsi = *((vec<tree> *) vec_defs[i]);
+		  vec<tree> vec_oprndsi = vec_defs[i];
 		  vec_oprndsi.release ();
 		}
 	      vec_defs.release ();
@@ -2516,7 +2516,7 @@ vect_create_vectorized_promotion_stmts (vec<tree> *vec_oprnds0,
       vec_tmp.quick_push (new_tmp2);
     }
 
-  vec_oprnds0->truncate (0);
+  vec_oprnds0->release ();
   *vec_oprnds0 = vec_tmp;
 }
 
@@ -2863,15 +2863,13 @@ vectorizable_conversion (gimple stmt, gimple_stmt_iterator *gsi,
 
   if (!slp_node)
     {
-      if (modifier == NONE)
-	vec_oprnds0.create (1);
-      else if (modifier == WIDEN)
+      if (modifier == WIDEN)
 	{
 	  vec_oprnds0.create (multi_step_cvt ? vect_pow2(multi_step_cvt) : 1);
 	  if (op_type == binary_op)
 	    vec_oprnds1.create (1);
 	}
-      else
+      else if (modifier == NARROW)
 	vec_oprnds0.create (
 		   2 * (multi_step_cvt ? vect_pow2 (multi_step_cvt) : 1));
     }
@@ -3582,21 +3580,6 @@ vectorizable_shift (gimple stmt, gimple_stmt_iterator *gsi,
   /* Handle def.  */
   vec_dest = vect_create_destination_var (scalar_dest, vectype);
 
-  /* Allocate VECs for vector operands.  In case of SLP, vector operands are
-     created in the previous stages of the recursion, so no allocation is
-     needed, except for the case of shift with scalar shift argument.  In that
-     case we store the scalar operand in VEC_OPRNDS1 for every vector stmt to
-     be created to vectorize the SLP group, i.e., SLP_NODE->VEC_STMTS_SIZE.
-     In case of loop-based vectorization we allocate VECs of size 1.  We
-     allocate VEC_OPRNDS1 only in case of binary operation.  */
-  if (!slp_node)
-    {
-      vec_oprnds0.create (1);
-      vec_oprnds1.create (1);
-    }
-  else if (scalar_shift_arg)
-    vec_oprnds1.create (slp_node->vec_stmts_size);
-
   prev_stmt_info = NULL;
   for (j = 0; j < ncopies; j++)
     {
@@ -3616,6 +3599,7 @@ vectorizable_shift (gimple stmt, gimple_stmt_iterator *gsi,
                     dump_printf_loc (MSG_NOTE, vect_location,
                                      "operand 1 using scalar mode.");
                   vec_oprnd1 = op1;
+                  vec_oprnds1.create (slp_node ? slp_node->vec_stmts_size : 1);
                   vec_oprnds1.quick_push (vec_oprnd1);
                   if (slp_node)
                     {
@@ -4398,7 +4382,8 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	  new_stmt = NULL;
 	  if (grouped_store)
 	    {
-	      result_chain.create (group_size);
+	      if (j == 0)
+		result_chain.create (group_size);
 	      /* Permute.  */
 	      vect_permute_store_chain (dr_chain, group_size, stmt, gsi,
 					&result_chain);
@@ -5639,7 +5624,7 @@ vectorizable_condition (gimple stmt, gimple_stmt_iterator *gsi,
             {
               vec<tree> ops;
 	      ops.create (4);
-              vec<slp_void_p> vec_defs;
+	      vec<vec<tree> > vec_defs;
 
 	      vec_defs.create (4);
               ops.safe_push (TREE_OPERAND (cond_expr, 0));
@@ -5647,10 +5632,10 @@ vectorizable_condition (gimple stmt, gimple_stmt_iterator *gsi,
               ops.safe_push (then_clause);
               ops.safe_push (else_clause);
               vect_get_slp_defs (ops, slp_node, &vec_defs, -1);
-              vec_oprnds3 = *((vec<tree> *) vec_defs.pop ());
-              vec_oprnds2 = *((vec<tree> *) vec_defs.pop ());
-              vec_oprnds1 = *((vec<tree> *) vec_defs.pop ());
-              vec_oprnds0 = *((vec<tree> *) vec_defs.pop ());
+	      vec_oprnds3 = vec_defs.pop ();
+	      vec_oprnds2 = vec_defs.pop ();
+	      vec_oprnds1 = vec_defs.pop ();
+	      vec_oprnds0 = vec_defs.pop ();
 
               ops.release ();
               vec_defs.release ();
@@ -6318,7 +6303,8 @@ get_vectype_for_scalar_type_and_size (tree scalar_type, unsigned size)
   /* We can't build a vector type of elements with alignment bigger than
      their size.  */
   else if (nbytes < TYPE_ALIGN_UNIT (scalar_type))
-    scalar_type = lang_hooks.types.type_for_mode (inner_mode, 1);
+    scalar_type = lang_hooks.types.type_for_mode (inner_mode, 
+						  TYPE_UNSIGNED (scalar_type));
 
   /* If we felt back to using the mode fail if there was
      no scalar type for it.  */

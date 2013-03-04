@@ -596,6 +596,32 @@ microblaze_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
   return microblaze_classify_address (&addr, x, mode, strict);
 }
 
+int
+microblaze_valid_pic_const (rtx x)
+{
+  switch (GET_CODE (x))
+    {
+    case CONST:
+    case CONST_INT:
+    case CONST_DOUBLE:
+      return true;
+    default:
+      return false;
+    }
+}
+
+int
+microblaze_legitimate_pic_operand (rtx x)
+{
+  struct microblaze_address_info addr;
+
+  if (pic_address_needs_scratch (x))
+    return 0;
+  if (!microblaze_valid_pic_const(x))
+    return 0;
+
+  return 1;
+}
 
 /* Try machine-dependent ways of modifying an illegitimate address
    to be legitimate.  If we find one, return the new, valid address.
@@ -1378,6 +1404,21 @@ microblaze_option_override (void)
     {
         /* MicroBlaze prior to 8.10.a didn't have clz.  */
         microblaze_has_clz = 0;
+    }
+
+  /* TARGET_REORDER defaults to 2 if -mxl-reorder not specified.  */
+  ver = MICROBLAZE_VERSION_COMPARE (microblaze_select_cpu, "v8.30.a");
+  if (ver < 0)
+    {
+        if (TARGET_REORDER == 1)
+          warning (0, "-mxl-reorder can be used only with -mcpu=v8.30.a or greater");
+        TARGET_REORDER = 0;
+    }
+  else if ((ver == 0) && !TARGET_PATTERN_COMPARE)
+    {
+        if (TARGET_REORDER == 1)
+          warning (0, "-mxl-reorder requires -mxl-pattern-compare for -mcpu=v8.30.a");
+        TARGET_REORDER = 0;
     }
 
   if (TARGET_MULTIPLY_HIGH && TARGET_SOFT_MUL)
@@ -2842,21 +2883,8 @@ microblaze_emit_compare (enum machine_mode mode, rtx cmp, enum rtx_code *cmp_cod
 
   if (code == EQ || code == NE)
     {
-      if (TARGET_PATTERN_COMPARE && GET_CODE(cmp_op1) == REG) 
-        {
-          if (code == EQ) 
-	    {
-	      emit_insn (gen_seq_internal_pat (comp_reg, cmp_op0, cmp_op1));
-	      *cmp_code = NE;
-	    }
-	  else
-	    {    
-	      emit_insn (gen_sne_internal_pat (comp_reg, cmp_op0, cmp_op1));
-	    }
-        }
-      else
-	/* Use xor for equal/not-equal comparison.  */
-	emit_insn (gen_xorsi3 (comp_reg, cmp_op0, cmp_op1));
+      /* Use xor for equal/not-equal comparison.  */
+      emit_insn (gen_xorsi3 (comp_reg, cmp_op0, cmp_op1));
     }
   else if (code == GT || code == GTU || code == LE || code == LEU)
     {

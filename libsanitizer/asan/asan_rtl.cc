@@ -455,7 +455,7 @@ void __asan_init() {
 #if ASAN_LINUX && defined(__x86_64__) && !ASAN_FIXED_MAPPING
   if (!full_shadow_is_available) {
     kMidMemBeg = kLowMemEnd < 0x3000000000ULL ? 0x3000000000ULL : 0;
-    kMidMemEnd = kLowMemEnd < 0x3000000000ULL ? 0x3fffffffffULL : 0;
+    kMidMemEnd = kLowMemEnd < 0x3000000000ULL ? 0x4fffffffffULL : 0;
   }
 #endif
 
@@ -519,17 +519,3 @@ void __asan_init() {
     Report("AddressSanitizer Init done\n");
   }
 }
-
-#if ASAN_USE_PREINIT_ARRAY && !defined (PIC)
-  // On Linux, we force __asan_init to be called before anyone else
-  // by placing it into .preinit_array section.
-  // FIXME: do we have anything like this on Mac?
-  __attribute__((section(".preinit_array"), used))
-  void (*__asan_preinit)(void) =__asan_init;
-#elif defined(_WIN32) && defined(_DLL)
-  // On Windows, when using dynamic CRT (/MD), we can put a pointer
-  // to __asan_init into the global list of C initializers.
-  // See crt0dat.c in the CRT sources for the details.
-  #pragma section(".CRT$XIB", long, read)  // NOLINT
-  __declspec(allocate(".CRT$XIB")) void (*__asan_preinit)() = __asan_init;
-#endif

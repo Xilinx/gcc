@@ -78,6 +78,7 @@ extern enum pipeline_type microblaze_pipe;
 	"%{mno-xl-barrel-shift:%<mxl-barrel-shift}", 	\
 	"%{mno-xl-pattern-compare:%<mxl-pattern-compare}", \
 	"%{mxl-soft-div:%<mno-xl-soft-div}", 		\
+	"%{mxl-reorder:%<mno-xl-reorder}", 		\
 	"%{msoft-float:%<mhard-float}"
 
 /* Tell collect what flags to pass to nm.  */
@@ -540,7 +541,7 @@ typedef struct microblaze_args
 
 /* Define this, so that when PIC, reload won't try to reload invalid
    addresses which require two reload registers.  */
-#define LEGITIMATE_PIC_OPERAND_P(X)  (!pic_address_needs_scratch (X))
+#define LEGITIMATE_PIC_OPERAND_P(X)  microblaze_legitimate_pic_operand (X)
 
 #define CASE_VECTOR_MODE			(SImode)
 

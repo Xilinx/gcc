@@ -8615,7 +8615,6 @@ grokdeclarator (const cp_declarator *declarator,
   int explicit_int = 0;
   int explicit_char = 0;
   int defaulted_int = 0;
-  tree dependent_name = NULL_TREE;
 
   tree typedef_decl = NULL_TREE;
   const char *name = NULL;
@@ -9211,12 +9210,6 @@ grokdeclarator (const cp_declarator *declarator,
       staticp = 0;
     }
   friendp = decl_spec_seq_has_spec_p (declspecs, ds_friend);
-
-  if (dependent_name && !friendp)
-    {
-      error ("%<%T::%D%> is not a valid declarator", ctype, dependent_name);
-      return error_mark_node;
-    }
 
   /* Issue errors about use of storage classes for parameters.  */
   if (decl_context == PARM)
@@ -10650,9 +10643,8 @@ grokdeclarator (const cp_declarator *declarator,
 	      }
 	  }
 
-	/* Record presence of `static'.  */
+	/* Record whether the function is public.  */
 	publicp = (ctype != NULL_TREE
-		   || storage_class == sc_extern
 		   || storage_class != sc_static);
 
 	decl = grokfndecl (ctype, type, original_name, parms, unqualified_id,
