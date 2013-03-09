@@ -1,6 +1,7 @@
 2013-03-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/pragma_simd_tests/execute/p_simd_test1.c: New test.
+	* gcc.dg/cilk-plus/pragma_simd_tests/execute/p_simd_test2.c: Likewise.
 	* gcc.dg/cilk-plus/pragma_simd_tests/execute/execute.exp: New script.
 
 2013-02-27  Balaji V. Iyer  <balaji.v.iyer@intel.com>
