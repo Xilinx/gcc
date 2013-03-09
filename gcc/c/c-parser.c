@@ -1186,7 +1186,7 @@ static void c_parser_if_statement (c_parser *);
 static void c_parser_switch_statement (c_parser *);
 static void c_parser_while_statement (c_parser *);
 static void c_parser_do_statement (c_parser *);
-static void c_parser_for_statement (c_parser *, bool);
+static void c_parser_for_statement (c_parser *);
 static tree c_parser_asm_statement (c_parser *);
 static tree c_parser_asm_operands (c_parser *);
 static tree c_parser_asm_goto_operands (c_parser *);
@@ -4573,7 +4573,7 @@ c_parser_statement_after_labels (c_parser *parser)
 	  c_parser_do_statement (parser);
 	  break;
 	case RID_FOR:
-	  c_parser_for_statement (parser, false);
+	  c_parser_for_statement (parser);
 	  break;
 	case RID_CILK_FOR:
 	  if (!flag_enable_cilk)
@@ -5045,14 +5045,13 @@ c_parser_do_statement (c_parser *parser)
 */
 
 static void
-c_parser_for_statement (c_parser *parser, bool pragma_simd_found)
+c_parser_for_statement (c_parser *parser)
 {
   tree block, cond, incr, save_break, save_cont, body;
   /* The following are only used when parsing an ObjC foreach statement.  */
   tree object_expression;
   /* Silence the bogus uninitialized warning.  */
   tree collection_expression = NULL;
-  tree reset_stmt_list = NULL_TREE;
   
   location_t loc = c_parser_peek_token (parser)->location;
   location_t for_loc = c_parser_peek_token (parser)->location;
@@ -5197,10 +5196,6 @@ c_parser_for_statement (c_parser *parser, bool pragma_simd_found)
   c_cont_label = NULL_TREE;
   body = c_parser_c99_block_statement (parser);
 
-  if (pragma_simd_found)
-    body = pragma_simd_create_private_vars (body, &reset_stmt_list,
-					    cilkplus_local_simd_values);
-  
   if (is_foreach_statement)
     objc_finish_foreach_loop (loc, object_expression, collection_expression, body, c_break_label, c_cont_label);
   else
@@ -8851,7 +8846,7 @@ c_parser_simd_assert (c_parser *parser, bool is_assert)
 			    " multiple clauses");
 	  /* If the pragma simd found is true, it means that we should use the
 	     values given in the local_pragma_simd variable.  */
-	  c_parser_for_statement (parser, true);
+	  c_parser_for_statement (parser);
 	}
     }
 }
@@ -8968,7 +8963,7 @@ c_parser_simd_linear (c_parser *parser)
 			    "in multiple clauses ");
 	  /* If the pragma simd found is true, it means that we should use the
 	     values given in the local_pragma_simd variable.  */
-	  c_parser_for_statement (parser, true);
+	  c_parser_for_statement (parser);
 	}
     }
   cilkplus_local_simd_values.pragma_encountered = true;
@@ -9070,7 +9065,7 @@ c_parser_simd_private (c_parser *parser)
       
 	  /* If the pragma simd found is true, it means that we should use the 
 	     values given in the local_pragma_simd variable.  */
-	  c_parser_for_statement (parser, true);
+	  c_parser_for_statement (parser);
 	}
     }
   
@@ -9169,7 +9164,7 @@ c_parser_simd_vectorlength (c_parser *parser)
       
 	  /* If the pragma simd found is true, it means that we should use the 
 	     values given in the local_pragma_simd variable.  */
-	  c_parser_for_statement (parser, true);
+	  c_parser_for_statement (parser);
 	}
     }
   
@@ -9301,7 +9296,7 @@ c_parser_simd_reduction (c_parser *parser)
       else 
 	/* If the pragma simd found is true, it means that we should use the
 	   values given in the local_pragma_simd variable.  */ 
-	c_parser_for_statement (parser, true);
+	c_parser_for_statement (parser);
     }
   return;
 }

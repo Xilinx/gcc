@@ -6605,23 +6605,20 @@ extern bool block_may_fallthru (const_tree);
 #define CILK_FOR_INIT(NODE)     TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 0)
 #define CILK_FOR_GRAIN(NODE)    TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 6)
 
-/* here are the pragma simd specific files used by the parser and vectorizer
- * available in pragma_simd.c
- */
-extern struct pragma_simd_values *psv_find_node(int psv_index);
-extern int psv_head_insert(struct pragma_simd_values local_simd_values);
-extern bool pragma_simd_acceptable_vlength_p(int ps_index,
-					    int possible_vectorization_factor,
-					    tree scalar_type);
-extern bool pragma_simd_assert_requested_p(int ps_index);
-extern bool pragma_simd_vectorize_loop_p(int ps_index);
-extern tree pragma_simd_create_private_vars(tree body,
-					    tree *reset_stmt_list,
-					    struct pragma_simd_values ps_info);
+/* Here are the pragma simd specific files used by the parser and vectorizer 
+   available in pragma_simd.c.  */
+
+extern struct pragma_simd_values *psv_find_node (int psv_index);
+extern int psv_head_insert (struct pragma_simd_values local_simd_values);
+extern bool pragma_simd_acceptable_vlength_p (int ps_index, 
+					      int possible_vectorization_factor,
+					      tree scalar_type);
+extern bool pragma_simd_assert_requested_p (int ps_index);
+extern bool pragma_simd_vectorize_loop_p (int ps_index);
 
 extern void insert_reduction_values (struct reduction_values **,
 				     enum tree_code, tree);
-extern bool same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values);
+extern bool same_var_in_multiple_lists_p (struct pragma_simd_values *ps_values);
 extern void check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index);
 extern bool all_reductions_satisfied_p (int pragma_simd_index);
 extern bool clause_resolved_p (enum pragma_simd_kind clause_type,
@@ -6633,7 +6630,7 @@ extern HOST_WIDE_INT find_linear_step_size (int pragma_simd_index, tree var);
 
 tree build_call_list (tree return_type, tree fn, tree arglist);
 bool is_elem_fn (tree);
-void elem_fn_create_fn (tree) __attribute__((weak));
+void elem_fn_create_fn (tree);
 
 /* Functional interface to the builtin functions.  */
 

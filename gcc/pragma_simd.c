@@ -41,8 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 		
 
 struct pragma_simd_values *psv_head;
-static void find_var_decl (tree t, const char *var_name, tree *var);
-static void change_var_decl (tree *t, tree new_var, tree var);
 
 /* This function Empties the pragma simd data structure.  */
 void
@@ -368,618 +366,6 @@ pragma_simd_vectorize_loop_p (int ps_index)
   return false;
 }
 
-/* this function will create private variables for the ones requested by
-   pragma simd private.  */
-
-tree
-pragma_simd_create_private_vars (tree body,
-				 tree *reset_stmt_list,
-				 struct pragma_simd_values ps_info)
-{
-  tree_stmt_iterator ii_tree;
-  tree ii_value = NULL_TREE, ii_priv_list = NULL_TREE;
-  tree ii_priv_value = NULL_TREE;
-  tree inside_body = NULL_TREE;
-  tree var = NULL_TREE;
-  char name[40];
-  int count = 0;
-  tree var_clone = NULL_TREE;
-  tree var_orig  = NULL_TREE;
-  tree set_stmt  = NULL_TREE;
-  tree body_list = NULL_TREE;
-  tree reset_stmt= NULL_TREE;
-  
-  if (body == NULL_TREE) 
-    return body;
-
-  if (ps_info.private_vars == NULL_TREE) 
-    return body;
-  
-  if (TREE_CODE (body) == BIND_EXPR)
-    inside_body = BIND_EXPR_BODY (body);
-  else
-    inside_body = body;
-
-  for (ii_priv_list = ps_info.private_vars; ii_priv_list != NULL_TREE;
-       ii_priv_list = TREE_CHAIN (ii_priv_list))
-    {
-      ii_priv_value = TREE_VALUE (ii_priv_list);
-      var = NULL_TREE;
-      find_var_decl (body, IDENTIFIER_POINTER (ii_priv_value), &var);
-      if (var == NULL_TREE) 
-	/* When var is null it implies that it got optimized out.  */
-	continue;
-      else
-	{
-	  sprintf (name, "_p_simd_new_var_%d", ++count);
-	  var_clone = build_decl (UNKNOWN_LOCATION, VAR_DECL,
-				  get_identifier (name), TREE_TYPE (var));
-	  var_orig  =
-	    build_decl (UNKNOWN_LOCATION, VAR_DECL,
-			get_identifier (IDENTIFIER_POINTER (DECL_NAME (var))),
-			TREE_TYPE (var));
-  
-      
-	  set_stmt = build2 (INIT_EXPR, TREE_TYPE (var), var_clone,
-			     unshare_expr (var_orig));
-	  reset_stmt = build2 (INIT_EXPR, TREE_TYPE (var), 
-			       unshare_expr (var_orig), var_clone);
-	  if (*reset_stmt_list == NULL_TREE) 
-	    *reset_stmt_list = alloc_stmt_list ();
-	  append_to_statement_list_force (reset_stmt, reset_stmt_list);
-      
-	  if (TREE_CODE (inside_body) == STATEMENT_LIST)
-	    {
-	      ii_tree = tsi_start (inside_body);
-	      tsi_link_before (&ii_tree, set_stmt, TSI_NEW_STMT);
-      
-
-	      /* After we have added the new initialize expr, we need to go 
-		 through all the statements after the statements we just 
-		 added.  */
-	      
-	      /* but ... we skip the recently added statement */
-	      ii_tree = tsi_start (inside_body);
-	      tsi_next (&ii_tree);
-
-	      while (!tsi_end_p (ii_tree))
-		{
-		  ii_value = *tsi_stmt_ptr (ii_tree);
-		  change_var_decl (&ii_value, var_clone, var);
-		  tsi_next (&ii_tree);
-		}
-	    }
-	  else
-	    {
-	      body_list = alloc_stmt_list ();
-	      change_var_decl (&inside_body, var_clone, var);
-	      append_to_statement_list_force (set_stmt, &body_list);
-	      append_to_statement_list_force (inside_body, &body_list);
-	      body = build3 (BIND_EXPR, void_type_node, var_clone,
-			     body_list, NULL_TREE);
-	    }
-	}
-    }
-  ps_info.pvars_OK = true;
-  return body;
-}
-  
-				
-/* This function will search the variable from the body, tree or tree list.  */
-
-static void
-find_var_decl (tree t, const char *var_name, tree *var)
-{
-  enum tree_code code;
-  bool is_expr;
-
-  /* Skip empty subtrees.  */
-  if (t == NULL_TREE)
-    return;
-
-  code = TREE_CODE (t);
-  is_expr = IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code));
-  if (is_expr)
-    find_var_decl (TREE_TYPE (t), var_name, var);
-
-  switch (code)
-    {
-    case ERROR_MARK:
-    case IDENTIFIER_NODE:
-    case INTEGER_CST:
-    case REAL_CST:
-    case FIXED_CST:
-    case STRING_CST:
-    case BLOCK:
-    case PLACEHOLDER_EXPR:
-    case FIELD_DECL:
-    case VOID_TYPE:
-    case REAL_TYPE:
-      /* These do not contain variable references.  */
-      return;
-
-    case SSA_NAME:
-      find_var_decl (SSA_NAME_VAR (t), var_name, var);
-      return;
-
-    case LABEL_DECL:
-      return;
-
-    case RESULT_DECL:
-    case VAR_DECL:
-    case PARM_DECL:
-      if (strcmp (IDENTIFIER_POINTER (DECL_NAME (t)), var_name) == 0) 
-	*var = t;
-      return;
-    case NON_LVALUE_EXPR:
-    case CONVERT_EXPR:
-    case NOP_EXPR:
-      find_var_decl (TREE_OPERAND (t, 0), var_name, var);
-      return;
-
-    case INIT_EXPR:
-  
-      find_var_decl (TREE_OPERAND (t, 0), var_name, var);
-      find_var_decl (TREE_OPERAND (t, 1), var_name, var);
-      return;
-      
-    case MODIFY_EXPR:
-    case PREDECREMENT_EXPR:
-    case PREINCREMENT_EXPR:
-    case POSTDECREMENT_EXPR:
-    case POSTINCREMENT_EXPR:
-      /* These write their result. */
-      find_var_decl (TREE_OPERAND (t, 0), var_name, var);
-      find_var_decl (TREE_OPERAND (t, 1), var_name, var);
-      return;
-
-    case ADDR_EXPR:
-      find_var_decl (TREE_OPERAND (t, 0), var_name, var);
-   
-      return;
-
-    case ARRAY_REF:
-    case BIT_FIELD_REF:
-      find_var_decl (TREE_OPERAND (t, 0), var_name, var);
-      find_var_decl (TREE_OPERAND (t, 1), var_name, var);
-      find_var_decl (TREE_OPERAND (t, 2), var_name, var);
-      return;
-
-    case TREE_LIST:
-      find_var_decl (TREE_PURPOSE (t), var_name, var);
-      find_var_decl (TREE_VALUE (t), var_name, var);
-      find_var_decl (TREE_CHAIN (t), var_name, var);
-      return;
-
-    case TREE_VEC:
-      {
-	int len = TREE_VEC_LENGTH (t);
-	int i;
-	for (i = 0; i < len; i++)
-	  find_var_decl (TREE_VEC_ELT (t, i), var_name, var);
-	return;
-      }
-    case VECTOR_CST:
-      {
-	unsigned ii = 0;
-	for (ii = 0; ii < VECTOR_CST_NELTS (t); ii++)
-	  find_var_decl (VECTOR_CST_ELT (t, ii), var_name,  var);
-	break;
-      }
-    case COMPLEX_CST:
-      find_var_decl (TREE_REALPART (t), var_name, var);
-      find_var_decl (TREE_IMAGPART (t), var_name, var);
-      return;
-
-    case CONSTRUCTOR:
-      {
-	unsigned HOST_WIDE_INT idx;
-	constructor_elt *ce;
-
-	for (idx = 0; vec_safe_iterate (CONSTRUCTOR_ELTS (t), idx, &ce); idx++)
-	  find_var_decl (ce->value, var_name, var);
-	return;
-      }
-
-    case BIND_EXPR:
-      {
-	tree decl;
-	for (decl = BIND_EXPR_VARS (t); decl; decl = TREE_CHAIN (decl)) 
-	  find_var_decl (decl, var_name, var);
-	find_var_decl (BIND_EXPR_BODY (t), var_name, var);
-	return;
-      }
-
-    case STATEMENT_LIST:
-      {
-	tree_stmt_iterator i;
-	for (i = tsi_start (t); !tsi_end_p (i); tsi_next (&i))
-	  find_var_decl (*tsi_stmt_ptr (i), var_name, var);
-	return;
-      }
-
-    case OMP_PARALLEL:
-    case OMP_TASK:
-    case OMP_FOR:
-    case OMP_SINGLE:
-    case OMP_SECTION:
-    case OMP_SECTIONS:
-    case OMP_MASTER:
-    case OMP_ORDERED:
-    case OMP_CRITICAL:
-    case OMP_ATOMIC:
-    case OMP_CLAUSE:
-      break;
-
-    case TARGET_EXPR:
-      {
-	find_var_decl (TREE_OPERAND (t, 0), var_name, var);
-	find_var_decl (TREE_OPERAND (t, 1), var_name, var);
-	find_var_decl (TREE_OPERAND (t, 2), var_name, var);
-	if (TREE_OPERAND (t, 3) != TREE_OPERAND (t, 1))
-	  find_var_decl (TREE_OPERAND (t, 3), var_name,  var);
-	return;
-      }
-
-    case RETURN_EXPR:
-      return;
-
-    case DECL_EXPR:
-      return;
-
-    case INTEGER_TYPE:
-    case ENUMERAL_TYPE:
-    case BOOLEAN_TYPE:
-      find_var_decl (TYPE_MIN_VALUE (t), var_name, var);
-      find_var_decl (TYPE_MAX_VALUE (t), var_name, var);
-      return;
-
-    case POINTER_TYPE:
-      find_var_decl (TREE_TYPE (t), var_name, var);
-      break;
-
-    case ARRAY_TYPE:
-      find_var_decl (TREE_TYPE (t), var_name, var);
-      find_var_decl (TYPE_DOMAIN (t), var_name, var);
-      return;
-
-    case RECORD_TYPE:
-      find_var_decl (TYPE_FIELDS (t), var_name, var);
-      return;
-    
-    case METHOD_TYPE:
-      find_var_decl (TYPE_ARG_TYPES (t), var_name, var);
-      find_var_decl (TYPE_METHOD_BASETYPE (t), var_name, var);
-
-    case AGGR_INIT_EXPR:
-    case CALL_EXPR:
-      {
-	int len = 0;
-	int ii = 0;
-	if (TREE_CODE (TREE_OPERAND (t, 0)) == INTEGER_CST)
-	  {
-	    len = TREE_INT_CST_LOW (TREE_OPERAND (t, 0));
-
-	    for (ii = 0; ii < len; ii++) 
-	      find_var_decl (TREE_OPERAND (t, ii), var_name, var);
-	    find_var_decl (TREE_TYPE (t), var_name, var);
-	  }
-	break;
-      }
-
-    default:
-      if (is_expr)
-	{
-	  int i, len;
-
-	  /* Walk over all the sub-trees of this operand.  */
-	  len = TREE_CODE_LENGTH (code);
-
-	  /* Go through the subtrees.  We need to do this in forward order so
-	     that the scope of a FOR_EXPR is handled properly.  */
-	  for (i = 0; i < len; ++i)
-	    find_var_decl (TREE_OPERAND (t, i), var_name, var);
-	}
-      return;
-    }
-}
-
-/* this function will substitute one variable with another.  */
-
-static void
-change_var_decl (tree *t, tree new_var, tree var)
-{
-  tree nt = NULL_TREE;
-  enum tree_code code;
-  bool is_expr = false;
-  tree nt2 = NULL_TREE, nt3 = NULL_TREE, nt4 = NULL_TREE;
-  
-
-  /* Skip empty subtrees.  */
-  if (!t || (*t == NULL_TREE))
-    return;
-
-  code = TREE_CODE (*t);
-  is_expr = IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code));
-  if (is_expr)
-    {
-      nt = TREE_TYPE (*t);
-      change_var_decl (&nt, new_var, var);
-      TREE_TYPE (*t) = nt;
-    }
-  switch (code)
-    {
-    case ERROR_MARK:
-    case IDENTIFIER_NODE:
-    case INTEGER_CST:
-    case REAL_CST:
-    case FIXED_CST:
-    case STRING_CST:
-    case BLOCK:
-    case PLACEHOLDER_EXPR:
-    case FIELD_DECL:
-    case VOID_TYPE:
-    case REAL_TYPE:
-      /* These do not contain variable references.  */
-      return;
-
-    case SSA_NAME:
-      nt = SSA_NAME_VAR (*t);
-      change_var_decl (&nt, new_var, var);
-      SET_SSA_NAME_VAR_OR_IDENTIFIER (*t, nt);
-      return;
-
-    case LABEL_DECL:
-      return;
-
-    case RESULT_DECL:
-    case VAR_DECL:
-    case PARM_DECL:
-      if (!strcmp (IDENTIFIER_POINTER (DECL_NAME (*t)),
-		   IDENTIFIER_POINTER (DECL_NAME (var)))) 
-	*t = new_var;
-      return;
-    case NON_LVALUE_EXPR:
-    case CONVERT_EXPR:
-    case NOP_EXPR:
-      nt = TREE_OPERAND (*t, 0);
-      change_var_decl (&nt, new_var, var);
-      TREE_OPERAND (*t, 0) = nt;
-      return;
-
-    case INIT_EXPR:
-      nt = TREE_OPERAND (*t, 0);
-      change_var_decl (&nt, new_var, var);
-      nt2 = TREE_OPERAND (*t, 1);
-      change_var_decl (&nt2, new_var, var);
-
-      TREE_OPERAND (*t, 0) = nt;
-      TREE_OPERAND (*t, 1) = nt2;
-      return;
-
-    case MODIFY_EXPR:
-    case PREDECREMENT_EXPR:
-    case PREINCREMENT_EXPR:
-    case POSTDECREMENT_EXPR:
-    case POSTINCREMENT_EXPR:
-      /* These write their result.  */
-      nt = TREE_OPERAND (*t, 0);
-      nt2= TREE_OPERAND (*t, 1);
-      change_var_decl (&nt, new_var, var);
-      change_var_decl (&nt2, new_var, var);
-      TREE_OPERAND (*t, 0) = nt;
-      TREE_OPERAND (*t, 1) = nt2;
-      return;
-
-    case ADDR_EXPR:
-      nt = TREE_OPERAND (*t, 0);
-      change_var_decl (&nt, new_var, var);
-      TREE_OPERAND (*t, 0) = nt;
-      return;
-
-    case ARRAY_REF:
-    case BIT_FIELD_REF:
-      nt  = TREE_OPERAND (*t, 0);
-      nt2 = TREE_OPERAND (*t, 1);
-      nt3 = TREE_OPERAND (*t, 2);
-      change_var_decl (&nt,  new_var, var);
-      change_var_decl (&nt2, new_var, var);
-      change_var_decl (&nt3, new_var, var);
-      TREE_OPERAND (*t, 0) = nt;
-      TREE_OPERAND (*t, 1) = nt2;
-      TREE_OPERAND (*t, 2) = nt3;
-      return;
-
-    case TREE_LIST:
-      nt  = TREE_PURPOSE (*t);
-      nt2 = TREE_VALUE (*t);
-      nt3 = TREE_CHAIN (*t);
-      change_var_decl (&nt,  new_var, var);
-      change_var_decl (&nt2, new_var, var);
-      change_var_decl (&nt3, new_var, var);
-      TREE_OPERAND (*t, 0) = nt;
-      TREE_OPERAND (*t, 1) = nt2;
-      TREE_OPERAND (*t, 2) = nt3;
-      return;
-
-    case TREE_VEC:
-      {
-	int len = TREE_VEC_LENGTH (*t);
-	int i;
-	for (i = 0; i < len; i++)
-	  {
-	    nt = TREE_VEC_ELT (*t, i);
-	    change_var_decl (&nt, new_var, var);
-	    TREE_VEC_ELT (*t, i) = nt;
-	  }
-	return;
-      }
-
-    case VECTOR_CST:
-      {
-	unsigned ii = 0;
-	for (ii = 0; ii < VECTOR_CST_NELTS (*t); ii++)
-	  {
-	    nt = VECTOR_CST_ELT (*t, ii);
-	    change_var_decl (&nt, new_var, var);
-	    VECTOR_CST_ELT (*t, ii) = nt;
-	  }
-	break;
-      }
-    case COMPLEX_CST:
-      nt  = TREE_REALPART (*t);
-      nt2 = TREE_IMAGPART (*t);
-      change_var_decl (&nt,  new_var, var);
-      change_var_decl (&nt2, new_var, var);
-      TREE_REALPART (*t) = nt;
-      TREE_IMAGPART (*t) = nt2;
-      return;
-
-    case CONSTRUCTOR:
-      {
-	unsigned HOST_WIDE_INT idx;
-	constructor_elt *ce;
-	for (idx = 0; vec_safe_iterate (CONSTRUCTOR_ELTS (*t), idx, &ce); idx++)
-	  change_var_decl (&ce->value, new_var, var);
-	return;
-      }
-
-    case BIND_EXPR:
-      {  
-	change_var_decl (&BIND_EXPR_BODY (*t), new_var, var);
-	return;
-      }
-
-    case STATEMENT_LIST:
-      {
-	tree_stmt_iterator i;
-	for (i = tsi_start (*t); !tsi_end_p (i); tsi_next (&i))
-	  change_var_decl (tsi_stmt_ptr (i), new_var, var);
-	return;
-      }
-
-    case OMP_PARALLEL:
-    case OMP_TASK:
-    case OMP_FOR:
-    case OMP_SINGLE:
-    case OMP_SECTION:
-    case OMP_SECTIONS:
-    case OMP_MASTER:
-    case OMP_ORDERED:
-    case OMP_CRITICAL:
-    case OMP_ATOMIC:
-    case OMP_CLAUSE:
-      break;
-
-    case TARGET_EXPR:
-      {
-	nt  = TREE_OPERAND (*t, 0);
-	nt2 = TREE_OPERAND (*t, 1);
-	nt3 = TREE_OPERAND (*t, 2);
-	nt4 = TREE_OPERAND (*t, 3);
-	change_var_decl (&nt,  new_var, var);
-	change_var_decl (&nt2, new_var, var);
-	change_var_decl (&nt3, new_var, var);
-	TREE_OPERAND (*t, 0) = nt;
-	TREE_OPERAND (*t, 1) = nt2;
-	TREE_OPERAND (*t, 2) = nt3;
-	if (TREE_OPERAND (*t, 3) != TREE_OPERAND (*t, 1))
-	  {
-	    change_var_decl (&nt4, new_var,  var);
-	    TREE_OPERAND (*t, 3) = nt4;
-	  }
-	return;
-      }
-
-    case RETURN_EXPR:
-      return;
-
-    case DECL_EXPR:
-      return;
-
-    case INTEGER_TYPE:
-    case ENUMERAL_TYPE:
-    case BOOLEAN_TYPE:
-      nt  = TYPE_MIN_VALUE (*t);
-      nt2 = TYPE_MAX_VALUE (*t);
-      change_var_decl (&nt,  new_var, var);
-      change_var_decl (&nt2, new_var, var);
-      TYPE_MIN_VALUE (*t) = nt;
-      TYPE_MAX_VALUE (*t) = nt2;
-      return;
-
-    case POINTER_TYPE:
-      nt = TREE_TYPE (*t);
-      change_var_decl (&nt, new_var, var);
-      TREE_TYPE (*t) = nt;
-      break;
-
-    case ARRAY_TYPE:
-      nt  = TREE_TYPE (*t);
-      nt2 = TYPE_DOMAIN (*t);
-      change_var_decl (&nt,  new_var, var);
-      change_var_decl (&nt2, new_var, var);
-      TREE_TYPE (*t) = nt;
-      TYPE_DOMAIN (*t) = nt2;
-      return;
-
-    case RECORD_TYPE:
-      nt = TYPE_FIELDS (*t);
-      change_var_decl (&nt, new_var, var);
-      TYPE_FIELDS (*t) = nt;
-      return;
-    
-    case METHOD_TYPE:
-      nt  = TYPE_ARG_TYPES (*t);
-      nt2 = TYPE_METHOD_BASETYPE (*t);
-      change_var_decl (&nt,  new_var, var);
-      change_var_decl (&nt2, new_var, var);
-      TYPE_ARG_TYPES (*t) = nt;
-      TYPE_METHOD_BASETYPE (*t) = nt2;
-
-    case AGGR_INIT_EXPR:
-    case CALL_EXPR:
-      {
-	int len = 0;
-	int ii = 0;
-	if (TREE_CODE (TREE_OPERAND (*t, 0)) == INTEGER_CST)
-	  {
-	    len = TREE_INT_CST_LOW (TREE_OPERAND (*t, 0));
-
-	    for (ii = 0; ii < len; ii++)
-	      {
-		nt = TREE_OPERAND (*t, ii);
-		change_var_decl (&nt, new_var, var);
-		TREE_OPERAND (*t, ii) = nt;
-	      }
-	    nt2 = TREE_TYPE (*t);
-	    change_var_decl (&nt2, new_var, var);
-	    TREE_TYPE (*t) = nt2;
-	  }
-	break;
-      }
-
-    default:
-      if (is_expr)
-	{
-	  int i, len;
-
-	  /* Walk over all the sub-trees of this operand.  */
-	  len = TREE_CODE_LENGTH (code);
-
-	  /* Go through the subtrees.  We need to do this in forward order so
-	     that the scope of a FOR_EXPR is handled properly.  */
-	  for (i = 0; i < len; ++i)
-	    {
-	      nt = TREE_OPERAND (*t, i);
-	      change_var_decl (&nt, new_var, var);
-	      TREE_OPERAND (*t, i) = nt;
-	    }
-	}
-      return;
-    }
-}
-
 /* This function will insert the appropriate reduction values asked by pragma
    simd reduction into the internal pragma simd list.  */
 
@@ -1245,4 +631,93 @@ find_linear_step_size (int pragma_simd_index, tree var)
 	}
     }
   return 0;
+}
+
+/* Goes through the private vars of pragma simd structure pointed by PS_INDEX
+   and checks of DEF_VAR is in the list and if so returns true.  */
+
+bool
+pragma_simd_is_private_var (int ps_index, tree def_var)
+{
+  struct pragma_simd_values *ps_node = NULL;
+  tree variable, ii_priv_list;
+  
+  if (def_var == NULL_TREE)
+    return false;
+
+  ps_node = psv_find_node (ps_index);
+  if (!ps_node)
+    return false;
+
+  /* If it is a SSA_NAME, then this will extract the original variable name.  */
+  if (TREE_CODE (def_var) == SSA_NAME)
+    {
+      if (SSA_NAME_VAR (def_var) != NULL_TREE)
+	{
+	  def_var = SSA_NAME_VAR (def_var);
+	  if (TREE_CODE (def_var) == VAR_DECL
+	      || TREE_CODE (def_var) == PARM_DECL)
+	    {
+	      tree variable = DECL_NAME (def_var);
+	      if (variable == NULL_TREE)
+		return false;
+	      for (ii_priv_list = ps_node->private_vars; ii_priv_list;
+		   ii_priv_list = TREE_CHAIN (ii_priv_list))
+		{
+		  tree ii_priv_value = TREE_VALUE (ii_priv_list);
+		  if (simple_cst_equal (ii_priv_value, variable) == 1)
+		    return true;
+		}
+	    }
+	}
+      else if (SSA_NAME_DEF_STMT (def_var))
+	{
+	  bool found = false;
+	  gimple def_stmt = SSA_NAME_DEF_STMT (def_var);
+
+	  /* We go through all the ops in the def_stmt's RHS.  */
+	  for (size_t ii = 1; ii < gimple_num_ops (def_stmt); ii++)
+	    {
+	      tree var_name, var = gimple_op (def_stmt, ii);
+	      if (!var)
+		continue;
+	      else if (TREE_CODE (var) == SSA_NAME && SSA_NAME_VAR (var))
+		var = SSA_NAME_VAR (var);
+
+	      if (TREE_CODE (var) == VAR_DECL || TREE_CODE (var) == PARM_DECL)
+		var_name = DECL_NAME (var);
+
+	      /* Here we go through all the variables in the private list.
+		 If we have a match, then we set found to true.  If we didn't
+		 have a match, then found will be false and then we return that.
+		 This means that the variable we are looking in def is dependent
+		 on variables that are not on the private list.  */
+	      for (ii_priv_list = ps_node->private_vars; ii_priv_list;
+		   ii_priv_list = TREE_CHAIN (ii_priv_list))
+		{
+		  tree ii_priv_value = TREE_VALUE (ii_priv_list);
+		  if (simple_cst_equal (ii_priv_value, var_name) == 1)
+		    found = true;
+		}
+	      if (found == false)
+		return false;
+	    }
+	  return found;
+	}
+    }
+  else if (TREE_CODE (def_var) == VAR_DECL || TREE_CODE (def_var) == PARM_DECL)
+    {
+      variable = DECL_NAME (def_var);
+      if (variable == NULL_TREE)
+	return false;
+
+      for (ii_priv_list = ps_node->private_vars; ii_priv_list;
+	   ii_priv_list = TREE_CHAIN (ii_priv_list))
+	{
+	  tree ii_priv_value = TREE_VALUE (ii_priv_list);
+	  if (simple_cst_equal (ii_priv_value, variable) == 1)
+	    return true;
+	}
+    }
+  return false;
 }

@@ -1,7 +1,12 @@
+2013-03-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-gimplify.c (genericize_cp_loop): Removed calls to the functions
+	pragma_simd_create_private_vars and psv_find_node.
+
 2013-02-27  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-gimplify.c (cp_gimplify_init_expr): Copied the _Cilk_spawn func.
-	call marker into the appropriate return expression. 
+	call marker into the appropriate return expression.
 	* semantics.c (simplify_aggr_init_expr): Likewise.
 
 2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>

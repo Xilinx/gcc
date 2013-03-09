@@ -276,9 +276,9 @@ dump_bb (FILE *outf, basic_block bb, int indent, int flags)
     cfg_hooks->dump_bb (outf, bb, indent, flags);
   if (flags & TDF_BLOCKS)
     dump_bb_info (outf, bb, indent, flags, false, true);
-  fputc ('\n', outf);
   if (flag_enable_cilk)
     fprintf(outf, "pragma_simd_index = %d\n", bb->pragma_simd_index);
+  fputc ('\n', outf);
 }
 
 /* Dumps basic block BB to pretty-printer PP, for use as a label of

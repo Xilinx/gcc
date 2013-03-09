@@ -328,5 +328,5 @@ extern tree clear_cilk_except_flag (tree);
 extern tree set_cilk_except_data (tree);
 extern void c_install_body_with_frame_cleanup (tree, tree);
 tree build_cilk_catch_sync (void);
-
+extern bool pragma_simd_is_private_var (int, tree);
 #endif /* GCC_CILK_H */

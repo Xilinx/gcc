@@ -195,8 +195,6 @@ genericize_cp_loop (tree *stmt_p, location_t start_locus, tree cond, tree body,
   tree blab, clab;
   tree entry = NULL, exit = NULL, t;
   tree stmt_list = NULL;
-  struct pragma_simd_values *cilkplus_ps_value = NULL;
-  tree reset_stmt_list = NULL_TREE;
 
   blab = begin_bc_block (bc_break, start_locus);
   clab = begin_bc_block (bc_continue, start_locus);
@@ -229,10 +227,6 @@ genericize_cp_loop (tree *stmt_p, location_t start_locus, tree cond, tree body,
       /* Expand to gotos, just like c_finish_loop.  TODO: Use LOOP_EXPR.  */
       tree top = build1 (LABEL_EXPR, void_type_node, label);
       PRAGMA_SIMD_INDEX (label) = pragma_simd_index;
-      cilkplus_ps_value = psv_find_node (PRAGMA_SIMD_INDEX (label));
-      if (cilkplus_ps_value) 
-	body = pragma_simd_create_private_vars (body, &reset_stmt_list, 
-						*cilkplus_ps_value);
 
       /* If we have an exit condition, then we build an IF with gotos either
 	 out of the loop, or to the top of it.  If there's no exit condition,

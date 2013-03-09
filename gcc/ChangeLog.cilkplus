@@ -1,3 +1,17 @@
+2013-03-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* tree-loop-distribution.c (ssa_name_has_uses_outside_loop_p): Added
+	a call to pragma_simd_is_private_vars function when cilk plus is
+	enabled.
+	* c/c-parser.c (c_parser_for_statement): Removed the pragma_simd_found
+	parameter.  Also, removed the call for pragma_simd_create_private_vars.
+	* cfghooks.c (dump_bb): Moved the carriage return to out file to the
+	end.
+	* pragma_simd.c (pragma_simd_is_private_var): New function.
+	(find_var_decl): Remove.
+	(change_var_decl): Likewise.
+	(pragma_simd_create_private_vars): Likewise.
+
 2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (output_zca_table): Added an extra field of zeros for 32 bit

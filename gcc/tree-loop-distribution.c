@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
 #include "tree-pass.h"
+#include "cilk.h"
 
 enum partition_kind {
     PKIND_NORMAL, PKIND_REDUCTION, PKIND_MEMSET, PKIND_MEMCPY
@@ -126,8 +127,13 @@ ssa_name_has_uses_outside_loop_p (tree def, loop_p loop)
   FOR_EACH_IMM_USE_FAST (use_p, imm_iter, def)
     {
       gimple use_stmt = USE_STMT (use_p);
-      if (!is_gimple_debug (use_stmt)
-	  && loop != loop_containing_stmt (use_stmt))
+      if (flag_enable_cilk
+	  && pragma_simd_is_private_var (loop->pragma_simd_index, def))
+	/* Don't do any more checks for this value.  The user has indicated that
+	   this variable is private to the loop.  */
+	;
+      else if (!is_gimple_debug (use_stmt)
+	       && loop != loop_containing_stmt (use_stmt))
 	return true;
     }
 
