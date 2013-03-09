@@ -733,7 +733,7 @@ Objective-C and Objective-C++ Dialects}.
 -mmemcpy -mxl-soft-mul -mxl-soft-div -mxl-barrel-shift @gol
 -mxl-pattern-compare -mxl-stack-check -mxl-gp-opt -mno-clearbss @gol
 -mxl-multiply-high -mxl-float-convert -mxl-float-sqrt @gol
--mxl-mode-@var{app-model}}
+-mbig-endian -mlittle-endian -mxl-reorder -mxl-mode-@var{app-model}}
 
 @emph{MIPS Options}
 @gccoptlist{-EL  -EB  -march=@var{arch}  -mtune=@var{arch} @gol
@@ -8173,15 +8173,11 @@ Enabled by default with @option{-funroll-loops}.
 Assume that the current compilation unit represents the whole program being
 compiled.  All public functions and variables with the exception of @code{main}
 and those merged by attribute @code{externally_visible} become static functions
-and in effect are optimized more aggressively by interprocedural optimizers. If @command{gold} is used as the linker plugin, @code{externally_visible} attributes are automatically added to functions (not variable yet due to a current @command{gold} issue) that are accessed outside of LTO objects according to resolution file produced by @command{gold}.  For other linkers that cannot generate resolution file, explicit @code{externally_visible} attributes are still necessary.
-While this option is equivalent to proper use of the @code{static} keyword for
-programs consisting of a single file, in combination with option
-@option{-flto} this flag can be used to
-compile many smaller scale programs since the functions and variables become
-local for the whole combined compilation unit, not for the single source file
-itself.
+and in effect are optimized more aggressively by interprocedural optimizers.
 
-This option implies @option{-fwhole-file} for Fortran programs.
+In combination with @code{-flto} using this option should not be used.
+Instead relying on a linker plugin should provide safer and more precise
+information.
 
 @item -flto[=@var{n}]
 @opindex flto
@@ -10860,6 +10856,125 @@ platform.
 * zSeries Options::
 @end menu
 
+@node AArch64 Options
+@subsection AArch64 Options
+@cindex AArch64 Options
+
+These options are defined for AArch64 implementations:
+
+@table @gcctabopt
+
+@item -mbig-endian
+@opindex mbig-endian
+Generate big-endian code.  This is the default when GCC is configured for an
+@samp{aarch64_be-*-*} target.
+
+@item -mgeneral-regs-only
+@opindex mgeneral-regs-only
+Generate code which uses only the general registers.
+
+@item -mlittle-endian
+@opindex mlittle-endian
+Generate little-endian code.  This is the default when GCC is configured for an
+@samp{aarch64-*-*} but not an @samp{aarch64_be-*-*} target.
+
+@item -mcmodel=tiny
+@opindex mcmodel=tiny
+Generate code for the tiny code model.  The program and its statically defined
+symbols must be within 1GB of each other.  Pointers are 64 bits.  Programs can
+be statically or dynamically linked.  This model is not fully implemented and
+mostly treated as @samp{small}.
+
+@item -mcmodel=small
+@opindex mcmodel=small
+Generate code for the small code model.  The program and its statically defined
+symbols must be within 4GB of each other.  Pointers are 64 bits.  Programs can
+be statically or dynamically linked.  This is the default code model.
+
+@item -mcmodel=large
+@opindex mcmodel=large
+Generate code for the large code model.  This makes no assumptions about
+addresses and sizes of sections.  Pointers are 64 bits.  Programs can be
+statically linked only.
+
+@item -mstrict-align
+@opindex mstrict-align
+Do not assume that unaligned memory references will be handled by the system.
+
+@item -momit-leaf-frame-pointer
+@itemx -mno-omit-leaf-frame-pointer
+@opindex momit-leaf-frame-pointer
+@opindex mno-omit-leaf-frame-pointer
+Omit or keep the frame pointer in leaf functions.  The former behaviour is the
+default.
+
+@item -mtls-dialect=desc
+@opindex mtls-dialect=desc
+Use TLS descriptors as the thread-local storage mechanism for dynamic accesses
+of TLS variables.  This is the default.
+
+@item -mtls-dialect=traditional
+@opindex mtls-dialect=traditional
+Use traditional TLS as the thread-local storage mechanism for dynamic accesses
+of TLS variables.
+
+@item -march=@var{name}
+@opindex march
+Specify the name of the target architecture, optionally suffixed by one or
+more feature modifiers.  This option has the form
+@option{-march=@var{arch}@r{@{}+@r{[}no@r{]}@var{feature}@r{@}*}}, where the
+only value for @var{arch} is @samp{armv8-a}.  The possible values for
+@var{feature} are documented in the sub-section below.
+
+Where conflicting feature modifiers are specified, the right-most feature is
+used.
+
+GCC uses this name to determine what kind of instructions it can emit when
+generating assembly code.  This option can be used in conjunction with or
+instead of the @option{-mcpu=} option.
+
+@item -mcpu=@var{name}
+@opindex mcpu
+Specify the name of the target processor, optionally suffixed by one or more
+feature modifiers.  This option has the form
+@option{-mcpu=@var{cpu}@r{@{}+@r{[}no@r{]}@var{feature}@r{@}*}}, where the
+possible values for @var{cpu} are @samp{generic}, @samp{large}.  The
+possible values for @var{feature} are documented in the sub-section
+below.
+
+Where conflicting feature modifiers are specified, the right-most feature is
+used.
+
+GCC uses this name to determine what kind of instructions it can emit when
+generating assembly code.
+
+@item -mtune=@var{name}
+@opindex mtune
+Specify the name of the processor to tune the performance for.  The code will
+be tuned as if the target processor were of the type specified in this option,
+but still using instructions compatible with the target processor specified
+by a @option{-mcpu=} option.  This option cannot be suffixed by feature
+modifiers.
+
+@end table
+
+@subsubsection @option{-march} and @option{-mcpu} feature modifiers
+@cindex @option{-march} feature modifiers
+@cindex @option{-mcpu} feature modifiers
+Feature modifiers used with @option{-march} and @option{-mcpu} can be one
+the following:
+
+@table @samp
+@item crypto
+Enable Crypto extension.  This implies Advanced SIMD is enabled.
+@item fp
+Enable floating-point instructions.
+@item simd
+Enable Advanced SIMD instructions.  This implies floating-point instructions
+are enabled.  This is the default for all current possible values for options
+@option{-march} and @option{-mcpu=}.
+@end table
+
 @node Adapteva Epiphany Options
 @subsection Adapteva Epiphany Options
 
@@ -11014,125 +11129,6 @@ which specify use of that register as a fixed register,
 and @samp{none}, which means that no register is used for this
 purpose.  The default is @option{-m1reg-none}.
 
-@end table
-
-@node AArch64 Options
-@subsection AArch64 Options
-@cindex AArch64 Options
-
-These options are defined for AArch64 implementations:
-
-@table @gcctabopt
-
-@item -mbig-endian
-@opindex mbig-endian
-Generate big-endian code.  This is the default when GCC is configured for an
-@samp{aarch64_be-*-*} target.
-
-@item -mgeneral-regs-only
-@opindex mgeneral-regs-only
-Generate code which uses only the general registers.
-
-@item -mlittle-endian
-@opindex mlittle-endian
-Generate little-endian code.  This is the default when GCC is configured for an
-@samp{aarch64-*-*} but not an @samp{aarch64_be-*-*} target.
-
-@item -mcmodel=tiny
-@opindex mcmodel=tiny
-Generate code for the tiny code model.  The program and its statically defined
-symbols must be within 1GB of each other.  Pointers are 64 bits.  Programs can
-be statically or dynamically linked.  This model is not fully implemented and
-mostly treated as @samp{small}.
-
-@item -mcmodel=small
-@opindex mcmodel=small
-Generate code for the small code model.  The program and its statically defined
-symbols must be within 4GB of each other.  Pointers are 64 bits.  Programs can
-be statically or dynamically linked.  This is the default code model.
-
-@item -mcmodel=large
-@opindex mcmodel=large
-Generate code for the large code model.  This makes no assumptions about
-addresses and sizes of sections.  Pointers are 64 bits.  Programs can be
-statically linked only.
-
-@item -mstrict-align
-@opindex mstrict-align
-Do not assume that unaligned memory references will be handled by the system.
-
-@item -momit-leaf-frame-pointer
-@itemx -mno-omit-leaf-frame-pointer
-@opindex momit-leaf-frame-pointer
-@opindex mno-omit-leaf-frame-pointer
-Omit or keep the frame pointer in leaf functions.  The former behaviour is the
-default.
-
-@item -mtls-dialect=desc
-@opindex mtls-dialect=desc
-Use TLS descriptors as the thread-local storage mechanism for dynamic accesses
-of TLS variables.  This is the default.
-
-@item -mtls-dialect=traditional
-@opindex mtls-dialect=traditional
-Use traditional TLS as the thread-local storage mechanism for dynamic accesses
-of TLS variables.
-
-@item -march=@var{name}
-@opindex march
-Specify the name of the target architecture, optionally suffixed by one or
-more feature modifiers.  This option has the form
-@option{-march=@var{arch}@r{@{}+@r{[}no@r{]}@var{feature}@r{@}*}}, where the
-only value for @var{arch} is @samp{armv8-a}.  The possible values for
-@var{feature} are documented in the sub-section below.
-
-Where conflicting feature modifiers are specified, the right-most feature is
-used.
-
-GCC uses this name to determine what kind of instructions it can emit when
-generating assembly code.  This option can be used in conjunction with or
-instead of the @option{-mcpu=} option.
-
-@item -mcpu=@var{name}
-@opindex mcpu
-Specify the name of the target processor, optionally suffixed by one or more
-feature modifiers.  This option has the form
-@option{-mcpu=@var{cpu}@r{@{}+@r{[}no@r{]}@var{feature}@r{@}*}}, where the
-possible values for @var{cpu} are @samp{generic}, @samp{large}.  The
-possible values for @var{feature} are documented in the sub-section
-below.
-
-Where conflicting feature modifiers are specified, the right-most feature is
-used.
-
-GCC uses this name to determine what kind of instructions it can emit when
-generating assembly code.
-
-@item -mtune=@var{name}
-@opindex mtune
-Specify the name of the processor to tune the performance for.  The code will
-be tuned as if the target processor were of the type specified in this option,
-but still using instructions compatible with the target processor specified
-by a @option{-mcpu=} option.  This option cannot be suffixed by feature
-modifiers.
-
-@end table
-
-@subsubsection @option{-march} and @option{-mcpu} feature modifiers
-@cindex @option{-march} feature modifiers
-@cindex @option{-mcpu} feature modifiers
-Feature modifiers used with @option{-march} and @option{-mcpu} can be one
-the following:
-
-@table @samp
-@item crypto
-Enable Crypto extension.  This implies Advanced SIMD is enabled.
-@item fp
-Enable floating-point instructions.
-@item simd
-Enable Advanced SIMD instructions.  This implies floating-point instructions
-are enabled.  This is the default for all current possible values for options
-@option{-march} and @option{-mcpu=}.
 @end table
 
 @node ARM Options
@@ -15825,6 +15821,18 @@ Use hardware floating-point conversion instructions.
 @opindex mxl-float-sqrt
 Use hardware floating-point square root instruction.
 
+@item -mbig-endian
+@opindex mbig-endian
+Generate code for a big-endian target.
+
+@item -mlittle-endian
+@opindex mlittle-endian
+Generate code for a little-endian target.
+
+@item -mxl-reorder
+@opindex mxl-reorder
+Use reorder instructions (swap and byte reversed load/store).
+
 @item -mxl-mode-@var{app-model}
 Select application model @var{app-model}.  Valid models are
 @table @samp
@@ -18742,8 +18750,8 @@ Set the cost to assume for a multiply insn.
 
 @item -mdiv=@var{strategy}
 @opindex mdiv=@var{strategy}
-Set the division strategy to use for SHmedia code.  @var{strategy} must be
-one of: 
+Set the division strategy to be used for integer division operations.
+For SHmedia @var{strategy} can be one of: 
 
 @table @samp
 
@@ -18800,6 +18808,36 @@ slows down the case of larger dividends.  @samp{inv20u} assumes the case of a su
 a small dividend to be unlikely, and @samp{inv20l} assumes it to be likely.
 
 @end table
+
+For targets other than SHmedia @var{strategy} can be one of:
+
+@table @samp
+
+@item call-div1
+Calls a library function that uses the single-step division instruction
+@code{div1} to perform the operation.  Division by zero calculates an
+unspecified result and does not trap.  This is the default except for SH4,
+SH2A and SHcompact.
+
+@item call-fp
+Calls a library function that performs the operation in double precision
+floating point.  Division by zero causes a floating-point exception.  This is
+the default for SHcompact with FPU.  Specifying this for targets that do not
+have a double precision FPU will default to @code{call-div1}.
+
+@item call-table
+Calls a library function that uses a lookup table for small divisors and
+the @code{div1} instruction with case distinction for larger divisors.  Division
+by zero calculates an unspecified result and does not trap.  This is the default
+for SH4.  Specifying this for targets that do not have dynamic shift
+instructions will default to @code{call-div1}.
+
+@end table
+
+When a division strategy has not been specified the default strategy will be
+selected based on the current target.  For SH2A the default strategy is to
+use the @code{divs} and @code{divu} instructions instead of library function
+calls.
 
 @item -maccumulate-outgoing-args
 @opindex maccumulate-outgoing-args
