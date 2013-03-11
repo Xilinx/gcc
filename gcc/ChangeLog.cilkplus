@@ -1,3 +1,8 @@
+2013-03-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* pragma_simd.c (pragma_simd_is_private_var): Added an else clause and
+	set var_name as var if var is not a VAR_DECL or PARM_DECL.
+
 2013-03-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* tree-loop-distribution.c (ssa_name_has_uses_outside_loop_p): Added

@@ -686,6 +686,8 @@ pragma_simd_is_private_var (int ps_index, tree def_var)
 
 	      if (TREE_CODE (var) == VAR_DECL || TREE_CODE (var) == PARM_DECL)
 		var_name = DECL_NAME (var);
+	      else
+		var_name = var; /* It should not get here.  */
 
 	      /* Here we go through all the variables in the private list.
 		 If we have a match, then we set found to true.  If we didn't
