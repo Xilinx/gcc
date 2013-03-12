@@ -5725,6 +5725,13 @@ This hook is called by a Cilk Plus routine that will request the
  in the elemental functions.
 @end deftypefn
 
+@deftypefn {Target Hook} bool TARGET_CILKPLUS_BUILTIN_HAVE_CILKSCREEN_SUPPORT (void)
+This hook is called by the builtins expander to make sure there is a 
+  cilkscreen support for the architecture.  By default, we put in all the 
+  annotations, but if this function does not return true, then expander 
+  replaces them all with const0_rtx.
+@end deftypefn
+
 
 @deftypefn {Target Hook} bool TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE (const_tree @var{type}, bool @var{is_packed})
 Return true if vector alignment is reachable (by peeling N iterations) for the given type.

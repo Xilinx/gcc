@@ -1,3 +1,20 @@
+2013-03-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* builtins.c (expand_builtin): Added a check if cilkscreen is available
+	for the target.
+	* config/i386/i386.c (ix86_have_cilkscreen_support): New function.
+	Also, assigned this function to the following #define:
+	TARGET_CILKPLUS_BUILTIN_HAVE_CILKSCREEN_SUPPORT.
+	* target.def (builtin_have_cilkscreen_support): New target hook.
+	* targhooks.c (default_have_cilkscreen_support): New function.
+	(default_builtin_map_proc_to_attr): Likewise.
+	(default_builtin_find_proc_code): Likewise.
+	(default_builtin_find_isa_code): Likewise.
+	(default_builtin_find_vlength_for_proc): Make return type as unsigned.
+	* doc/tm.texi (Addressing Modes): Added documentation for new target
+	hook TARGET_CILKPLUS_BUILTIN_HAVE_CILKSCREEN_SUPPORT.
+	* doc/tm.texi.in (Addressing Modes): Likewise.
+	
 2013-03-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* pragma_simd.c (pragma_simd_is_private_var): Added an else clause and

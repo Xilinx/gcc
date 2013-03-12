@@ -5626,6 +5626,8 @@ misalignment value (@var{misalign}).
 
 @hook TARGET_CILKPLUS_BUILTIN_FIND_VLENGTH_FOR_PROC
 
+@hook TARGET_CILKPLUS_BUILTIN_HAVE_CILKSCREEN_SUPPORT
+
 
 @hook TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE
 Return true if vector alignment is reachable (by peeling N iterations) for the given type.

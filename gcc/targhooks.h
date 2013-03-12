@@ -194,3 +194,9 @@ extern const char *default_pch_valid_p (const void *, size_t);
 extern void default_asm_output_ident_directive (const char*);
 
 extern bool default_member_type_forces_blk (const_tree, enum machine_mode);
+
+extern char *default_builtin_find_processor_code (char *);
+extern char *default_builtin_find_isa_for_proc (char *, char *);
+extern unsigned int default_builtin_find_vlength_for_proc (char *);
+extern tree default_builtin_map_processor_to_attr (char *, tree *);
+char *default_builtin_find_isa_code (char *, char *);

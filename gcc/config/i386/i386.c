@@ -42365,6 +42365,14 @@ ix86_builtin_find_vlength_for_proc (char *proc_name)
     return 0;
 }
 
+/* Returns true if the backend has cilkscreen support.  */
+
+bool
+ix86_have_cilkscreen_support (void)
+{
+  return true;
+}
+
 /* Initialize the GCC target structure.  */
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY ix86_return_in_memory
@@ -42745,6 +42753,10 @@ ix86_builtin_find_vlength_for_proc (char *proc_name)
 #undef TARGET_CILKPLUS_BUILTIN_FIND_VLENGTH_FOR_PROC
 #define TARGET_CILKPLUS_BUILTIN_FIND_VLENGTH_FOR_PROC  \
   ix86_builtin_find_vlength_for_proc
+
+#undef  TARGET_CILKPLUS_BUILTIN_HAVE_CILKSCREEN_SUPPORT
+#define TARGET_CILKPLUS_BUILTIN_HAVE_CILKSCREEN_SUPPORT \
+  ix86_have_cilkscreen_support
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

@@ -1556,7 +1556,7 @@ default_builtin_find_processor_code (char *)
 
 /* Default version of default_builtin_find_vlength_for_proc.  */
 
-int 
+unsigned int 
 default_builtin_find_vlength_for_proc (char *)
 {
   return 0;
@@ -1568,6 +1568,37 @@ char *
 default_builtin_find_isa_code (char *, char *)
 {
   return NULL;
+}
+
+char *
+default_builtin_find_proc_code (char *proc_name ATTRIBUTE_UNUSED)
+{
+  return xstrdup ("A"); /* This is a DUMMY Value. Fix this based on ABI.  */
+}
+
+char *
+default_builtin_find_isa_for_proc (char *proc_name ATTRIBUTE_UNUSED,
+                                   char *isa_name ATTRIBUTE_UNUSED)
+{
+  return xstrdup ("ERR");  /* This is a DUMMY Value. Fix this based on ABI.  */
+}
+
+tree
+default_builtin_map_proc_to_attr (char *proc_name ATTRIBUTE_UNUSED,
+                                  tree *opp_attr)
+{
+  *opp_attr = NULL_TREE;
+  return NULL_TREE;
+}
+
+/* Default version for default_builtin_have_cilkscreen_support.  */
+
+bool
+default_have_cilkscreen_support (void)
+{
+  /* We assume that unless the backend specifies it has cilkscreen or Low-cost
+     annotation support, there isn't one.  */
+  return false;
 }
 
 /* Default version of canonicalize_comparison.  */

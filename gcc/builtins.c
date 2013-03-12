@@ -6874,12 +6874,14 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_CILKSCREEN_AQUIRE_LOCK:
     case BUILT_IN_CILKSCREEN_REL_LOCK:
     case BUILT_IN_CILKSCREEN_METACALL: 
-      if (cfun) 
+      if (cfun && targetm.cilkplus.builtin_have_cilkscreen_support ()) 
 	{ 
 	  cfun->calls_notify_intrinsic = 1; 
 	  cfun->is_cilk_function = 1; 
 	  CILK_FN_P (cfun->decl) = 1; 
 	}
+      else
+	return const0_rtx;
       break;
     case BUILT_IN_CILK_DETACH:
       /* Return value is not interesting; it is used as success/failure 
@@ -6890,6 +6892,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       break;
     case BUILT_IN_NOTIFY_INTRINSIC:
     case BUILT_IN_NOTIFY_ZC_INTRINSIC:
+      if (!targetm.cilkplus.builtin_have_cilkscreen_support ())
+	return const0_rtx;
       /* Remove tail call optimization since we are going to get rid of this
 	 region.  */
       CALL_EXPR_TAILCALL (exp) = 0; 

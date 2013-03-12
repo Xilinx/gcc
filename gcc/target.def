@@ -977,6 +977,15 @@ DEFHOOK
 char *, (char *, char *),
 default_builtin_find_isa_code)
 
+DEFHOOK
+(builtin_have_cilkscreen_support,
+ "This hook is called by the builtins expander to make sure there is a \n\
+  cilkscreen support for the architecture.  By default, we put in all the \n\
+  annotations, but if this function does not return true, then expander \n\
+  replaces them all with const0_rtx.",
+  bool, (void),
+  default_have_cilkscreen_support)
+
 HOOK_VECTOR_END (cilkplus)
 
 /* Functions relating to vectorization.  */
