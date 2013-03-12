@@ -3478,7 +3478,8 @@ the flags of the $STEP with an extra context $CTX.}#
 			       :msteptestconst_bind nbindconst
 			       ))
 	   )
-       (debug "translpat_constpat flagstep=" flagstep)
+       (debug "translpat_constpat flagstep=" flagstep "\n steptest=" steptest)
+       (shortbacktrace_dbg "translpat_constpat" 7)
        (list_append steplist steptest)
        (list_append steplist flagstep)
        (debug "translpat_constpat return steptest=" steptest 
@@ -3659,7 +3660,7 @@ the flags of the $STEP with an extra context $CTX.}#
 				     ))
 		)
 	    (put_fields mflag :mflag_setstep stepsetflag)
-	    (debug "translpat_tuplepat stepsetflag" stepsetflag)
+	    (debug "translpat_tuplepat stepsetflag=" stepsetflag "\n mflag=" mflag)
 	    (put_then_match laststep stepsetflag)
 	    (debug "translpat_tuplepat return stepgroup=" stepgroup " mflag=")
 	    (return stepgroup mflag)
@@ -3819,7 +3820,8 @@ the flags of the $STEP with an extra context $CTX.}#
 				     ))
 		)
 	    (put_fields mflag :mflag_setstep stepsetflag)
-	    (debug "translpat_inspat stepsetflag" stepsetflag)
+	    (debug "translpat_inspat stepsetflag=" stepsetflag "\n mflag=" mflag)
+	    (shortbacktrace_dbg "translpat_inspat" 8)
 	    (put_then_match laststep stepsetflag)
 	    (debug "translpat_inspat return stepgroup" stepgroup)
 	    (return stepgroup mflag)
@@ -3851,7 +3853,8 @@ the flags of the $STEP with an extra context $CTX.}#
 			    :mstep_then ()
 			    :mstep_flag mflag))
 	)
-    (debug "translpat_varpat symb" symb "\n symbval" symbval)
+    (debug "translpat_varpat symb=" symb "\n symbval=" symbval "\n flagstep=" flagstep)
+    (shortbacktrace_dbg "translpat_varpat" 15)
     (assert_msg "check steplist" (is_list steplist))
     (put_fields mflag :mflag_setstep flagstep)
     (debug "translpat_varpat flagstep" flagstep)
@@ -5067,11 +5070,11 @@ the flags of the $STEP with an extra context $CTX.}#
 	  (debug "translate_matchcase updated mstep=" mstep 
 		 "\n.. prevstep=" prevstep)
 	  (when prevstep
-		(debug "translate_matchcase got prevstep" prevstep)
-		(compile_warning "translate_matchcase don't put_else_match")
-		;; the put_else_match is unneeded & wrong
+		(debug "translate_matchcase before put_else_match prevstep=" prevstep 
+		       "\n.. mstep=" mstep)
 		;;@@@@@THIS IS PROBABLY NEEDED@@@@
-		;; (put_else_match prevstep mstep)
+		(put_else_match prevstep mstep)
+		;; beware: tmatch-5.melt is now looping
 		)
 	  (debug "translate_matchcase updated prevstep=" prevstep)
 	  (debug "translate_matchcase return mstep=" mstep 

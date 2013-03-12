@@ -43,7 +43,8 @@
 
 |#
 
-
+(cheader ##{#define MELTDEBUG_LABEL 1
+}#)
 
 (defun tmini5 (x g)
   (debug "tmini5 start x=" x "\n.. g=" g "\n")
@@ -64,11 +65,11 @@
 	  )
     (debug "tmini5 xx=" xx)
     (g xx))
-
    ))
 
 (letrec ( (t1 (instance class_reference :referenced_value '17))
 	  (t2 (instance class_reference :referenced_value t2))
+	  (t3 (instance class_reference :referenced_value :true))
 	  (gg (lambda (u :long l)
 		(debug "@@gg u=" u "\n .. l="l)))
 	  )
@@ -76,6 +77,8 @@
   (tmini5 t1 gg)
   (debug "tmatch-5 tmini5 t2=" t2)
   (tmini5 t2 gg)
+  (debug "tmatch-5 tmini5 t3=" t3)
+  (tmini5 t3 gg)
   (debug "tmatch-5 tmini5 end gg=" gg)
   )
 

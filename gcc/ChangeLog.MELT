@@ -1,6 +1,17 @@
 
 
 2013-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{still different issue with mstep_else, tmatch-5.melt is now
+	indefinitely looping wrongly}}
+	* melt/warmelt-normatch.melt (translate_matchcase): Add
+	put_else_match, but tmatch-5.melt is incorrectly looping.
+
+	* melt/warmelt-outobj.melt (outpucod_objlabelinstr): Emit a
+	debugging mesage for labels wrapped by #if MELTDEBUG_LABEL.
+
+	* testsuite/melt/tmatch-5.melt: not working yet. Looping!
+
+2013-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-debug.melt (dbgout_mapobject_method): Avoid dumping
 	large maps when deep printing.
