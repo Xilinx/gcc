@@ -3,13 +3,13 @@
 # This file is distributed under the same license as the gcc package.
 # Karl Eichwalder <ke@suse.de>, 2002, 2003.
 # Philipp Thomas <pth@suse.de>, 1999, 2000, 2001, 2011.
-# Roland Stigge <stigge@antcom.de>, 2003, 2004, 2005, 2006, 2007, 2008, 2010, 2011, 2012.
+# Roland Stigge <stigge@antcom.de>, 2003, 2004, 2005, 2006, 2007, 2008, 2010, 2011, 2012, 2013.
 msgid ""
 msgstr ""
-"Project-Id-Version: gcc 4.7.2\n"
+"Project-Id-Version: gcc 4.8-b20130224\n"
 "Report-Msgid-Bugs-To: http://gcc.gnu.org/bugs.html\n"
 "POT-Creation-Date: 2013-02-24 01:09+0000\n"
-"PO-Revision-Date: 2012-09-25 11:30+0200\n"
+"PO-Revision-Date: 2013-03-09 18:08+0200\n"
 "Last-Translator: Roland Stigge <stigge@antcom.de>\n"
 "Language-Team: German <translation-team-de@lists.sourceforge.net>\n"
 "Language: de\n"
@@ -113,11 +113,7 @@ msgid "compilation terminated due to -fmax-errors=%u.\n"
 msgstr "Kompilierung wegen -fmax-errors=%u beendet.\n"
 
 #: diagnostic.c:442
-#, fuzzy, c-format
-#| msgid ""
-#| "Please submit a full bug report,\n"
-#| "with preprocessed source if appropriate.\n"
-#| "See %s for instructions.\n"
+#, c-format
 msgid ""
 "Please submit a full bug report,\n"
 "with preprocessed source if appropriate.\n"
@@ -125,15 +121,11 @@ msgstr ""
 "Bitte senden Sie einen vollständigen Fehlerbericht auf Englisch ein;\n"
 "bearbeiten Sie die Quellen zunächst mit einem Präprozessor, wenn es\n"
 "dienlich ist.\n"
-"Fehler in der deutschen Übersetzung sind an translation-team-de@lists.sourceforge.net zu melden.\n"
-"\n"
-"Gehen Sie gemäß den Hinweisen in %s vor.\n"
 
 #: diagnostic.c:448
-#, fuzzy, c-format
-#| msgid "Use fp double instructions"
+#, c-format
 msgid "See %s for instructions.\n"
-msgstr "Gleitkomma-double-Befehle verwenden"
+msgstr "Siehe %s für nähere Anweisungen.\n"
 
 #: diagnostic.c:457
 #, c-format
@@ -333,16 +325,12 @@ msgid "  -print-prog-name=<prog>  Display the full path to compiler component <p
 msgstr "  -print-prog-name=<prog>  Vollen Pfad zur Compilerkomponente <prog> anzeigen\n"
 
 #: gcc.c:3065
-#, fuzzy
-#| msgid ""
-#| "  -print-multi-lib         Display the mapping between command line options and\n"
-#| "                           multiple library search directories\n"
 msgid ""
 "  -print-multiarch         Display the target's normalized GNU triplet, used as\n"
 "                           a component in the library path\n"
 msgstr ""
-"  -print-multi-lib         Abbildung zwischen Kommandozeilenoptionen und\n"
-"                           mehreren Suchverzeichnissen für Bibliotheken anzeigen\n"
+"  -print-multiarch         Normalisiertes GNU-Tripel für das Ziel anzeigen,\n"
+"                           als Komponente im Bibliothekspfad verwendet\n"
 
 #: gcc.c:3068
 msgid "  -print-multi-directory   Display the root directory for versions of libgcc\n"
@@ -772,10 +760,9 @@ msgid "Removing '%s'\n"
 msgstr "»%s« wird gelöscht\n"
 
 #: gcov.c:979
-#, fuzzy, c-format
-#| msgid "%s:source file is newer than graph file '%s'\n"
+#, c-format
 msgid "%s:source file is newer than notes file '%s'\n"
-msgstr "%s: Quelldatei ist neuer als Graphen-Datei »%s«\n"
+msgstr "%s:Quelldatei ist neuer als Hinweis-Datei »%s«\n"
 
 #: gcov.c:984
 #, c-format
@@ -783,16 +770,14 @@ msgid "(the message is only displayed one per source file)\n"
 msgstr "(die Meldung wird für jede Quelldatei nur einmal angezeigt)\n"
 
 #: gcov.c:1009
-#, fuzzy, c-format
-#| msgid "%s:cannot open graph file\n"
+#, c-format
 msgid "%s:cannot open notes file\n"
-msgstr "%s: Graphen-Datei kann nicht geöffnet werden\n"
+msgstr "%s:Hinweis-Datei kann nicht geöffnet werden\n"
 
 #: gcov.c:1015
-#, fuzzy, c-format
-#| msgid "%s:not a gcov data file\n"
+#, c-format
 msgid "%s:not a gcov notes file\n"
-msgstr "%s: keine gcov-Datei\n"
+msgstr "%s:keine gcov-Hinweis-Datei\n"
 
 #: gcov.c:1028
 #, c-format
@@ -830,10 +815,9 @@ msgid "%s:version '%.4s', prefer version '%.4s'\n"
 msgstr "%s: Version »%.4s«, aber Version »%.4s« wird bevorzugt\n"
 
 #: gcov.c:1251
-#, fuzzy, c-format
-#| msgid "%s:stamp mismatch with graph file\n"
+#, c-format
 msgid "%s:stamp mismatch with notes file\n"
-msgstr "%s: Marke passt nicht zur Graph-Datei\n"
+msgstr "%s: Marke passt nicht zur Hinweis-Datei\n"
 
 #: gcov.c:1286
 #, c-format
@@ -1698,10 +1682,8 @@ msgid "The maximum number of peelings of a single loop"
 msgstr "Die Höchstzahl der Schälvorgänge einer einzelnen Schleife"
 
 #: params.def:300
-#, fuzzy
-#| msgid "The maximum number of iterations through CFG to extend regions"
 msgid "The maximum number of branches on the path through the peeled sequence"
-msgstr "Höchstzahl der Iterationen durch CFG zur Regionserweiterung"
+msgstr "Höchstzahl der Zweige auf dem Pfad durch die geschälte Sequenz"
 
 #: params.def:305
 msgid "The maximum number of insns of a completely peeled loop"
@@ -2004,10 +1986,8 @@ msgid "Maximum size of a SCC before SCCVN stops processing a function"
 msgstr "Maximalgröße eines SCC bevor SCCVN zur Bearbeitung einer Funktion anhält"
 
 #: params.def:777
-#, fuzzy
-#| msgid "Maximum number of conditional store pairs that can be sunk"
 msgid "Maximum number of disambiguations to perform per memory access"
-msgstr "Höchstzahl von bedingten Speicherpaaren, die ausgegeben werden können"
+msgstr "Höchstzahl der Auflösungen von Mehrdeutigkeiten, um Speicherzugriff durchzuführen"
 
 #: params.def:782
 msgid "Max loops number for regional RA"
@@ -2475,15 +2455,14 @@ msgstr "<unbekannt>"
 #: config/aarch64/aarch64.c:3277 config/aarch64/aarch64.c:3288
 #: config/aarch64/aarch64.c:3298 config/aarch64/aarch64.c:3313
 #: config/aarch64/aarch64.c:3332
-#, fuzzy, c-format
-#| msgid "invalid operand for code '%c'"
+#, c-format
 msgid "invalid operand for '%%%c'"
-msgstr "ungültiger Operand für Code »%c«"
+msgstr "ungültiger Operand für »%%%c«"
 
 #: config/aarch64/aarch64.c:3348 config/aarch64/aarch64.c:3361
 #, c-format
 msgid "incompatible floating point / vector register operand for '%%%c'"
-msgstr ""
+msgstr "unverträglicher Gleitkomma- / Vektorregisteroperand für »%%%c«"
 
 #: config/aarch64/aarch64.c:3399 config/arm/arm.c:18223
 #, c-format
@@ -2491,95 +2470,92 @@ msgid "missing operand"
 msgstr "fehlender Operand"
 
 #: config/aarch64/aarch64.c:3462
-#, fuzzy, c-format
-#| msgid "invalid insn:"
+#, c-format
 msgid "invalid constant"
-msgstr "Ungültiger Befehl:"
+msgstr "ungültige Konstante"
 
 #: config/aarch64/aarch64.c:3465
-#, fuzzy, c-format
-#| msgid "invalid %%d operand"
+#, c-format
 msgid "invalid operand"
-msgstr "ungültiger %%d-Operand"
+msgstr "ungültiger Operand"
 
 #: config/aarch64/aarch64.c:3545
-#, fuzzy, c-format
-#| msgid "invalid operand code '%c'"
+#, c-format
 msgid "invalid operand prefix '%%%c'"
-msgstr "ungültiger Operandencode »%c«"
+msgstr "ungültiger Operandenpräfix »%%%c«"
 
 #: config/alpha/alpha.c:5065
 #, c-format
 msgid "invalid %%H value"
-msgstr "Ungültiger %%H-Wert"
+msgstr "ungültiger %%H-Wert"
 
 #: config/alpha/alpha.c:5086 config/bfin/bfin.c:1426
 #, c-format
 msgid "invalid %%J value"
-msgstr "Ungültiger %%J-Wert"
+msgstr "ungültiger %%J-Wert"
 
 #: config/alpha/alpha.c:5116 config/ia64/ia64.c:5442
 #, c-format
 msgid "invalid %%r value"
-msgstr "Ungültiger %%r-Wert"
+msgstr "ungültiger %%r-Wert"
 
 #: config/alpha/alpha.c:5126 config/ia64/ia64.c:5396
 #: config/rs6000/rs6000.c:15113 config/xtensa/xtensa.c:2356
 #, c-format
 msgid "invalid %%R value"
-msgstr "Ungültiger %%R-Wert"
+msgstr "ungültiger %%R-Wert"
 
 #: config/alpha/alpha.c:5132 config/rs6000/rs6000.c:15033
 #: config/xtensa/xtensa.c:2323
 #, c-format
 msgid "invalid %%N value"
-msgstr "Ungültiger %%N-Wert"
+msgstr "ungültiger %%N-Wert"
 
 #: config/alpha/alpha.c:5140 config/rs6000/rs6000.c:15061
 #, c-format
 msgid "invalid %%P value"
-msgstr "Ungültiger %%P-Wert"
+msgstr "ungültiger %%P-Wert"
 
 #: config/alpha/alpha.c:5148
 #, c-format
 msgid "invalid %%h value"
-msgstr "Ungültiger %%h-Wert"
+msgstr "ungültiger %%h-Wert"
 
 #: config/alpha/alpha.c:5156 config/xtensa/xtensa.c:2349
 #, c-format
 msgid "invalid %%L value"
-msgstr "Ungültiger %%L-Wert"
+msgstr "ungültiger %%L-Wert"
 
 #: config/alpha/alpha.c:5195 config/rs6000/rs6000.c:15015
 #, c-format
 msgid "invalid %%m value"
-msgstr "Ungültiger %%m-Wert"
+msgstr "ungültiger %%m-Wert"
 
 #: config/alpha/alpha.c:5203 config/rs6000/rs6000.c:15023
 #, c-format
 msgid "invalid %%M value"
-msgstr "Ungültiger %%M-Wert"
+msgstr "ungültiger %%M-Wert"
 
 #: config/alpha/alpha.c:5247
 #, c-format
 msgid "invalid %%U value"
-msgstr "Ungültiger %%U-Wert"
+msgstr "ungültiger %%U-Wert"
 
 #: config/alpha/alpha.c:5255 config/alpha/alpha.c:5266
 #: config/rs6000/rs6000.c:15121
 #, c-format
 msgid "invalid %%s value"
-msgstr "Ungültiger %%s-Wert"
+msgstr "ungültiger %%s-Wert"
 
 #: config/alpha/alpha.c:5277
 #, c-format
 msgid "invalid %%C value"
-msgstr "Ungültiger %%C-Wert"
+msgstr "ungültiger %%C-Wert"
 
 #: config/alpha/alpha.c:5314 config/rs6000/rs6000.c:14880
 #, c-format
 msgid "invalid %%E value"
-msgstr "Ungültiger %%E-Wert"
+msgstr "ungültiger %%E-Wert"
 
 #: config/alpha/alpha.c:5339 config/alpha/alpha.c:5387
 #, c-format
@@ -2590,7 +2566,7 @@ msgstr "Unbekanntes relocation unspec"
 #: config/rs6000/rs6000.c:15470 config/spu/spu.c:1447
 #, c-format
 msgid "invalid %%xn code"
-msgstr "Ungültiger %%xn-Code"
+msgstr "ungültiger %%xn-Code"
 
 #: config/arm/arm.c:17560 config/arm/arm.c:17578
 #, c-format
@@ -2633,10 +2609,9 @@ msgstr "Anweisung wird niemals ausgeführt"
 
 #. Former Maverick support, removed after GCC-4.7.
 #: config/arm/arm.c:17930
-#, fuzzy, c-format
-#| msgid "Unsupported operand for code '%c'"
+#, c-format
 msgid "obsolete Maverick format code '%c'"
-msgstr "Operand für Code »%c« nicht unterstützt"
+msgstr "veralteter Maverick-Formatcode »%c«"
 
 #: config/arm/arm.c:20988
 msgid "function parameters cannot have __fp16 type"
@@ -2676,10 +2651,9 @@ msgid "internal compiler error.  Bad address:"
 msgstr "Interner Compiler-Fehler. Falsche Adresse:"
 
 #: config/avr/avr.c:2234
-#, fuzzy, c-format
-#| msgid "Unsupported operand for code '%c'"
+#, c-format
 msgid "Unsupported code '%c'for fixed-point:"
-msgstr "Operand für Code »%c« nicht unterstützt"
+msgstr "Code »%c« für Festkomma nicht unterstützt:"
 
 #: config/avr/avr.c:2243
 msgid "internal compiler error.  Unknown mode:"
@@ -2711,10 +2685,8 @@ msgid "internal compiler error.  Incorrect shift:"
 msgstr "Interner Compiler-Fehler. Falsche Verschiebung:"
 
 #: config/avr/avr.c:7071
-#, fuzzy
-#| msgid "unsupported version"
 msgid "unsupported fixed-point conversion"
-msgstr "nicht unterstützte Version"
+msgstr "Festkommaumwandlung nicht unterstützt"
 
 #: config/bfin/bfin.c:1388
 #, c-format
@@ -2964,28 +2936,24 @@ msgid "invalid UNSPEC as operand"
 msgstr "ungültiges UNSPEC als Operand"
 
 #: config/i386/i386.c:14164
-#, fuzzy, c-format
-#| msgid "invalid operand size for operand code '%c'"
+#, c-format
 msgid "invalid operand size for operand code 'O'"
-msgstr "ungültige Operandengröße für Operandencode »%c«"
+msgstr "ungültige Operandengröße für Operandencode »O«"
 
 #: config/i386/i386.c:14199
-#, fuzzy, c-format
-#| msgid "invalid operand size for operand code '%c'"
+#, c-format
 msgid "invalid operand size for operand code 'z'"
-msgstr "ungültige Operandengröße für Operandencode »%c«"
+msgstr "ungültige Operandengröße für Operandencode »z«"
 
 #: config/i386/i386.c:14269
-#, fuzzy, c-format
-#| msgid "invalid operand type used with operand code '%c'"
+#, c-format
 msgid "invalid operand type used with operand code 'Z'"
-msgstr "ungültiger Operandentyp mit Operandencode »%c« verwendet"
+msgstr "ungültiger Operandentyp mit Operandencode »Z« verwendet"
 
 #: config/i386/i386.c:14274
-#, fuzzy, c-format
-#| msgid "invalid operand size for operand code '%c'"
+#, c-format
 msgid "invalid operand size for operand code 'Z'"
-msgstr "ungültige Operandengröße für Operandencode »%c«"
+msgstr "ungültige Operandengröße für Operandencode »Z«"
 
 #: config/i386/i386.c:14349
 #, c-format
@@ -2998,10 +2966,9 @@ msgid "operand is not a condition code, invalid operand code 'D'"
 msgstr "Operand ist kein Bedingungscode, ungültiger Operandencode »D«"
 
 #: config/i386/i386.c:14439
-#, fuzzy, c-format
-#| msgid "operand is not a condition code, invalid operand code 'D'"
+#, c-format
 msgid "operand is not a condition code, invalid operand code '%c'"
-msgstr "Operand ist kein Bedingungscode, ungültiger Operandencode »D«"
+msgstr "Operand ist kein Bedingungscode, ungültiger Operandencode »%c«"
 
 #: config/i386/i386.c:14452
 #, c-format
@@ -3920,10 +3887,8 @@ msgid "{anonymous}"
 msgstr "{anonym}"
 
 #: cp/error.c:1035
-#, fuzzy
-#| msgid "(anonymous)"
 msgid "(anonymous namespace)"
-msgstr "(anonym)"
+msgstr "(anonymer Namensraum)"
 
 #: cp/error.c:1133
 msgid "<template arguments error>"
@@ -4045,16 +4010,14 @@ msgid "required from here"
 msgstr "von hier erfordert"
 
 #: cp/error.c:3158
-#, fuzzy, c-format
-#| msgid "%s:%d:%d:   [ skipping %d instantiation contexts ]\n"
+#, c-format
 msgid "%s:%d:%d:   [ skipping %d instantiation contexts, use -ftemplate-backtrace-limit=0 to disable ]\n"
-msgstr "%s:%d:%d:   [ %d Instanziierungskontexte werden übersprungen ]\n"
+msgstr "%s:%d:%d:   [ %d Instanziierungskontexte werden übersprungen, -ftemplate-backtrace-limit=0 zum Deaktivieren verwenden ]\n"
 
 #: cp/error.c:3163
-#, fuzzy, c-format
-#| msgid "%s:%d:   [ skipping %d instantiation contexts ]\n"
+#, c-format
 msgid "%s:%d:   [ skipping %d instantiation contexts, use -ftemplate-backtrace-limit=0 to disable ]\n"
-msgstr "%s:%d:   [ %d Instanziierungskontexte werden übersprungen ]\n"
+msgstr "%s:%d:   [ %d Instanziierungskontexte werden übersprungen, -ftemplate-backtrace-limit=0 zum Deaktivieren verwenden ]\n"
 
 #: cp/error.c:3227
 #, c-format
@@ -4219,30 +4182,24 @@ msgid "Error:"
 msgstr "Fehler:"
 
 #: fortran/error.c:842
-#, fuzzy
-#| msgid "Fortran 2008 obsolescent feature: ENTRY statement at %C"
 msgid "Fortran 2008 obsolescent feature:"
-msgstr "Fortran 2008: Veraltete Funktion: ENTRY-Anweisung bei %C"
+msgstr "Fortran 2008: Veraltete Funktion:"
 
 #: fortran/error.c:851
 msgid "GNU Extension:"
-msgstr ""
+msgstr "GNU-Erweiterung"
 
 #: fortran/error.c:854
 msgid "Legacy Extension:"
-msgstr ""
+msgstr "Alte Erweiterung:"
 
 #: fortran/error.c:857
-#, fuzzy
-#| msgid "Obsolescent feature: Computed GOTO at %C"
 msgid "Obsolescent feature:"
-msgstr "Veraltet: Berechnetes GOTO bei %C"
+msgstr "Veraltete Funktion:"
 
 #: fortran/error.c:860
-#, fuzzy
-#| msgid "expected operator"
 msgid "Deleted feature:"
-msgstr "Operator erwartet"
+msgstr "Gelöschte Funktion:"
 
 #: fortran/error.c:1035
 msgid "Fatal Error:"
@@ -4905,10 +4862,8 @@ msgid "-c required for gnat2why"
 msgstr "Für gnat2why wird -c benötigt"
 
 #: ada/gcc-interface/lang-specs.h:65
-#, fuzzy
-#| msgid "-c required for gnat2why"
 msgid "-c required for gnat2scil"
-msgstr "Für gnat2why wird -c benötigt"
+msgstr "Für gnat2scil wird -c benötigt"
 
 #: config/mcore/mcore.h:53
 msgid "the m210 does not have little endian support"
@@ -5128,22 +5083,16 @@ msgid "Warn about real-literal-constants with 'q' exponent-letter"
 msgstr "Bei literalen Realkonstanten mit »q«-Exponentenbuchstaben warnen"
 
 #: fortran/lang.opt:262
-#, fuzzy
-#| msgid "Warn when a register variable is declared volatile"
 msgid "Warn when a left-hand-side array variable is reallocated"
-msgstr "Warnen, wenn Registervariable als »volatile« deklariert ist"
+msgstr "Warnen, wenn Feldvariable auf linker Seite wiederholt reserviert wird"
 
 #: fortran/lang.opt:266
-#, fuzzy
-#| msgid "Warn when a register variable is declared volatile"
 msgid "Warn when a left-hand-side variable is reallocated"
-msgstr "Warnen, wenn Registervariable als »volatile« deklariert ist"
+msgstr "Warnen, wenn Variable auf linker Seite wiederholt reserviert wird"
 
 #: fortran/lang.opt:270
-#, fuzzy
-#| msgid "Target expression in pointer assignment at %L must deliver a pointer result"
 msgid "Warn if the pointer in a pointer assignment might outlive its target"
-msgstr "Zielausdruck in Zeigerzuweisung bei %L muss ein Zeigerergebnis liefern"
+msgstr "Warnen, wenn der Zeiger in Zeigerzuweisung sein Ziel überleben könnte"
 
 #: fortran/lang.opt:278
 msgid "Warn about \"suspicious\" constructs"
@@ -5919,10 +5868,8 @@ msgid "Warn when the compiler reorders code"
 msgstr "Warnen, wenn der Compiler Code umsortiert"
 
 #: c-family/c.opt:654
-#, fuzzy
-#| msgid "returning reference to temporary"
 msgid "Warn about returning a pointer/reference to a local or temporary variable."
-msgstr "Referenz auf temporären Wert wird zurückgegeben"
+msgstr "Bei Rückgabe eines Zeigers/Referenz an lokale oder temporäre Variable warnen."
 
 #: c-family/c.opt:658
 msgid "Warn whenever a function's return type defaults to \"int\" (C), or about inconsistent return types (C++)"
@@ -6009,14 +5956,12 @@ msgid "Warn if a caller of a function, marked with attribute warn_unused_result,
 msgstr "Warnen, wenn der Rückgabewert der mit dem Attribut warn_unused_result definierten Funktion ignoriert wird"
 
 #: c-family/c.opt:770
-#, fuzzy
-#| msgid "Do not warn about using variadic macros when -pedantic"
 msgid "Warn about using variadic macros"
-msgstr "Nicht bei Verwendung variadischer Makros bei -pedantic warnen"
+msgstr "Bei Verwendung variadischer Makros warnen"
 
 #: c-family/c.opt:774
 msgid "Warn about questionable usage of the macros used to retrieve variable arguments"
-msgstr ""
+msgstr "Bei fraglicher Verwendung der Makros, die variable Argumente ermitteln, warnen"
 
 #: c-family/c.opt:778
 msgid "Warn if a variable length array is used"
@@ -6027,10 +5972,8 @@ msgid "Warn when a register variable is declared volatile"
 msgstr "Warnen, wenn Registervariable als »volatile« deklariert ist"
 
 #: c-family/c.opt:786
-#, fuzzy
-#| msgid "%qT has virtual bases, default move assignment operator cannot be generated"
 msgid "Warn if a virtual base has a non-trivial move assignment operator"
-msgstr "%qT hat virtuelle Basen, Standard-Zuweisungsoperator (move) kann nicht erzeugt werden"
+msgstr "Warnen, wenn virtuelle Basis einen nicht trivialen Zuweisungsoperator (move) hat"
 
 #: c-family/c.opt:790
 msgid "In C++, nonzero means warn about deprecated conversion from string literals to 'char *'.  In C, similar warning, except that the conversion is of course not deprecated by the ISO C standard."
@@ -6041,10 +5984,8 @@ msgid "Warn when a literal '0' is used as null pointer"
 msgstr "Warnen, wenn ein Literal '0' als NULL-Zeiger verwendet wird"
 
 #: c-family/c.opt:798
-#, fuzzy
-#| msgid "Warn about misuses of pragmas"
 msgid "Warn about useless casts"
-msgstr "Bei Pragmamissbrauch warnen"
+msgstr "Bei unnützen Umwandlungen warnen"
 
 #: c-family/c.opt:802
 msgid "A synonym for -std=c89 (for C) or -std=c++98 (for C++)"
@@ -6056,7 +5997,7 @@ msgstr "Semantik der Zugriffskontrolle für Klassenelemente erzwingen"
 
 #: c-family/c.opt:814
 msgid "-fada-spec-parent=unit  Dump Ada specs as child units of given parent"
-msgstr ""
+msgstr "-fada-spec-parent=Einheit Ada-Spezifikationen als Kind-Einheiten der angegebenen Elterneinheit ausgeben"
 
 #: c-family/c.opt:817 c-family/c.opt:824 c-family/c.opt:902 c-family/c.opt:921
 #: c-family/c.opt:944 c-family/c.opt:950 c-family/c.opt:957 c-family/c.opt:981
@@ -6350,10 +6291,8 @@ msgid "-ftabstop=<number>\tDistance between tab stops for column reporting"
 msgstr "-ftabstop=<Zahl>\tTabulatorentfernungen für Spaltenmeldungen"
 
 #: c-family/c.opt:1159
-#, fuzzy
-#| msgid "Set the maximum number of iterations for RPTS to N"
 msgid "Set the maximum number of template instantiation notes for a single warning or error"
-msgstr "Höchstzahl der Iterationen für RPTS auf N setzen"
+msgstr "Höchstzahl der Template-Instanziierungshinweise für einzelne Warnung oder Fehler setzen"
 
 #: c-family/c.opt:1166
 msgid "-ftemplate-depth=<number>\tSpecify maximum template instantiation depth"
@@ -6492,10 +6431,8 @@ msgid "Deprecated in favor of -std=c++11"
 msgstr "Veraltet zugunsten von -std=c++11"
 
 #: c-family/c.opt:1336
-#, fuzzy
-#| msgid "Conform to the ISO 2011 C++ standard (experimental and incomplete support)"
 msgid "Conform to the ISO 201y(7?) C++ draft standard (experimental and incomplete support)"
-msgstr "Mit dem Standard ISO 2011 C++ (experimentelle und unvollständige Unterstützung) übereinstimmen"
+msgstr "Mit dem Standardentwurf ISO 201y(7?) C++ (experimentelle und unvollständige Unterstützung) übereinstimmen"
 
 #: c-family/c.opt:1340 c-family/c.opt:1426
 msgid "Conform to the ISO 2011 C standard (experimental and incomplete support)"
@@ -6530,10 +6467,8 @@ msgid "Deprecated in favor of -std=gnu++11"
 msgstr "Veraltet zugunsten von -std=gnu++11"
 
 #: c-family/c.opt:1382
-#, fuzzy
-#| msgid "Conform to the ISO 2011 C++ standard with GNU extensions (experimental and incomplete support)"
 msgid "Conform to the ISO 201y(7?) C++ draft standard with GNU extensions (experimental and incomplete support)"
-msgstr "Mit dem Standard ISO 2011 C++ mit GNU-Erweiterungen (experimentelle und unvollstänndige Unterstützung) übereinstimmen"
+msgstr "Mit dem Standardentwurf ISO 201y(7?) C++ mit GNU-Erweiterungen (experimentelle und unvollstänndige Unterstützung) übereinstimmen"
 
 #: c-family/c.opt:1386
 msgid "Conform to the ISO 2011 C standard with GNU extensions (experimental and incomplete support)"
@@ -6648,10 +6583,9 @@ msgid "-mpointer-size=[no,32,short,64,long]\tSet the default pointer size"
 msgstr ""
 
 #: config/vms/vms.opt:42
-#, fuzzy, c-format
-#| msgid "unknown TLS model %qs"
+#, c-format
 msgid "unknown pointer size model %qs"
-msgstr "unbekanntes TLS-Modell %qs"
+msgstr "unbekanntes Zeigergrößenmodell %qs"
 
 #: config/mcore/mcore.opt:23
 msgid "Generate code for the M*Core M210"
@@ -7130,10 +7064,8 @@ msgid "Assume target CPU is configured as big endian"
 msgstr "Ziel-CPU als »big endian«-konfiguriert annehmen"
 
 #: config/aarch64/aarch64.opt:68
-#, fuzzy
-#| msgid "Generate code which uses the FPU"
 msgid "Generate code which uses only the general registers"
-msgstr "FPU verwendenden Code erzeugen"
+msgstr "Nur die allgemeinen Register verwendenden Code erzeugen"
 
 #: config/aarch64/aarch64.opt:72 config/arm/arm.opt:151
 #: config/microblaze/microblaze.opt:64
@@ -7141,10 +7073,8 @@ msgid "Assume target CPU is configured as little endian"
 msgstr "Ziel-CPU als »little endian«-konfiguriert annehmen"
 
 #: config/aarch64/aarch64.opt:76
-#, fuzzy
-#| msgid "Select code model"
 msgid "Specify the code model"
-msgstr "Codemodell auswählen"
+msgstr "Codemodell angeben"
 
 #: config/aarch64/aarch64.opt:80
 msgid "Don't assume that unaligned accesses are handled by the system"
@@ -7156,23 +7086,19 @@ msgstr "Rahmenzeiger in Blattfunktionen auslassen"
 
 #: config/aarch64/aarch64.opt:88
 msgid "Specify TLS dialect"
-msgstr ""
+msgstr "TLS-Dialekt angeben"
 
 #: config/aarch64/aarch64.opt:92
-#, fuzzy
-#| msgid "-mcpu=CPU\tUse features of and schedule code for given CPU"
 msgid "-march=ARCH\tUse features of architecture ARCH"
-msgstr "-mcpu=CPU\tEigenschaften der angegebenen CPU verwenden und entsprechend Code planen"
+msgstr "-march=ARCH\tEigenschaften der angegebenen Architektur ARCH verwenden"
 
 #: config/aarch64/aarch64.opt:96
-#, fuzzy
-#| msgid "-mcpu=CPU\tUse features of and schedule code for given CPU"
 msgid "-mcpu=CPU\tUse features of and optimize for CPU"
-msgstr "-mcpu=CPU\tEigenschaften der angegebenen CPU verwenden und entsprechend Code planen"
+msgstr "-mcpu=CPU\tEigenschaften der angegebenen CPU verwenden und dafür optimieren"
 
 #: config/aarch64/aarch64.opt:100
 msgid "-mtune=CPU\tOptimize for CPU"
-msgstr ""
+msgstr "-mtune=CPU\tFür CPU optimieren"
 
 #: config/linux.opt:24
 msgid "Use Bionic C library"
@@ -7502,10 +7428,8 @@ msgid "Split unaligned 8 byte vector moves before post-modify address generation
 msgstr "Nicht ausgerichtete 8-Byte-Vektor-Bewegungen vor Nach-Bewegungs-Adresserzeugung aufteilen"
 
 #: config/epiphany/epiphany.opt:132
-#, fuzzy
-#| msgid "Use hardware floating point conversion instructions"
 msgid "Use the floating point unit for integer add/subtract."
-msgstr "Hardware-Gleitkommakonvertierungbefehle verwenden"
+msgstr "Gleitkommaeinheit für Ganzzahladdition und -subtraktion verwenden"
 
 #: config/epiphany/epiphany.opt:136
 msgid "Set register to hold -1."
@@ -7737,10 +7661,8 @@ msgid "sizeof(long double) is 12"
 msgstr "sizeof(long double) ist 12"
 
 #: config/i386/i386.opt:90
-#, fuzzy
-#| msgid "Use 128-bit long double"
 msgid "Use 80-bit long double"
-msgstr "128-bit long double verwenden"
+msgstr "80-bit long double verwenden"
 
 #: config/i386/i386.opt:94 config/s390/s390.opt:105
 #: config/sparc/long-double-switch.opt:27 config/alpha/alpha.opt:102
@@ -7797,14 +7719,11 @@ msgid "Known code models (for use with the -mcmodel= option):"
 msgstr "Bekannte Codemodelle (für Verwendung mit Option -mcmodel=):"
 
 #: config/i386/i386.opt:171
-#, fuzzy
-#| msgid "Use complex addressing modes"
 msgid "Use given address mode"
-msgstr "Komplexe Adressierungsmodi verwenden"
+msgstr "Angegebenen Adressierungsmodus verwenden"
 
 #: config/i386/i386.opt:175
 #, fuzzy
-#| msgid "Known code models (for use with the -mcmodel= option):"
 msgid "Known address mode (for use with the -maddress-mode= option):"
 msgstr "Bekannte Codemodelle (für Verwendung mit Option -mcmodel=):"
 
@@ -7955,7 +7874,6 @@ msgstr "Befehl vzeroupper erzeugen vor Übergabe der Abarbeitung aus"
 
 #: config/i386/i386.opt:421
 #, fuzzy
-#| msgid "Do dispatch scheduling if processor is bdver1 or bdver2 and Haifa scheduling"
 msgid "Do dispatch scheduling if processor is bdver1 or bdver2 or bdver3 and Haifa scheduling"
 msgstr "Bericht-Planung durchführen, wenn Prozessor bdver1 oder bdver2 und Haifa-Planung"
 
@@ -8073,19 +7991,16 @@ msgstr ""
 
 #: config/i386/i386.opt:544
 #, fuzzy
-#| msgid "no support for induction"
 msgid "Support RDSEED instruction"
 msgstr "keine Unterstützung für Induktion"
 
 #: config/i386/i386.opt:548
 #, fuzzy
-#| msgid "no support for induction"
 msgid "Support PREFETCHW instruction"
 msgstr "keine Unterstützung für Induktion"
 
 #: config/i386/i386.opt:552
 #, fuzzy
-#| msgid "Support code generation of crc32 instruction."
 msgid "Support flag-preserving add-carry instructions"
 msgstr "Codeerzeugung von crc32-Befehlen unterstützen."
 
@@ -8095,13 +8010,11 @@ msgstr ""
 
 #: config/i386/i386.opt:560
 #, fuzzy
-#| msgid "Support calls between Thumb and ARM instruction sets"
 msgid "Support XSAVE and XRSTOR instructions"
 msgstr "Aufrufe zwischen Thumb- und ARM-Befehlssätzen unterstützen"
 
 #: config/i386/i386.opt:564
 #, fuzzy
-#| msgid "Support MMX built-in functions"
 msgid "Support XSAVEOPT instruction"
 msgstr "Eingebaute MMX-Funktionen unterstützen"
 
@@ -8167,7 +8080,6 @@ msgstr "Nicht ausgerichtetes 32-Byte AVX-Speichern auftrennen"
 
 #: config/i386/i386.opt:628
 #, fuzzy
-#| msgid "Support TBM built-in functions and code generation"
 msgid "Support RTM built-in functions and code generation"
 msgstr "Eingebaute TBM-Funktionen und Codeerzeugung unterstützen"
 
@@ -8274,7 +8186,6 @@ msgstr "Backend-Fehlersuche einschalten"
 
 #: config/v850/v850.opt:41
 #, fuzzy
-#| msgid "Do not use the callt instruction"
 msgid "Do not use the callt instruction (default)"
 msgstr "Den callt-Befehl nicht verwenden"
 
@@ -8340,13 +8251,11 @@ msgstr "Für v850e2v3-Prozessor übersetzen"
 
 #: config/v850/v850.opt:117
 #, fuzzy
-#| msgid "Compile for the v850e processor"
 msgid "Compile for the v850e3v5 processor"
 msgstr "Für v850e-Prozessor übersetzen"
 
 #: config/v850/v850.opt:124
 #, fuzzy
-#| msgid "Enable clip instructions"
 msgid "Enable v850e3v5 loop instructions"
 msgstr "Clip-Befehle einschalten"
 
@@ -8356,37 +8265,31 @@ msgstr "Maximalgröße der für den ZDA-Bereich geeigneten Daten setzen"
 
 #: config/v850/v850.opt:135
 #, fuzzy
-#| msgid "Enable compatibility with ic960 assembler"
 msgid "Enable relaxing in the assembler"
 msgstr "Verträglichkeit mit ic960-Assembler einschalten"
 
 #: config/v850/v850.opt:139
 #, fuzzy
-#| msgid "Prohibit PC relative function calls"
 msgid "Prohibit PC relative jumps"
 msgstr "PC-relative Funktionsaufrufe verbieten"
 
 #: config/v850/v850.opt:143
 #, fuzzy
-#| msgid "Prevent the use of all hardware floating-point instructions"
 msgid "Inhibit the use of hardware floating point instructions"
 msgstr "Verwendung aller Hardware-Gleitkommabefehle verhindern"
 
 #: config/v850/v850.opt:147
 #, fuzzy
-#| msgid "Allow the use of hardware floating-point ABI and instructions"
 msgid "Allow the use of hardware floating point instructions for V850E2V3 and up"
 msgstr "Verwendung von Hardware-Gleitkomma-ABI und -befehlen erlauben"
 
 #: config/v850/v850.opt:151
 #, fuzzy
-#| msgid "Enable the use of RX FPU instructions.  This is the default."
 msgid "Enable support for the RH850 ABI.  This is the default"
 msgstr "Verwendung des RX-FPU-Befehls einschalten. Dies ist Standard."
 
 #: config/v850/v850.opt:155
 #, fuzzy
-#| msgid "Enable support for huge objects"
 msgid "Enable support for the old GCC ABI"
 msgstr "Unterstützung für große Objekte einschalten"
 
@@ -8845,7 +8748,6 @@ msgstr "Visuelle Befehlssatzerweiterungen Version 3.0 für UltraSPARC verwenden"
 
 #: config/sparc/sparc.opt:78
 #, fuzzy
-#| msgid "Use UltraSPARC Fused Multiply-Add extensions"
 msgid "Use UltraSPARC Compare-and-Branch extensions"
 msgstr "Multiplizier-Addier-Erweiterungen für UltraSPARC verwenden"
 
@@ -9477,7 +9379,6 @@ msgstr "Maximalgröße der globalen und statischen Variable, die in kleine Daten
 
 #: config/rx/rx.opt:90
 #, fuzzy
-#| msgid "Generate assembler output that is compatible with the Renesas AS100 assembler.  This may restrict some of the compiler's capabilities.  The default is to generate GAS compatable syntax."
 msgid "Generate assembler output that is compatible with the Renesas AS100 assembler.  This may restrict some of the compiler's capabilities.  The default is to generate GAS compatible syntax."
 msgstr "Assemblerausgabe erzeugen, die mit Renesas AS100-Assembler verträglich ist. Dies schränkt einige Kompilerfähigkeiten ein. Standard: GAS-verträgliche Syntax"
 
@@ -10205,7 +10106,6 @@ msgstr ""
 
 #: config/sh/sh.opt:327
 #, fuzzy
-#| msgid "Generate code for built-in atomic operations"
 msgid "Specify the model for atomic operations"
 msgstr "Code für eingebaute atomare Operationen erzeugen"
 
@@ -10231,13 +10131,11 @@ msgstr "Vorgeben, dass Sprung-um-Sprung ein bedingter Sprung ist"
 
 #: config/sh/sh.opt:353
 #, fuzzy
-#| msgid "Enable the use of the short load instructions"
 msgid "Enable the use of the fsca instruction"
 msgstr "Verwendung der kurzen Ladebefehle einschalten"
 
 #: config/sh/sh.opt:357
 #, fuzzy
-#| msgid "Enable the use of the short load instructions"
 msgid "Enable the use of the fsrra instruction"
 msgstr "Verwendung der kurzen Ladebefehle einschalten"
 
@@ -10559,7 +10457,6 @@ msgstr "Verwendung aller Gleitkommaoperationen verhindern"
 
 #: config/mips/mips.opt:274
 #, fuzzy
-#| msgid "Use MIPS-3D instructions"
 msgid "Use MCU instructions"
 msgstr "MIPS-3D-Befehle verwenden"
 
@@ -10657,7 +10554,6 @@ msgstr "Mit 64-Bit Longs und Zeigern kompilieren"
 
 #: config/tilegx/tilegx.opt:45
 #, fuzzy
-#| msgid "Use given x86-64 code model"
 msgid "Use given TILE-Gx code model"
 msgstr "Gegebenes x86-64-Codemodell verwenden"
 
@@ -10815,7 +10711,6 @@ msgstr "Optimiert auf Geschwindigkeit unter Missachtung genauer Standardkonformi
 
 #: common.opt:453
 #, fuzzy
-#| msgid "Optimize for space rather than speed"
 msgid "Optimize for debugging experience rather than speed or size"
 msgstr "Auf Größe statt Geschwindigkeit optimieren"
 
@@ -11327,7 +11222,6 @@ msgstr "Transformation der Graphite Identität einschalten"
 
 #: common.opt:1202
 #, fuzzy
-#| msgid "Enable hoisting loads from conditional pointers."
 msgid "Enable hoisting adjacent loads to encourage generating conditional move"
 msgstr "Herausziehen von Ladeoperationen aus bedingten Zeigern einschalten"
 
@@ -11524,7 +11418,6 @@ msgstr "Optimierungen zur Linkzeit mit Anzahl paralleler Jobs oder Jobserver."
 
 #: common.opt:1451
 #, fuzzy
-#| msgid "Partition functions and vars at linktime based on object files they originate from"
 msgid "Partition symbols and vars at linktime based on object files they originate from"
 msgstr "Funktionen und Variablen zum Linkzeitpunkt aufgrund ihrer Objektdatei-Herkunft partitionieren"
 
@@ -11534,7 +11427,6 @@ msgstr "Funktionen und Variablen zum Linkzeitpunkt in ungefähr gleich große Gr
 
 #: common.opt:1459
 #, fuzzy
-#| msgid "Put literal pools in a separate literal section"
 msgid "Put every symbol into separate partition"
 msgstr "Zeichendaten in gesonderten Zeichenabschnitt legen"
 
@@ -11564,7 +11456,6 @@ msgstr "Über dauerhafte Speicherreservierung berichten"
 
 #: common.opt:1488
 #, fuzzy
-#| msgid "Report on permanent memory allocation"
 msgid "Report on permanent memory allocation in WPA only"
 msgstr "Über dauerhafte Speicherreservierung berichten"
 
@@ -11618,7 +11509,6 @@ msgstr "Wenn möglich, keine Stapelrahmen erzeugen"
 
 #: common.opt:1543
 #, fuzzy
-#| msgid "Enable loop optimizations on tree level"
 msgid "Enable all optimization info dumps on stderr"
 msgstr "Schleifenoptimierungen auf Baumebene einschalten"
 
@@ -11736,7 +11626,6 @@ msgstr "Code in Profilwerte von Ausdrücken einfügen"
 
 #: common.opt:1664
 #, fuzzy
-#| msgid "internal consistency failure"
 msgid "Report on consistency of profile"
 msgstr "internes Konsistenzproblem"
 
@@ -12015,7 +11904,6 @@ msgstr "Kopieren des Schleifenkopfes auf Bäumen einschalten"
 
 #: common.opt:2004
 #, fuzzy
-#| msgid "Perform variable tracking and also tag variables that are uninitialized"
 msgid "Enable coalescing of copy-related user variables that are inlined"
 msgstr "Variablenverfolgung durchführen und auch Variablen markieren, die uninitialisiert sind"
 
@@ -12177,13 +12065,11 @@ msgstr "Einfach Abwicklungstabellen für Ausnahmebehandlung erzeugen"
 
 #: common.opt:2180
 #, fuzzy
-#| msgid "Use the hardware barrel shifter instead of emulation"
 msgid "Use the bfd linker instead of the default linker"
 msgstr "Verwendet den Hardware-Berrelshifter statt der Emulation"
 
 #: common.opt:2184
 #, fuzzy
-#| msgid "Use the hardware barrel shifter instead of emulation"
 msgid "Use the gold linker instead of the default linker"
 msgstr "Verwendet den Hardware-Berrelshifter statt der Emulation"
 
@@ -12209,7 +12095,6 @@ msgstr "Schleifenvektorisierung auf Bäumen einschalten"
 
 #: common.opt:2226
 #, fuzzy
-#| msgid "-ftree-vectorizer-verbose=<number>\tSet the verbosity level of the vectorizer"
 msgid "-ftree-vectorizer-verbose=<number>\tThis switch is deprecated. Use -fopt-info instead."
 msgstr "-ftree-vectorizer-verbose=<Zahl>\tStufe der Wortfülle des Vektorisierers setzen"
 
@@ -12284,7 +12169,6 @@ msgstr "Fehlersuchinformationen im erweiterten Standardformat erzeugen"
 
 #: common.opt:2315
 #, fuzzy
-#| msgid "Don't generate fused multiply/add instructions"
 msgid "Don't generate DWARF pubnames and pubtypes sections."
 msgstr "Keine verschmolzenen Multiplizier-/Addier-Befehle erzeugen"
 
@@ -12302,13 +12186,11 @@ msgstr "GCC-Kommandozeilenschalter in DWARF DW_AT_producer aufzeichnen."
 
 #: common.opt:2331
 #, fuzzy
-#| msgid "Generate debug information in default format"
 msgid "Don't generate debug information in separate .dwo files"
 msgstr "Fehlersuchinformationen im Standardformat erzeugen"
 
 #: common.opt:2335
 #, fuzzy
-#| msgid "Generate debug information in default format"
 msgid "Generate debug information in separate .dwo files"
 msgstr "Fehlersuchinformationen im Standardformat erzeugen"
 
@@ -12350,7 +12232,6 @@ msgstr "-iplugindir=<Verz>\t<Verz> als Standard-Plugin-Verzeichnis setzen"
 
 #: common.opt:2378
 #, fuzzy
-#| msgid "-imultilib <dir>\tSet <dir> to be the multilib include subdirectory"
 msgid "-imultiarch <dir>\tSet <dir> to be the multiarch include subdirectory"
 msgstr "-imultilib <Verzeichnis>\t<Verzeichnis> als Multilib-include-Verzeichnis setzen"
 
@@ -12427,7 +12308,6 @@ msgstr "Zeiger erwartet"
 
 #: go/gofrontend/expressions.cc:5610
 #, fuzzy
-#| msgid "invalid comparison code in gimple cond"
 msgid "invalid comparison of nil with nil"
 msgstr "ungültiger Vergleichscode in GIMPLE-Bedingung"
 
@@ -12622,7 +12502,6 @@ msgstr "ungültiges Empfangen auf Nur-Sende-Kanal"
 
 #: go/gofrontend/parse.cc:2982
 #, fuzzy
-#| msgid "parentheses required around this composite literalto avoid parsing ambiguity"
 msgid "parentheses required around this composite literal to avoid parsing ambiguity"
 msgstr "Um dieses zusammengesetzte Literal sind Klammern erforderlich, um Mehrdeutigkeit zu vermeiden"
 
@@ -12709,7 +12588,6 @@ msgstr "ungültiger Vergleich eines nicht-vergleichbaren Feldes"
 
 #: go/gofrontend/types.cc:627
 #, fuzzy
-#| msgid "multiple value function call in single value context"
 msgid "multiple-value function call in single-value context"
 msgstr "Funktionsaufruf mit mehreren Werten in Kontext mit einem Wert"
 
@@ -12788,13 +12666,11 @@ msgstr "fehlende Methode %s%s%s"
 
 #: go/gofrontend/types.cc:6966
 #, fuzzy, c-format
-#| msgid "method %s%s%s requires a pointer"
 msgid "method %s%s%s requires a pointer receiver"
 msgstr "Methode %s%s%s erfordert einen Zeiger"
 
 #: go/gofrontend/types.cc:6984
 #, fuzzy, c-format
-#| msgid "method %s%s%s requires a pointer"
 msgid "method %s%s%s is marked go:nointerface"
 msgstr "Methode %s%s%s erfordert einen Zeiger"
 
@@ -12807,7 +12683,6 @@ msgstr "Attribut-Anweisung %qE ignoriert"
 
 #: attribs.c:430
 #, fuzzy, gcc-internal-format
-#| msgid "%qE attribute directive ignored"
 msgid "%<%E::%E%> scoped attribute directive ignored"
 msgstr "Attribut-Anweisung %qE ignoriert"
 
@@ -12821,7 +12696,6 @@ msgstr "Falsche Anzahl an Argumenten für das Attribut %qE angegeben"
 #. type.  Ignore it.
 #: attribs.c:452
 #, fuzzy, gcc-internal-format
-#| msgid "%qE attribute ignored"
 msgid "attribute ignored"
 msgstr "Attribut %qE wird ignoriert"
 
@@ -12989,13 +12863,11 @@ msgstr "nicht-ganzzahliges Argument 1 für __atomic_is_lock_free"
 
 #: builtins.c:5764
 #, fuzzy, gcc-internal-format
-#| msgid "__builtin_eh_return not supported on this target"
 msgid "__builtin_thread_pointer is not supported on this target"
 msgstr "__builtin_eh_return für dieses Ziel nicht unterstützt"
 
 #: builtins.c:5784
 #, fuzzy, gcc-internal-format
-#| msgid "__builtin_eh_return not supported on this target"
 msgid "__builtin_set_thread_pointer is not supported on this target"
 msgstr "__builtin_eh_return für dieses Ziel nicht unterstützt"
 
@@ -13180,7 +13052,6 @@ msgstr "verify_flow_info gescheitert"
 
 #: cfghooks.c:293
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "%s does not support duplicate_block"
 msgid "%s does not support dump_bb_for_graph"
 msgstr "%s unterstützt nicht duplicate_block"
 
@@ -13286,25 +13157,21 @@ msgstr "Größe der Schleife %d sollte %d sein, nicht %d"
 
 #: cfgloop.c:1363
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Enable loop header copying on trees"
 msgid "loop with header %d not in loop tree"
 msgstr "Kopieren des Schleifenkopfes auf Bäumen einschalten"
 
 #: cfgloop.c:1380
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "bb %d do not belong to loop %d"
 msgid "bb %d does not belong to loop %d"
 msgstr "BB %d gehört nicht zur Schleife %d"
 
 #: cfgloop.c:1392
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "size of loop %d should be %d, not %d"
 msgid "bb %d has father loop %d, should be loop %d"
 msgstr "Größe der Schleife %d sollte %d sein, nicht %d"
 
 #: cfgloop.c:1409
 #, fuzzy, gcc-internal-format
-#| msgid "loop %d%'s header does not have exactly 2 entries"
 msgid "loop %d%'s header is not a loop header"
 msgstr "Kopf der Schleife %d hat nicht genau 2 Einträge"
 
@@ -13315,13 +13182,11 @@ msgstr "Kopf der Schleife %d hat nicht genau 2 Einträge"
 
 #: cfgloop.c:1422
 #, fuzzy, gcc-internal-format
-#| msgid "loop %d%'s latch does not have header as successor"
 msgid "loop %d%'s latch does not have an edge to its header"
 msgstr "Falle der Schleife %d hat nicht den Kopf als Nachfolger"
 
 #: cfgloop.c:1427
 #, fuzzy, gcc-internal-format
-#| msgid "loop %d%'s latch does not have header as successor"
 msgid "loop %d%'s latch is not dominated by its header"
 msgstr "Falle der Schleife %d hat nicht den Kopf als Nachfolger"
 
@@ -13437,13 +13302,11 @@ msgstr "EDGE_CROSSING falsch gesetzt im selben Abschnitt"
 
 #: cfgrtl.c:2165
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "fallthru edge crosses section boundary (bb %i)"
 msgid "fallthru edge crosses section boundary in bb %i"
 msgstr "Fall-Through-Kante überschreitet Abschnittsgrenze (bb %i)"
 
 #: cfgrtl.c:2171
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "EH edge crosses section boundary (bb %i)"
 msgid "EH edge crosses section boundary in bb %i"
 msgstr "EH-Kante überschneidet Abschnittsgrenze (bb %i)"
 
@@ -13454,13 +13317,11 @@ msgstr "EDGE_CROSSING fehlt bei Übertretung von Abschnittsgrenze"
 
 #: cfgrtl.c:2205
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "missing REG_EH_REGION note in the end of bb %i"
 msgid "missing REG_EH_REGION note at the end of bb %i"
 msgstr "fehlender Vermerk von REG_EH_REGION am Ende vom bb %i"
 
 #: cfgrtl.c:2210
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "too many outgoing branch edges from bb %i"
 msgid "too many exception handling edges in bb %i"
 msgstr "zu viele abgehende Zweig-Kanten vom bb %i"
 
@@ -13471,31 +13332,26 @@ msgstr "zu viele abgehende Zweig-Kanten vom bb %i"
 
 #: cfgrtl.c:2223
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "fallthru edge after unconditional jump %i"
 msgid "fallthru edge after unconditional jump in bb %i"
 msgstr "Fallthru-Kante nach unbedingtem Sprung %i"
 
 #: cfgrtl.c:2228
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "wrong number of branch edges after unconditional jump %i"
 msgid "wrong number of branch edges after unconditional jump in bb %i"
 msgstr "falsche Anzahl der Zweig-Kanten nach unbedingtem Sprung %i"
 
 #: cfgrtl.c:2235
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "wrong amount of branch edges after conditional jump %i"
 msgid "wrong amount of branch edges after conditional jump in bb %i"
 msgstr "falsche Summe der Zweig-Kanten nach bedingtem Sprung %i"
 
 #: cfgrtl.c:2241
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "call edges for non-call insn in bb %i"
 msgid "abnormal call edges for non-call insn in bb %i"
 msgstr "Ruf-Kanten für Nicht-Aufruf-Befehl im bb %i"
 
 #: cfgrtl.c:2246
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "call edges for non-call insn in bb %i"
 msgid "sibcall edges for non-call insn in bb %i"
 msgstr "Ruf-Kanten für Nicht-Aufruf-Befehl im bb %i"
 
@@ -13606,7 +13462,6 @@ msgstr "Ausführungszähler ist negativ"
 
 #: cgraph.c:2328
 #, fuzzy, gcc-internal-format
-#| msgid "node is alone in a comdat group"
 msgid "inline clone in same comdat group list"
 msgstr "Knoten ist allein in einer Comdat-Gruppe"
 
@@ -13622,7 +13477,6 @@ msgstr "Inline-Kopie mit Adresse genommen"
 
 #: cgraph.c:2343
 #, fuzzy, gcc-internal-format
-#| msgid "inline clone is needed"
 msgid "inline clone is forced to output"
 msgstr "Inline-Kopie erforderlich"
 
@@ -13803,7 +13657,6 @@ msgstr ""
 
 #: cgraphunit.c:1127
 #, fuzzy, gcc-internal-format
-#| msgid "%q+D used prior to declaration"
 msgid "%q+D aliased declaration"
 msgstr "%q+D vor Deklaration verwendet"
 
@@ -14169,7 +14022,6 @@ msgstr "unbekannte Option %q.*s in %<-fdump-%s%> wird ignoriert"
 
 #: dumpfile.c:831
 #, fuzzy, gcc-internal-format
-#| msgid "ignoring unknown option %q.*s in %<-fdump-%s%>"
 msgid "unknown option %q.*s in %<-fopt-info-%s%>"
 msgstr "unbekannte Option %q.*s in %<-fdump-%s%> wird ignoriert"
 
@@ -14634,7 +14486,6 @@ msgstr "Spezifikationsfehler: mehr als ein Argument für SYSROOT_HEADERS_SUFFIX_
 
 #: gcc.c:6643
 #, fuzzy, gcc-internal-format
-#| msgid "unrecognized command line option %<-fdump-%s%>"
 msgid "unrecognized command line option %<-%s%>"
 msgstr "nicht erkannte Kommandozeilenoption %<-fdump-%s%>"
 
@@ -14702,7 +14553,6 @@ msgstr "Multilib-Ausschlüsse %qs sind ungültig"
 
 #: gcc.c:7602
 #, fuzzy, gcc-internal-format
-#| msgid "multilib select %qs is invalid"
 msgid "multilib select %qs %qs is invalid"
 msgstr "Multilib-select %qs ist ungültig"
 
@@ -14768,7 +14618,6 @@ msgstr "Argument für %%:compare-debug-auxbase-opt endet nicht mit .pk"
 
 #: gcc.c:8524
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "too few arguments to function"
 msgid "too few arguments to %%:replace-extension"
 msgstr "zu wenige Argumente für Funktion"
 
@@ -14968,7 +14817,6 @@ msgstr "inkonsistente Operandenbedingungen in einem %<asm%>"
 
 #: lra-constraints.c:3438
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Maximum number of conditional store pairs that can be sunk"
 msgid "Maximum number of LRA constraint passes is achieved (%d)\n"
 msgstr "Höchstzahl von bedingten Speicherpaaren, die ausgegeben werden können"
 
@@ -15187,7 +15035,6 @@ msgstr "nicht erkannte Kommandozeilenoption %<-fdump-%s%>"
 
 #: opts-global.c:394
 #, fuzzy, gcc-internal-format
-#| msgid "unrecognized command line option %<-fdump-%s%>"
 msgid "unrecognized command line option %<-fopt-info-%s%>"
 msgstr "nicht erkannte Kommandozeilenoption %<-fdump-%s%>"
 
@@ -15218,7 +15065,6 @@ msgstr "%<-femit-struct-debug-detailed=dir:...%> muss zumindest so viel wie %<-f
 
 #: opts.c:542
 #, fuzzy, gcc-internal-format
-#| msgid "argument to %qs should be a non-negative integer"
 msgid "argument to %<-O%> should be a non-negative integer, %<g%>, %<s%> or %<fast%>"
 msgstr "Argument von %qs sollte eine nicht-negative Ganzzahl sein"
 
@@ -15915,25 +15761,21 @@ msgstr "%D nach Referenzierung in Assemblierung umbenannt"
 
 #: symtab.c:586
 #, fuzzy, gcc-internal-format
-#| msgid "function returning a function"
 msgid "function symbol is not function"
 msgstr "Funktion gibt eine Funktion"
 
 #: symtab.c:594
 #, fuzzy, gcc-internal-format
-#| msgid "array is not addressable"
 msgid "variable symbol is not variable"
 msgstr "Feld ist nicht adressierbar"
 
 #: symtab.c:600
 #, fuzzy, gcc-internal-format
-#| msgid "node has wrong clone list"
 msgid "node has unknown type"
 msgstr "Knoten hat falsche Clone-Liste"
 
 #: symtab.c:607
 #, fuzzy, gcc-internal-format
-#| msgid "node not found in cgraph_hash"
 msgid "node not found in symtab decl hashtable"
 msgstr "Knoten in cgraph_hash nicht gefunden"
 
@@ -15944,13 +15786,11 @@ msgstr ""
 
 #: symtab.c:628
 #, fuzzy, gcc-internal-format
-#| msgid "node not found in cgraph_hash"
 msgid "node not found in symtab assembler name hash"
 msgstr "Knoten in cgraph_hash nicht gefunden"
 
 #: symtab.c:635
 #, fuzzy, gcc-internal-format
-#| msgid "double linked list of clones corrupted"
 msgid "double linked list of assembler names corrupted"
 msgstr "doppelt verkettete Liste des Clones ist beschädigt"
 
@@ -15976,7 +15816,6 @@ msgstr "same_comdat_group ist keine ringförmige Liste"
 
 #: symtab.c:686
 #, fuzzy, gcc-internal-format
-#| msgid "verify_cgraph_node failed"
 msgid "verify_symtab_node failed"
 msgstr "verify_cgraph gescheitert"
 
@@ -16077,7 +15916,6 @@ msgstr "dieses Ziel unterstützt nicht %qs"
 
 #: toplev.c:1255
 #, fuzzy, gcc-internal-format
-#| msgid "Graphite loop optimizations cannot be used (-fgraphite, -fgraphite-identity, -floop-block, -floop-flatten, -floop-interchange, -floop-strip-mine, -floop-parallelize-all, and -ftree-loop-linear)"
 msgid "Graphite loop optimizations cannot be used (-fgraphite, -fgraphite-identity, -floop-block, -floop-interchange, -floop-strip-mine, -floop-parallelize-all, and -ftree-loop-linear)"
 msgstr "Graphite-Schleifenoptimierungen können nicht verwendet werden (-fgraphite, -fgraphite-identity, -floop-block, -floop-flatten, -floop-interchange, -floop-strip-mine, -floop-parallelize-all und -ftree-loop-linear)"
 
@@ -16173,7 +16011,6 @@ msgstr "Abwicklungstabellen erfordern derzeit einen Rahmenzeiger für Korrekthei
 
 #: toplev.c:1547
 #, fuzzy, gcc-internal-format
-#| msgid "-fdata-sections not supported for this target"
 msgid "-fsanitize=address not supported for this target"
 msgstr "-fdata-sections wird für dieses Ziel nicht unterstützt"
 
@@ -16504,7 +16341,6 @@ msgstr "Vergleichsoperandentypen passen nicht"
 
 #: tree-cfg.c:3172
 #, fuzzy, gcc-internal-format
-#| msgid "invalid vector comparison resulting type"
 msgid "vector comparison returning a boolean"
 msgstr "ungültiger Ergebnistyp in Vektorvergleich"
 
@@ -16725,43 +16561,36 @@ msgstr "ungültiger Operand für switch-Anweisung"
 
 #: tree-cfg.c:4101
 #, fuzzy, gcc-internal-format
-#| msgid "invalid operand to switch statement"
 msgid "non-integral type switch statement"
 msgstr "ungültiger Operand für switch-Anweisung"
 
 #: tree-cfg.c:4109
 #, fuzzy, gcc-internal-format
-#| msgid "%<default%> label not within a switch statement"
 msgid "invalid default case label in switch statement"
 msgstr "%<default%>-Marke nicht innerhalb einer switch-Anweisung"
 
 #: tree-cfg.c:4121
 #, fuzzy, gcc-internal-format
-#| msgid "case label not within a switch statement"
 msgid "invalid case label in switch statement"
 msgstr "case-Marke nicht innerhalb einer switch-Anweisung"
 
 #: tree-cfg.c:4128
 #, fuzzy, gcc-internal-format
-#| msgid "invalid operand to switch statement"
 msgid "invalid case range in switch statement"
 msgstr "ungültiger Operand für switch-Anweisung"
 
 #: tree-cfg.c:4138
 #, fuzzy, gcc-internal-format
-#| msgid "case label not within a switch statement"
 msgid "type mismatch for case label in switch statement"
 msgstr "case-Marke nicht innerhalb einer switch-Anweisung"
 
 #: tree-cfg.c:4148
 #, fuzzy, gcc-internal-format
-#| msgid "case label not within a switch statement"
 msgid "type precision mismatch in switch statement"
 msgstr "case-Marke nicht innerhalb einer switch-Anweisung"
 
 #: tree-cfg.c:4157
 #, fuzzy, gcc-internal-format
-#| msgid "case label not within a switch statement"
 msgid "case labels not sorted in switch statement"
 msgstr "case-Marke nicht innerhalb einer switch-Anweisung"
 
@@ -16827,7 +16656,6 @@ msgstr "gimple_bb (phi) wird auf falschen Basisblock gesetzt"
 
 #: tree-cfg.c:4603
 #, fuzzy, gcc-internal-format
-#| msgid "from this location"
 msgid "PHI node with location"
 msgstr "von dieser Stelle"
 
@@ -16963,13 +16791,11 @@ msgstr "Rückgabewert der mit dem Attribut warn_unused_result definierten Funkti
 
 #: tree-diagnostic.c:202
 #, fuzzy, gcc-internal-format
-#| msgid "redefinition of %q+D"
 msgid "in definition of macro %qs"
 msgstr "Redefinition von %q+D"
 
 #: tree-diagnostic.c:219
 #, fuzzy, gcc-internal-format
-#| msgid "poisoning existing macro \"%s\""
 msgid "in expansion of macro %qs"
 msgstr "schlechtes existierendes Makro »%s«"
 
@@ -17336,7 +17162,6 @@ msgstr "Vektoroperation wird mit einzelner skalarer Operation ausgeweitet"
 
 #: tree-vect-generic.c:909
 #, fuzzy, gcc-internal-format
-#| msgid "vector operation will be expanded piecewise"
 msgid "vector condition will be expanded piecewise"
 msgstr "Vektoroperation wird stückweise ausgeweitet"
 
@@ -18373,7 +18198,6 @@ msgstr "Verlangte Ausrichtung ist zu groß"
 
 #: c-family/c-common.c:7379
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "requested alignment is too large"
 msgid "requested alignment %d is larger than %d"
 msgstr "Verlangte Ausrichtung ist zu groß"
 
@@ -19074,7 +18898,6 @@ msgstr "Indexwert ist außerhalb der Grenzen"
 #: c-family/c-common.c:11481 c-family/c-common.c:11531
 #: c-family/c-common.c:11546
 #, fuzzy, gcc-internal-format
-#| msgid "conversion of scalar to vector involves truncation"
 msgid "conversion of scalar %qT to vector %qT involves truncation"
 msgstr "Umwandlung von Skalar in Vektor führt zum Abschneiden"
 
@@ -19627,7 +19450,6 @@ msgstr "-Wformat-security wird ohne -Wformat ignoriert"
 
 #: c-family/c-opts.c:910
 #, fuzzy, gcc-internal-format
-#| msgid "nested functions not supported on this target"
 msgid "external TLS initialization functions not supported on this target"
 msgstr "geschachtelte Funktionen werden auf diesem Ziel nicht unterstützt"
 
@@ -20209,7 +20031,6 @@ msgstr "%qE 2.95 vtable-Kompatibilitätsattribut trifft nur für C++-Klassen zu"
 
 #: config/darwin.c:2689
 #, fuzzy, gcc-internal-format
-#| msgid "visibility attribute not supported in this configuration; ignored"
 msgid "protected visibility attribute not supported in this configuration; ignored"
 msgstr "Sichtbarkeitsattribute werden in dieser Konfiguration nicht unterstützt; ignoriert"
 
@@ -20346,59 +20167,50 @@ msgstr "Profilerunterstützung für VxWorks"
 
 #: config/aarch64/aarch64-builtins.c:1032
 #, fuzzy, gcc-internal-format
-#| msgid "incompatible type for argument %d of %qE"
 msgid "incompatible type for argument %d, expected %<const int%>"
 msgstr "Inkompatibler Typ für Argument %d von %qE"
 
 #: config/aarch64/aarch64.c:3643
 #, fuzzy, gcc-internal-format
-#| msgid "Enable function profiling"
 msgid "function profiling"
 msgstr "Funktionsprofilierung einschalten"
 
 #: config/aarch64/aarch64.c:4623
 #, fuzzy, gcc-internal-format
-#| msgid "missing filename after %qs"
 msgid "missing feature modifier after %qs"
 msgstr "fehlender Dateiname hinter %qs"
 
 #. Extension not found in list.
 #: config/aarch64/aarch64.c:4644
 #, fuzzy, gcc-internal-format
-#| msgid "unknown TLS model %qs"
 msgid "unknown feature modifier %qs"
 msgstr "unbekanntes TLS-Modell %qs"
 
 #: config/aarch64/aarch64.c:4675
 #, fuzzy, gcc-internal-format
-#| msgid "missing path after %qs"
 msgid "missing arch name in -march=%qs"
 msgstr "fehlender Pfad hinter %qs"
 
 #. ARCH name not found in list.
 #: config/aarch64/aarch64.c:4699
 #, fuzzy, gcc-internal-format
-#| msgid "unknown value %s for -mfpu"
 msgid "unknown value %qs for -march"
 msgstr "unbekannter Wert %s für -mfpu"
 
 #: config/aarch64/aarch64.c:4724
 #, fuzzy, gcc-internal-format
-#| msgid "missing path after %qs"
 msgid "missing cpu name in -mcpu=%qs"
 msgstr "fehlender Pfad hinter %qs"
 
 #. CPU name not found in list.
 #: config/aarch64/aarch64.c:4747
 #, fuzzy, gcc-internal-format
-#| msgid "unknown value %s for -mfpu"
 msgid "unknown value %qs for -mcpu"
 msgstr "unbekannter Wert %s für -mfpu"
 
 #. CPU name not found in list.
 #: config/aarch64/aarch64.c:4771
 #, fuzzy, gcc-internal-format
-#| msgid "unknown value %s for -mfpu"
 msgid "unknown value %qs for -mtune"
 msgstr "unbekannter Wert %s für -mfpu"
 
@@ -20410,19 +20222,16 @@ msgstr ""
 #: config/aarch64/aarch64.c:5198 config/aarch64/aarch64.c:5306
 #: config/aarch64/aarch64.c:5545
 #, fuzzy, gcc-internal-format
-#| msgid "Use hardware floating point instructions"
 msgid "%qs and floating point or vector arguments"
 msgstr "Hardware-Gleitkommabefehle verwenden"
 
 #: config/aarch64/aarch64.c:6421
 #, fuzzy, gcc-internal-format
-#| msgid "line number out of range"
 msgid "lane out of range"
 msgstr "Zeilennummer ist außerhalb des Wertebereiches"
 
 #: config/aarch64/aarch64.c:6431
 #, fuzzy, gcc-internal-format
-#| msgid "constant argument out of range for %qs"
 msgid "constant out of range"
 msgstr "Konstantes Argument außerhalb des Wertebereiches für %qs"
 
@@ -20569,7 +20378,6 @@ msgstr "AAPCS unterstützt nicht -mcallee-super-interworking"
 
 #: config/arm/arm.c:1923
 #, fuzzy, gcc-internal-format
-#| msgid "-fPIC and -G are incompatible"
 msgid "iWMMXt and NEON are incompatible"
 msgstr "-fPIC und -G sind unverträglich"
 
@@ -20706,7 +20514,6 @@ msgstr "Maske muss »immediate« sein"
 
 #: config/arm/arm.c:21827
 #, fuzzy, gcc-internal-format
-#| msgid "%qE attribute argument should be between 0 to 255"
 msgid "the range of mask should be in 0 to 255"
 msgstr "Argument des Attributs %qE sollte zwischen 0 und 255 sein"
 
@@ -20842,43 +20649,36 @@ msgstr "Interrupt-Dienst-Routinen können nicht im »Thumb«-Modus codiert werde
 
 #: config/avr/avr-c.c:65 config/avr/avr-c.c:190
 #, fuzzy, gcc-internal-format
-#| msgid "macro \"%s\" requires %u arguments, but only %u given"
 msgid "%qs expects 1 argument but %d given"
 msgstr "Makro »%s« erfordert %u Argumente, aber nur %u wurden angegeben"
 
 #: config/avr/avr-c.c:76
 #, fuzzy, gcc-internal-format
-#| msgid "%qs expects a constant argument"
 msgid "%qs expects a fixed-point value as argument"
 msgstr "%qs erwartet ein konstantes Argument"
 
 #: config/avr/avr-c.c:102
 #, fuzzy, gcc-internal-format
-#| msgid "%qE attribute has no effect"
 msgid "using %qs with unsigned type has no effect"
 msgstr "Attribut %qE hat keinen Effekt"
 
 #: config/avr/avr-c.c:107 config/avr/avr-c.c:173 config/avr/avr-c.c:230
 #, fuzzy, gcc-internal-format
-#| msgid "no matching template for %qD found"
 msgid "no matching fixed-point overload found for %qs"
 msgstr "kein passendes Template für %qD gefunden"
 
 #: config/avr/avr-c.c:124
 #, fuzzy, gcc-internal-format
-#| msgid "macro \"%s\" requires %u arguments, but only %u given"
 msgid "%qs expects 2 arguments but %d given"
 msgstr "Makro »%s« erfordert %u Argumente, aber nur %u wurden angegeben"
 
 #: config/avr/avr-c.c:136 config/avr/avr-c.c:201
 #, fuzzy, gcc-internal-format
-#| msgid "%qs expects a constant argument"
 msgid "%qs expects a fixed-point value as first argument"
 msgstr "%qs erwartet ein konstantes Argument"
 
 #: config/avr/avr-c.c:144
 #, fuzzy, gcc-internal-format
-#| msgid "%qs expects a constant argument"
 msgid "%qs expects an integer value as second argument"
 msgstr "%qs erwartet ein konstantes Argument"
 
@@ -20909,7 +20709,6 @@ msgstr "%qs scheint ein falsch geschriebener Handler für %s zu sein"
 
 #: config/avr/avr.c:838
 #, fuzzy, gcc-internal-format
-#| msgid "'builtin_return_address' contains only 2 bytes of address"
 msgid "%<builtin_return_address%> contains only 2 bytes of address"
 msgstr "»builtin_return_address« enthält nur 2 Adressbytes"
 
@@ -21314,7 +21113,6 @@ msgstr "diese eingebaute Funktion ist nur auf dem fr450 verfügbar"
 
 #: config/h8300/h8300.c:320
 #, fuzzy, gcc-internal-format
-#| msgid "-f%s not supported: ignored"
 msgid "-msx is not supported in coff"
 msgstr "-f%s nicht unterstützt: ignoriert"
 
@@ -21325,25 +21123,21 @@ msgstr "-ms2600 ohne -ms verwendet"
 
 #: config/h8300/h8300.c:348
 #, fuzzy, gcc-internal-format
-#| msgid "-mn is used without -mh or -ms"
 msgid "-mn is used without -mh or -ms or -msx"
 msgstr "-mn ohne -mh oder -ms verwendet"
 
 #: config/h8300/h8300.c:354
 #, fuzzy, gcc-internal-format
-#| msgid "-ms2600 is used without -ms"
 msgid "-mexr is used without -ms"
 msgstr "-ms2600 ohne -ms verwendet"
 
 #: config/h8300/h8300.c:360
 #, fuzzy, gcc-internal-format
-#| msgid "%<__int128%> is not supported for this target"
 msgid "-mint32 is not supported for H8300 and H8300L targets"
 msgstr "<__int128%> wird für dieses Ziel nicht unterstützt"
 
 #: config/h8300/h8300.c:366
 #, fuzzy, gcc-internal-format
-#| msgid "-mn is used without -mh or -ms"
 msgid "-mexr is used without -ms or -msx"
 msgstr "-mn ohne -mh oder -ms verwendet"
 
@@ -21380,7 +21174,6 @@ msgstr "-mstringop-strategy=rep_8byte wird für 32-Bit-Code nicht unterstützt"
 
 #: config/i386/i386.c:3160
 #, fuzzy, gcc-internal-format
-#| msgid "code model %qs not supported in the %s bit mode"
 msgid "address mode %qs not supported in the %s bit mode"
 msgstr "Codemodell %qs wird im %s-Bit-Modus nicht unterstützt"
 
@@ -21497,7 +21290,6 @@ msgstr "unbekannte Option für -mrecip=%s"
 
 #: config/i386/i386.c:4229
 #, fuzzy, gcc-internal-format
-#| msgid "attribute %qE argument not a string"
 msgid "attribute %<target%> argument not a string"
 msgstr "Attributargument von %qE ist keine Zeichenkette"
 
@@ -21685,7 +21477,6 @@ msgstr "nicht unterstützte Operandengröße für erweitertes Register"
 
 #: config/i386/i386.c:14206
 #, fuzzy, gcc-internal-format
-#| msgid "non-integer operand used with operand code '%c'"
 msgid "non-integer operand used with operand code 'z'"
 msgstr "Nicht-Ganzzahl-Operand mit Operandencode »%c« verwendet"
 
@@ -21696,7 +21487,6 @@ msgstr ""
 
 #: config/i386/i386.c:28805
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "No label definition found for %qs"
 msgid "No dispatcher found for %s"
 msgstr "Keine Markendefinition für %qs gefunden"
 
@@ -21712,7 +21502,6 @@ msgstr ""
 
 #: config/i386/i386.c:29067 config/i386/i386.c:29512
 #, fuzzy, gcc-internal-format
-#| msgid "static linking is not supported"
 msgid "Virtual function multiversioning not supported"
 msgstr "Statische Bindung wird nicht unterstützt"
 
@@ -21723,25 +21512,21 @@ msgstr ""
 
 #: config/i386/i386.c:29135
 #, fuzzy, gcc-internal-format
-#| msgid "previous declaration of %q+D"
 msgid "previous declaration of %D"
 msgstr "vorherige Deklaration von %q+D"
 
 #: config/i386/i386.c:29351
 #, fuzzy, gcc-internal-format
-#| msgid "ifunc is not supported in this configuration"
 msgid "multiversioning needs ifunc which is not supported in this configuration"
 msgstr "ifunc wird in dieser Konfiguration nicht unterstützt"
 
 #: config/i386/i386.c:29695
 #, fuzzy, gcc-internal-format
-#| msgid "argument to %qs must be a 2-bit unsigned literal"
 msgid "Parameter to builtin must be a string constant or literal"
 msgstr "Argument für %qs muss ein vorzeichenloses 2-Bit-Symbol sein"
 
 #: config/i386/i386.c:29720 config/i386/i386.c:29770
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Argument to -ffpe-trap is not valid: %s"
 msgid "Parameter to builtin not valid: %s"
 msgstr "Argument für -ffpe-trap ist ungültig: %s"
 
@@ -21822,7 +21607,6 @@ msgstr "letztes Argument muss Skalierung 1, 2, 4, 8 sein"
 
 #: config/i386/i386.c:32311
 #, fuzzy, gcc-internal-format
-#| msgid "the last argument must be an 8-bit immediate"
 msgid "the xabort's argument must be an 8-bit immediate"
 msgstr "Das letzte Argument muss ein 8-Bit-Immediate sein"
 
@@ -22051,7 +21835,6 @@ msgstr "-falign-loops=%d wird nicht unterstützt"
 
 #: config/m68k/m68k.c:621
 #, fuzzy, gcc-internal-format
-#| msgid "stack limits not supported on this target"
 msgid "-fstack-limit- options are not supported on this cpu"
 msgstr "Kellergrenzen nicht für dieses Ziel unterstützt"
 
@@ -22350,7 +22133,6 @@ msgstr "unerwartete %d-Byte-Cop-Anweisung"
 
 #: config/microblaze/microblaze.c:1311
 #, fuzzy, gcc-internal-format
-#| msgid "-fstack-protector not supported for this target"
 msgid "-fPIC/-fpic not supported for this target"
 msgstr "-fstack-protector wird für dieses Ziel nicht unterstützt"
 
@@ -22501,13 +22283,11 @@ msgstr "die Architektur %qs unterstützt keine Befehle mit Sprungwahrscheinlichk
 
 #: config/mips/mips.c:16621
 #, fuzzy, gcc-internal-format
-#| msgid "Generate position-independent code if possible (large mode)"
 msgid "cannot generate position-independent code for %qs"
 msgstr "Wenn möglich, lageunabhängigen Code erzeugen (large mode)"
 
 #: config/mips/mips.c:16624
 #, fuzzy, gcc-internal-format
-#| msgid "Disable position-independent code (PIC) for use in OS kernel code"
 msgid "position-independent code requires %qs"
 msgstr "Lageunabhängigen Code (PIC) für Verwendung in BS-Kernelcode ausschalten"
 
@@ -22864,7 +22644,6 @@ msgstr "nicht für SPE-ABI konfiguriert"
 
 #: config/rs6000/rs6000.c:2547
 #, fuzzy, gcc-internal-format
-#| msgid "Do not use PowerPC instruction set"
 msgid "not configured for SPE instruction set"
 msgstr "PowerPC-Befehlssatz nicht verwenden"
 
@@ -23279,19 +23058,16 @@ msgstr "-mcmodel unverträglich mit anderen TOC-Optionen"
 
 #: config/rs6000/e500.h:37
 #, fuzzy, gcc-internal-format
-#| msgid "AltiVec and E500 instructions cannot coexist"
 msgid "AltiVec and SPE instructions cannot coexist"
 msgstr "AltiVec- und E500-Befehle können nicht koexistieren"
 
 #: config/rs6000/e500.h:39
 #, fuzzy, gcc-internal-format
-#| msgid "VSX and E500 instructions cannot coexist"
 msgid "VSX and SPE instructions cannot coexist"
 msgstr "VSX- und E500-Befehle können nicht koexistieren"
 
 #: config/rs6000/e500.h:41
 #, fuzzy, gcc-internal-format
-#| msgid "64-bit E500 not supported"
 msgid "64-bit SPE not supported"
 msgstr "64-Bit-E500 wird nicht unterstützt"
 
@@ -23386,7 +23162,6 @@ msgstr "unbekannte Steuerregisterzahl: %d - 'psw' wird verwendet"
 
 #: config/rx/rx.c:1350
 #, fuzzy, gcc-internal-format
-#| msgid "multiple interrupt attributes not allowed"
 msgid "multiple fast interrupt routines seen: %qE and %qE"
 msgstr "mehrere Interruptattribute sind nicht erlaubt"
 
@@ -23850,13 +23625,11 @@ msgstr "falsch geformtes »#pragma __extern_prefix«, ignoriert"
 
 #: config/vms/vms-c.c:312 config/vms/vms-c.c:332
 #, fuzzy, gcc-internal-format
-#| msgid "malformed %<#pragma %s%>, ignored"
 msgid "malformed %<#pragma %s%>, ignoring"
 msgstr "falsch geformtes %<#pragma %s%>, ignoriert"
 
 #: config/vms/vms-c.c:328
 #, fuzzy, gcc-internal-format
-#| msgid "invalid constant in %<#pragma pack%> - ignored"
 msgid "invalid constant in %<#pragma %s%>"
 msgstr "ungültige Konstante in %<#pragma pack%> - ignoriert"
 
@@ -26305,19 +26078,16 @@ msgstr "hier deklariert"
 
 #: c/c-typeck.c:2746
 #, fuzzy, gcc-internal-format
-#| msgid "called object %qE is not a function"
 msgid "called object %qE is not a function or function pointer"
 msgstr "gerufenes Objekt %qE ist keine Funktion"
 
 #: c/c-typeck.c:2751
 #, fuzzy, gcc-internal-format
-#| msgid "called object %qE is not a function"
 msgid "called object %qD is not a function or function pointer"
 msgstr "gerufenes Objekt %qE ist keine Funktion"
 
 #: c/c-typeck.c:2757
 #, fuzzy, gcc-internal-format
-#| msgid "called object %qE is not a function"
 msgid "called object is not a function or function pointer"
 msgstr "gerufenes Objekt %qE ist keine Funktion"
 
@@ -26961,7 +26731,6 @@ msgstr "Initialisierung eines flexiblen Feld-Elements in geschachteltem Kontext"
 
 #: c/c-typeck.c:6975
 #, fuzzy, gcc-internal-format
-#| msgid "missing initializer for member %qD"
 msgid "missing initializer for field %qD of %qT"
 msgstr "Initialisierung für Element %qD fehlt"
 
@@ -27409,25 +27178,21 @@ msgstr "Aufruf von %<(%T) (%A)%> ist nicht eindeutig"
 
 #: cp/call.c:4177
 #, fuzzy, gcc-internal-format
-#| msgid "ambiguous overload for %qs in %<%s %E%>"
 msgid "ambiguous overload for "
 msgstr "mehrdeutiges Überladen für %qs in %<%s %E%>"
 
 #: cp/call.c:4178
 #, fuzzy, gcc-internal-format
-#| msgid "no match for %qs in %<%s %E%>"
 msgid "no match for "
 msgstr "keine Übereinstimmung für %qs in %<%s %E%>"
 
 #: cp/call.c:4181
 #, fuzzy, gcc-internal-format
-#| msgid "invalid operands to binary %s (have %qT and %qT)"
 msgid " (operand types are %qT, %qT, and %qT)"
 msgstr "Ungültige Operanden für binäres %s (haben %qT und %qT)"
 
 #: cp/call.c:4183
 #, fuzzy, gcc-internal-format
-#| msgid "invalid operands to binary %s (have %qT and %qT)"
 msgid " (operand types are %qT and %qT)"
 msgstr "Ungültige Operanden für binäres %s (haben %qT und %qT)"
 
@@ -27438,61 +27203,51 @@ msgstr ""
 
 #: cp/call.c:4205
 #, fuzzy, gcc-internal-format
-#| msgid "expected %<operator%>"
 msgid "ternary %<operator?:%>"
 msgstr "%<operator%> erwartet"
 
 #: cp/call.c:4209
 #, fuzzy, gcc-internal-format
-#| msgid "no match for ternary %<operator?:%> in %<%E ? %E : %E%>"
 msgid "ternary %<operator?:%> in %<%E ? %E : %E%>"
 msgstr "keine Übereinstimmung für ternären %<operator?:%> in %<%E ? %E : %E%>"
 
 #: cp/call.c:4218 cp/call.c:4249 cp/call.c:4258
 #, fuzzy, gcc-internal-format
-#| msgid "expected %<operator%>"
 msgid "%<operator%s%>"
 msgstr "%<operator%> erwartet"
 
 #: cp/call.c:4221
 #, fuzzy, gcc-internal-format
-#| msgid "no match for %<operator%s%> in %<%E%s%>"
 msgid "%<operator%s%> in %<%E%s%>"
 msgstr "keine Übereinstimmung für %<operator%s%> in %<%E%s%>"
 
 #: cp/call.c:4228
 #, fuzzy, gcc-internal-format
-#| msgid "expected %<operator%>"
 msgid "%<operator[]%>"
 msgstr "%<operator%> erwartet"
 
 #: cp/call.c:4231
 #, fuzzy, gcc-internal-format
-#| msgid "no match for %<operator[]%> in %<%E[%E]%>"
 msgid "%<operator[]%> in %<%E[%E]%>"
 msgstr "keine Übereinstimmung für %<operator[]%> in %<%E[%E]%>"
 
 #: cp/call.c:4239
 #, fuzzy, gcc-internal-format
-#| msgid "%s"
 msgid "%qs"
 msgstr "%s"
 
 #: cp/call.c:4242
 #, fuzzy, gcc-internal-format
-#| msgid "no match for %qs in %<%s %E%>"
 msgid "%qs in %<%s %E%>"
 msgstr "keine Übereinstimmung für %qs in %<%s %E%>"
 
 #: cp/call.c:4252
 #, fuzzy, gcc-internal-format
-#| msgid "no match for %<operator%s%> in %<%E %s %E%>"
 msgid "%<operator%s%> in %<%E %s %E%>"
 msgstr "keine Übereinstimmung für %<operator%s%> in %<%E %s %E%>"
 
 #: cp/call.c:4261
 #, fuzzy, gcc-internal-format
-#| msgid "no match for %<operator%s%> in %<%s%E%>"
 msgid "%<operator%s%> in %<%s%E%>"
 msgstr "keine Übereinstimmung für %<operator%s%> in %<%s%E%>"
 
@@ -27508,7 +27263,6 @@ msgstr ""
 
 #: cp/call.c:4433
 #, fuzzy, gcc-internal-format
-#| msgid "enumeral mismatch in conditional expression: %qT vs %qT"
 msgid "incompatible vector types in conditional expression: %qT, %qT and %qT"
 msgstr "Aufzählungsfehler in bedingtem Ausdruck: %qT vs. %qT"
 
@@ -27695,7 +27449,6 @@ msgstr "Argument des Funktionsaufrufs könnte Kandidat für Formatattribut sein"
 
 #: cp/call.c:6526
 #, fuzzy, gcc-internal-format
-#| msgid "defaulted function %q+D with default argument"
 msgid "use of multiversioned function without a default"
 msgstr "vorgegebene Funktion %q+D mit Standardargument"
 
@@ -27846,13 +27599,11 @@ msgstr "Java-Klasse %qT kann keinen impliziten nicht-trivialen Destruktor haben"
 
 #: cp/class.c:1120
 #, fuzzy, gcc-internal-format
-#| msgid "  %qT is not derived from %qT"
 msgid "%q#D inherited from %qT"
 msgstr " %qT ist nicht vom Typ %qT abgeleitet"
 
 #: cp/class.c:1123
 #, fuzzy, gcc-internal-format
-#| msgid "conflicts with previous declaration here"
 msgid "conflicts with version inherited from %qT"
 msgstr "in Konflikt mit vorheriger Deklaration hier"
 
@@ -27898,7 +27649,6 @@ msgstr ""
 
 #: cp/class.c:1331 cp/class.c:1341
 #, fuzzy, gcc-internal-format
-#| msgid "%qD declared here"
 msgid "%qT declared here"
 msgstr "%qD hier deklariert"
 
@@ -28222,7 +27972,6 @@ msgstr "%q#T hat virtuelle Funktionen und erreichbaren nicht-virtuellen Destrukt
 
 #: cp/class.c:6395
 #, fuzzy, gcc-internal-format
-#| msgid "type transparent class %qT does not have any fields"
 msgid "type transparent %q#T does not have any fields"
 msgstr "typtransparente Klasse %qT hat keine Felder"
 
@@ -28368,7 +28117,6 @@ msgstr "%q#T verwendet, wo %qT erwartet wurde"
 
 #: cp/cvt.c:765
 #, fuzzy, gcc-internal-format
-#| msgid "could not convert %qE from %qT to %qT"
 msgid "could not convert %qE from %<void%> to %<bool%>"
 msgstr "%qE konnte nicht von %qT nach %qT umgewandelt werden"
 
@@ -28775,7 +28523,6 @@ msgstr "vorherige Deklaration %q+#D hier"
 
 #: cp/decl.c:1533
 #, fuzzy, gcc-internal-format
-#| msgid "ambiguates old declaration %q+#D"
 msgid "ambiguates old declaration with deduced return type"
 msgstr "macht alte Deklaration %q+#D mehrdeutig"
 
@@ -29142,13 +28889,11 @@ msgstr "%<constexpr%> kann nicht für Typdeklarationen verwendet werden"
 
 #: cp/decl.c:4321
 #, fuzzy, gcc-internal-format
-#| msgid "attributes ignored on template instantiation"
 msgid "attribute ignored in explicit instantiation %q#T"
 msgstr "Attribute an Templateinstanziierung ignoriert"
 
 #: cp/decl.c:4324
 #, fuzzy, gcc-internal-format
-#| msgid "%qE attribute can only be applied to class definitions"
 msgid "no attribute can be applied to an explicit instantiation"
 msgstr "Attribut %qE kann nur auf Klassendefinitionen angewendet werden"
 
@@ -29323,7 +29068,6 @@ msgstr "%qT hat kein nicht-statisches Datenelement namens %qD"
 
 #: cp/decl.c:5226
 #, fuzzy, gcc-internal-format
-#| msgid "invalid initializer for array member %q#D"
 msgid "invalid initializer for %q#D"
 msgstr "ungültige Initialisierung für Feldelement %q#D"
 
@@ -29435,7 +29179,6 @@ msgstr ""
 
 #: cp/decl.c:6886
 #, fuzzy, gcc-internal-format
-#| msgid "  %q+T has a non-trivial destructor"
 msgid "non-local variable %qD declared %<__thread%> has a non-trivial destructor"
 msgstr "  %q+T hat einen nicht-trivialen Destruktor"
 
@@ -30076,7 +29819,6 @@ msgstr "%qs als Funktion, die ein Feld zurückgibt, deklariert"
 
 #: cp/decl.c:9438
 #, fuzzy, gcc-internal-format
-#| msgid "%qs declared as function returning an array"
 msgid "%qs declared as function returning an abstract class type"
 msgstr "%qs als Funktion, die ein Feld zurückgibt, deklariert"
 
@@ -30443,7 +30185,6 @@ msgstr "Speicherklasse %<__thread%> ungültig für Funktion %qs"
 
 #: cp/decl.c:10596
 #, fuzzy, gcc-internal-format
-#| msgid "storage class %<__thread%> invalid for function %qs"
 msgid "storage class %<thread_local%> invalid for function %qs"
 msgstr "Speicherklasse %<__thread%> ungültig für Funktion %qs"
 
@@ -30883,13 +30624,11 @@ msgstr "Parameter %qD leer definiert"
 
 #: cp/decl.c:13781
 #, fuzzy, gcc-internal-format
-#| msgid "no return statement in function returning non-void"
 msgid "no return statements in function returning %qT"
 msgstr "keine return-Anweisung in nicht void zurückgebender Funktion"
 
 #: cp/decl.c:13783 cp/typeck.c:8135
 #, fuzzy, gcc-internal-format
-#| msgid "function return types not compatible due to %<volatile%>"
 msgid "only plain %<auto%> return type can be deduced to %<void%>"
 msgstr "Funktionsrückgabetypen nicht kompatibel wegen %<volatile%>"
 
@@ -30925,7 +30664,6 @@ msgstr "ungültige Typen %<%T[%T]%> für Feldindex"
 
 #: cp/decl2.c:439
 #, fuzzy, gcc-internal-format
-#| msgid "deleting array %q#D"
 msgid "deleting array %q#E"
 msgstr "Feld %q#D wird gelöscht"
 
@@ -31137,7 +30875,6 @@ msgstr "gelöschte Funktion %qD wird verwendet"
 
 #: cp/decl2.c:4537 cp/decl2.c:4594
 #, fuzzy, gcc-internal-format
-#| msgid "type of %qD defaults to %<int%>"
 msgid "use of %qD before deduction of %<auto%>"
 msgstr "Typ von %qD ist auf %<int%> voreingestellt"
 
@@ -31203,13 +30940,11 @@ msgstr "delegierende Konstruktoren nur mit -std=c++11 oder -std=gnu++11 verfügb
 
 #: cp/error.c:3385
 #, fuzzy, gcc-internal-format
-#| msgid "delegating constructors only available with -std=c++11 or -std=gnu++11"
 msgid "inheriting constructors only available with -std=c++11 or -std=gnu++11"
 msgstr "delegierende Konstruktoren nur mit -std=c++11 oder -std=gnu++11 verfügbar"
 
 #: cp/error.c:3390
 #, fuzzy, gcc-internal-format
-#| msgid "C++0x auto only available with -std=c++11 or -std=gnu++11"
 msgid "c++11 attributes only available with -std=c++11 or -std=gnu++11"
 msgstr "C++0x »auto« nur mit -std=c++11 oder -std=gnu++11 verfügbar"
 
@@ -31287,13 +31022,11 @@ msgstr "Ausdruck %qE von abstraktem Klassentyp %qT kann nicht in throw-Ausdruck 
 
 #: cp/except.c:981
 #, fuzzy, gcc-internal-format
-#| msgid "cannot declare parameter %q+D to be of abstract type %qT"
 msgid "cannot declare catch parameter to be of abstract class type %qT"
 msgstr "Parameter %q+D kann nicht als vom abstrakten Typ %qT deklariert werden"
 
 #: cp/except.c:989
 #, fuzzy, gcc-internal-format
-#| msgid "cannot declare parameter %q+D to be of abstract type %qT"
 msgid "cannot declare catch parameter to be of rvalue reference type %qT"
 msgstr "Parameter %q+D kann nicht als vom abstrakten Typ %qT deklariert werden"
 
@@ -31593,25 +31326,21 @@ msgstr "nicht initialisiertes konstantes Element in %q#T"
 
 #: cp/init.c:2254
 #, fuzzy, gcc-internal-format
-#| msgid "integer overflow in expression"
 msgid "integer overflow in array size"
 msgstr "Ganzzahlüberlauf in Ausdruck"
 
 #: cp/init.c:2264
 #, fuzzy, gcc-internal-format
-#| msgid "Variable '%s' at %L in this context must be constant"
 msgid "array size in operator new must be constant"
 msgstr "Variable »%s« bei %L muss in diesem Kontext eine Konstante sein"
 
 #: cp/init.c:2278
 #, fuzzy, gcc-internal-format
-#| msgid "variably modified field at file scope"
 msgid "variably modified type not allowed in operator new"
 msgstr "variabel modifiziertes Feld im Dateibereich"
 
 #: cp/init.c:2292
 #, fuzzy, gcc-internal-format
-#| msgid "ISO C does not support saturating types"
 msgid "ISO C++ does not support variable-length array types"
 msgstr "ISO-C unterstützt keine sättigenden Typen"
 
@@ -32318,7 +32047,6 @@ msgstr "%qT ist kein Template"
 
 #: cp/parser.c:2591
 #, fuzzy, gcc-internal-format
-#| msgid "%qE is not a template"
 msgid "%qE is not a class template"
 msgstr "%qE ist kein Template"
 
@@ -32487,19 +32215,16 @@ msgstr "Operator %qD für Zeichenliterale mit Argument %qT kann nicht gefunden w
 
 #: cp/parser.c:3682
 #, fuzzy, gcc-internal-format
-#| msgid "floating constant exceeds range of %qT"
 msgid "integer literal exceeds range of %qT type"
 msgstr "Gleitkommakonstante überschreitet Wertebereich von %qT"
 
 #: cp/parser.c:3688
 #, fuzzy, gcc-internal-format
-#| msgid "floating constant exceeds range of %qT"
 msgid "floating literal exceeds range of %qT type"
 msgstr "Gleitkommakonstante überschreitet Wertebereich von %qT"
 
 #: cp/parser.c:3692
 #, fuzzy, gcc-internal-format
-#| msgid "floating constant truncated to zero"
 msgid "floating literal truncated to zero"
 msgstr "Gleitkommakonstante auf Null abgeschnitten"
 
@@ -32757,7 +32482,6 @@ msgstr "Standardargument für Lambda-Parameter angegeben"
 
 #: cp/parser.c:8885
 #, fuzzy, gcc-internal-format
-#| msgid "attributes after parenthesized initializer ignored"
 msgid "attributes at the beginning of statement are ignored"
 msgstr "Attribute hinter geklammerter Initialisierung werden ignoriert"
 
@@ -32896,7 +32620,6 @@ msgstr "ungültige Verwendung von %<auto%> in Umwandlungsoperator"
 
 #: cp/parser.c:11471
 #, fuzzy, gcc-internal-format
-#| msgid "invalid use of %<auto%> in conversion operator"
 msgid "use of %<auto%> in member template conversion operator can never be deduced"
 msgstr "ungültige Verwendung von %<auto%> in Umwandlungsoperator"
 
@@ -32993,7 +32716,6 @@ msgstr "%<<:%> ist eine andere Schreibweise für %<[%>. Leerraum zwischen %<<%> 
 
 #: cp/parser.c:12673
 #, fuzzy, gcc-internal-format
-#| msgid "(if you use %<-fpermissive%> G++ will accept your code)"
 msgid "(if you use %<-fpermissive%> or %<-std=c++11%>, or %<-std=gnu++11%> G++ will accept your code)"
 msgstr "(G++ wird den Code mit »-fpermissive« akzeptieren)"
 
@@ -33421,7 +33143,6 @@ msgstr "reiner Spezifizierer bei Funktionsdefinition"
 
 #: cp/parser.c:19462
 #, fuzzy, gcc-internal-format
-#| msgid "expected %<;%> at end of member declaration"
 msgid "stray %<,%> at end of member declaration"
 msgstr "%<;%> am Ende von Elementdeklaration erwartet"
 
@@ -33477,7 +33198,6 @@ msgstr "Typen dürfen nicht in Ausnahmedeklarationen definiert werden"
 
 #: cp/parser.c:20665
 #, fuzzy, gcc-internal-format
-#| msgid "expected identifier or %<(%>"
 msgid "expected an identifier for the attribute name"
 msgstr "Bezeichner oder %<(%> erwartet"
 
@@ -33572,13 +33292,11 @@ msgstr "ISO-C++ 1998 unterstützt nicht %<long long%>"
 
 #: cp/parser.c:22817
 #, fuzzy, gcc-internal-format
-#| msgid "both %<_Sat%> and %<char%> in declaration specifiers"
 msgid "both %<__thread%> and %<thread_local%> specified"
 msgstr "sowohl %<_Sat%> als auch %<char%> in Deklaration"
 
 #: cp/parser.c:22819
 #, fuzzy, gcc-internal-format
-#| msgid "duplicate %qE"
 msgid "duplicate %qD"
 msgstr "doppeltes %qE"
 
@@ -33739,7 +33457,6 @@ msgstr "%qD mit anderem Zugriff redeklariert"
 
 #: cp/parser.c:23312
 #, fuzzy, gcc-internal-format
-#| msgid "%<template%> (as a disambiguator) is only allowed within templates"
 msgid "in C++98 %<template%> (as a disambiguator) is only allowed within templates"
 msgstr "%<template%> (zur Erklärung) ist nur innerhalb von Templates erlaubt"
 
@@ -33890,7 +33607,6 @@ msgstr "Name der Klasse verdeckt Template-Templateparameter %qD"
 
 #: cp/pt.c:823
 #, fuzzy, gcc-internal-format
-#| msgid "partial specialization of alias template %qD"
 msgid "specialization of alias template %qD"
 msgstr "partielle Spezialisierung des Alias-Template %qD"
 
@@ -33928,13 +33644,11 @@ msgstr "Spezialisierung von %qD nach Instanziierung"
 
 #: cp/pt.c:1747
 #, fuzzy, gcc-internal-format
-#| msgid "candidate is: %+#D"
 msgid "candidate is: %#D"
 msgstr "Kandidat ist: %+#D"
 
 #: cp/pt.c:1754
 #, fuzzy, gcc-internal-format
-#| msgid "%s %+#D"
 msgid "%s %#D"
 msgstr "%s %+#D"
 
@@ -33965,7 +33679,6 @@ msgstr "%qD ist kein statisches Datenelement eines Klassentemplates"
 
 #: cp/pt.c:2277
 #, fuzzy, gcc-internal-format
-#| msgid "wrong number of template arguments (%d, should be %d)"
 msgid "too many template headers for %D (should be %d)"
 msgstr "falsche Anzahl der Templateargumente (%d, sollte %d sein)"
 
@@ -34101,7 +33814,6 @@ msgstr ""
 
 #: cp/pt.c:4121
 #, fuzzy, gcc-internal-format
-#| msgid "previously declared here"
 msgid "primary template here"
 msgstr "vorher hier deklariert"
 
@@ -34290,7 +34002,6 @@ msgstr "es muss die Adresse einer Funktion mit externer Bindung sein"
 
 #: cp/pt.c:5137
 #, fuzzy, gcc-internal-format
-#| msgid "it must be the address of a function with external linkage"
 msgid "it must be the name of a function with external linkage"
 msgstr "es muss die Adresse einer Funktion mit externer Bindung sein"
 
@@ -34597,7 +34308,6 @@ msgstr "Argumentpacklängen passen nicht bei Auflösung von %<%E%>"
 
 #: cp/pt.c:9886
 #, fuzzy, gcc-internal-format
-#| msgid "redefinition of default argument for %q#D"
 msgid "  when instantiating default argument for call to %D"
 msgstr "Redefinition des Standardarguments für %q#D"
 
@@ -34903,7 +34613,6 @@ msgstr "Ermittlung aus geschweift geklammerter Initialisierungsliste erfordert #
 
 #: cp/pt.c:20579
 #, fuzzy, gcc-internal-format
-#| msgid "unable to deduce %qT from %qE"
 msgid "unable to deduce lambda return type from %qE"
 msgstr "%qT kann nicht aus %qE hergeleitet werden"
 
@@ -35161,7 +34870,6 @@ msgstr "%qD ist nicht aufgefangen"
 
 #: cp/semantics.c:3080
 #, fuzzy, gcc-internal-format
-#| msgid "use of %<auto%> variable from containing function"
 msgid "use of local variable with automatic storage from containing function"
 msgstr "Verwendung einer %<auto%>-Variable aus enthaltender Funktion"
 
@@ -35591,37 +35299,31 @@ msgstr "Attribut %qE wird auf dieser Plattform nicht unterstützt"
 
 #: cp/tree.c:3220
 #, fuzzy, gcc-internal-format
-#| msgid "declaration of %qD as member of %qT"
 msgid "redeclaration of %qD adds abi tag %E"
 msgstr "Deklaration von %qD als Element %qT"
 
 #: cp/tree.c:3226
 #, fuzzy, gcc-internal-format
-#| msgid "previous declaration %q+#D here"
 msgid "previous declaration here"
 msgstr "vorherige Deklaration %q+#D hier"
 
 #: cp/tree.c:3243
 #, fuzzy, gcc-internal-format
-#| msgid "%qE attribute ignored on non-class types"
 msgid "%qE attribute applied to non-class, non-enum type %qT"
 msgstr "Attribut %qE ignoriert für Nicht-Klassen-Typen"
 
 #: cp/tree.c:3249
 #, fuzzy, gcc-internal-format
-#| msgid "ignoring attributes applied to %qT after definition"
 msgid "%qE attribute applied to %qT after its definition"
 msgstr "auf %qT nach einer Definition angewandte Attribute werden ignoriert"
 
 #: cp/tree.c:3271
 #, fuzzy, gcc-internal-format
-#| msgid "%qE attribute applies only to functions"
 msgid "%qE attribute applied to non-function %qD"
 msgstr "Attribut %qE kann nur auf Funktionen angewandt werden"
 
 #: cp/tree.c:3276
 #, fuzzy, gcc-internal-format
-#| msgid "%qE attribute applies only to functions"
 msgid "%qE attribute applied to extern \"C\" function %qD"
 msgstr "Attribut %qE kann nur auf Funktionen angewandt werden"
 
@@ -35857,13 +35559,11 @@ msgstr "%qE kann nicht als Funktion verwendet werden"
 
 #: cp/typeck.c:3409
 #, fuzzy, gcc-internal-format
-#| msgid "%qE cannot be used as a function"
 msgid "%qD cannot be used as a function"
 msgstr "%qE kann nicht als Funktion verwendet werden"
 
 #: cp/typeck.c:3412
 #, fuzzy, gcc-internal-format
-#| msgid "%qE cannot be used as a function"
 msgid "expression cannot be used as a function"
 msgstr "%qE kann nicht als Funktion verwendet werden"
 
@@ -35974,7 +35674,6 @@ msgstr "ISO-C++ verbietet Vergleich zwischen Zeiger und Ganzzahl"
 
 #: cp/typeck.c:4463 cp/typeck.c:4471
 #, fuzzy, gcc-internal-format
-#| msgid "no type named %q#T in %q#T"
 msgid "operand types are %qT and %qT"
 msgstr "kein Typ namens %q#T in %q#T"
 
@@ -36167,7 +35866,6 @@ msgstr "reinterpret_cast des Typs %qT in Typ %qT entfernt Qualifizierer"
 
 #: cp/typeck.c:6063
 #, fuzzy, gcc-internal-format
-#| msgid "%qT uses local type %qT"
 msgid "useless cast to type %qT"
 msgstr "%qT verwendet lokalen Typen %qT"
 
@@ -36723,7 +36421,6 @@ msgstr "Umwandlung einer Unendlichkeit oder NaN bei %L in INTEGER"
 
 #: fortran/arith.c:904 fortran/arith.c:929
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Noninteger exponent in an initialization expression at %L"
 msgid "Noninteger exponent in an initialization expression at %L"
 msgstr "Fortran 2003: Nichtganzzahliger Exponent in einem Initialisierungsausdruck bei %L"
 
@@ -36857,7 +36554,6 @@ msgstr "Erwarteter Ausdruck in Feldspezifikation bei %C"
 
 #: fortran/array.c:470
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Enumerator cannot be array at %C"
 msgid "Assumed-rank array at %C"
 msgstr "Aufzählung kann kein Feld bei %C sein"
 
@@ -36898,13 +36594,11 @@ msgstr "Feldspezifikation bei %C hat mehr als %d Dimensionen"
 
 #: fortran/array.c:579
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Array specification at %C has more than %d dimensions"
 msgid "Array specification at %C with more than 7 dimensions"
 msgstr "Feldspezifikation bei %C hat mehr als %d Dimensionen"
 
 #: fortran/array.c:592
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Coarray declaration at %C"
 msgid "Coarray declaration at %C"
 msgstr "Fortran 2008: Coarray-Deklaration bei %C"
 
@@ -36915,7 +36609,6 @@ msgstr "Obere Grenze der letzten Coarray-Dimension muss '*' bei %C sein"
 
 #: fortran/array.c:758
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Coarray variable '%s' at %L shall not have codimensions with deferred shape"
 msgid "The assumed-rank array '%s' at %L shall not have a codimension"
 msgstr "Koarray-Variable »%s« bei %L sollte keine Kodimensionen mit aufgeschobener Form haben"
 
@@ -36931,13 +36624,11 @@ msgstr "Syntaxfehler in Feldkonstruktor bei %C"
 
 #: fortran/array.c:1062
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: [...] style array constructors at %C"
 msgid "[...] style array constructors at %C"
 msgstr "Fortran 2003: Feldkonstruktoren im [...]-Stil bei %C"
 
 #: fortran/array.c:1083
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Array constructor including type specification at %C"
 msgid "Array constructor including type specification at %C"
 msgstr "Fortran 2003: Feldkonstruktor mit Typspezifikation bei %C"
 
@@ -36970,19 +36661,16 @@ msgstr "Die Anzahl der Elemente im Feldkonstruktor bei %L erfordert Erhöhung de
 
 #: fortran/array.c:1826
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "expression reference type error at %L"
 msgid "AC-IMPLIED-DO initial expression references control variable at %L"
 msgstr "Typfehler in Ausdrucksreferenz bei %L"
 
 #: fortran/array.c:1833
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "expression reference type error at %L"
 msgid "AC-IMPLIED-DO final expression references control variable at %L"
 msgstr "Typfehler in Ausdrucksreferenz bei %L"
 
 #: fortran/array.c:1840
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "expression reference type error at %L"
 msgid "AC-IMPLIED-DO step expression references control variable at %L"
 msgstr "Typfehler in Ausdrucksreferenz bei %L"
 
@@ -37144,7 +36832,6 @@ msgstr "Argumente »%s« und »%s« des intrinsischen »%s« bei %L müssen den 
 #: fortran/check.c:867 fortran/check.c:1806 fortran/check.c:1932
 #: fortran/check.c:2006 fortran/check.c:2358
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Different type kinds at %L"
 msgid "Different type kinds at %L"
 msgstr "Erweiterung: Verschiedene Typ-Arten bei %L"
 
@@ -37205,7 +36892,6 @@ msgstr "VALUE-Argument der intrinsischen Funktion »%s« bei %L sollte definierb
 
 #: fortran/check.c:1084
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Negative argument N at %L"
 msgid "Negative argument N at %L"
 msgstr "Erweiterung: Negatives Argument N bei %L"
 
@@ -37229,7 +36915,6 @@ msgstr ""
 #: fortran/check.c:3545 fortran/check.c:3600 fortran/check.c:4139
 #: fortran/check.c:4268
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: '%s' intrinsic with KIND argument at %L"
 msgid "'%s' intrinsic with KIND argument at %L"
 msgstr "Fortran 2003: intrinsisches »%s« mit KIND-Argument bei %L"
 
@@ -37265,13 +36950,11 @@ msgstr "»I« bei %L und »J« bei %L können nicht beide literale BOZ-Konstante
 
 #: fortran/check.c:1678
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "GNU extension: non-default INTEGER kind argument to %s intrinsic at %L"
 msgid "non-default INTEGER kind argument to %s intrinsic at %L"
 msgstr "GNU-Erweiterung: Nicht-Standard Argument der Art INTEGER für intrinsisches »%s« bei %L"
 
 #: fortran/check.c:1738
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: COMPLEX argument '%s' argument of '%s' intrinsic at %L"
 msgid "COMPLEX argument '%s' argument of '%s' intrinsic at %L"
 msgstr "Fortran 2008: COMPLEX-Argument »%s« des intrinsischen »%s« bei %L"
 
@@ -37312,7 +36995,6 @@ msgstr "Argument »a%d« des intrinsischen »%s« bei %L muss %s(%d) sein"
 
 #: fortran/check.c:2395
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: '%s' intrinsic with CHARACTER argument at %L"
 msgid "'%s' intrinsic with CHARACTER argument at %L"
 msgstr "Fortran 2003: intrinsisches »%s« mit CHARACTER-Argument bei %L"
 
@@ -37348,13 +37030,11 @@ msgstr "Argument »%s« des intrinsischen »%s« bei %L muss ein INTEGER sein"
 
 #: fortran/check.c:2746
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "'%s' argument of '%s' intrinsic at %L shall not be coindexed"
 msgid "The FROM argument to MOVE_ALLOC at %L shall not be coindexed"
 msgstr "Argument »%s« des intrinsischen »%s« bei %L sollte keinen Koindex haben"
 
 #: fortran/check.c:2757
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "'%s' argument of '%s' intrinsic at %L shall not be coindexed"
 msgid "The TO argument to MOVE_ALLOC at %L shall not be coindexed"
 msgstr "Argument »%s« des intrinsischen »%s« bei %L sollte keinen Koindex haben"
 
@@ -37365,13 +37045,11 @@ msgstr "Die TO-Argumente in MOVE_ALLOC bei %L müssen polymorph sein, wenn FROM 
 
 #: fortran/check.c:2775
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "the '%s' and '%s' arguments of '%s' intrinsic at %L must have the same rank %d/%d"
 msgid "The FROM and TO arguments of the MOVE_ALLOC intrinsic at %L must have the same rank %d/%d"
 msgstr "Argumente »%s« und »%s« des intrinsischen »%s« bei %L müssen den selben Rang %d/%d haben"
 
 #: fortran/check.c:2784
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "the '%s' and '%s' arguments of '%s' intrinsic at %L must have the same rank %d/%d"
 msgid "The FROM and TO arguments of the MOVE_ALLOC intrinsic at %L must have the same corank %d/%d"
 msgstr "Argumente »%s« und »%s« des intrinsischen »%s« bei %L müssen den selben Rang %d/%d haben"
 
@@ -37387,7 +37065,6 @@ msgstr "Argument »%s« des intrinsischen »%s« bei %L muss POINTER, ALLOCATABL
 
 #: fortran/check.c:2874
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: NULL intrinsic with allocatable MOLD at %L"
 msgid "NULL intrinsic with allocatable MOLD at %L"
 msgstr "Fortran 2003: intrinsisches NULL mit reservierbarem MOLD bei %L"
 
@@ -37458,7 +37135,6 @@ msgstr "Ohne Auffüllen gibt es nicht genügend Elemente in eingebauter RESHAPE-
 
 #: fortran/check.c:3344 fortran/check.c:3363
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "'%s' argument of '%s' intrinsic at %L must be %s"
 msgid "'%s' argument of '%s' intrinsic at %L cannot be of type %s"
 msgstr "Argument »%s« des intrinsischen »%s« bei %L muss %s sein"
 
@@ -37469,13 +37145,11 @@ msgstr "Argument »%s« des intrinsischen »%s« bei %L muss erweiterbaren Typ h
 
 #: fortran/check.c:3472
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: SELECTED_REAL_KIND with neither 'P' nor 'R' argument at %L"
 msgid "SELECTED_REAL_KIND with neither 'P' nor 'R' argument at %L"
 msgstr "Fortran 2008: SELECTED_REAL_KIND ohne Argument »P« oder »R« bei %L"
 
 #: fortran/check.c:3503
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: '%s' intrinsic with RADIX argument at %L"
 msgid "'%s' intrinsic with RADIX argument at %L"
 msgstr "Fortran 2008: intrinsisches »%s« mit RADIX-Argument bei %L"
 
@@ -37496,7 +37170,6 @@ msgstr "Argument »%s« des intrinsischen »%s« bei %L muss austauschbare Daten
 
 #: fortran/check.c:3658
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "GNU extension: non double precision REAL argument to %s intrinsic at %L"
 msgid "non double precision REAL argument to %s intrinsic at %L"
 msgstr "GNU-Erweiterung: REAL-Argument ohne doppelte Genauigkeit für intrinsisches %s bei %L"
 
@@ -37629,7 +37302,6 @@ msgstr "Datenelement oberhalb der oberen Feldgrenze bei %L"
 
 #: fortran/data.c:321 fortran/data.c:487
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: re-initialization of '%s' at %L"
 msgid "re-initialization of '%s' at %L"
 msgstr "Erweiterung: Reinitialisierung von »%s« bei %L"
 
@@ -37640,7 +37312,6 @@ msgstr "Mit Host verbundene Variable »%s« darf nicht in DATA-Anweisung bei %C 
 
 #: fortran/decl.c:271
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: initialization of common block variable '%s' in DATA statement at %C"
 msgid "initialization of common block variable '%s' in DATA statement at %C"
 msgstr "Erweiterung: Initialisierung der allgemeinen Blockvariable »%s« in DATA-Anweisung bei %C"
 
@@ -37666,7 +37337,6 @@ msgstr "DATA-Anweisung bei %C ist in PURE-Prozedur nicht erlaubt"
 
 #: fortran/decl.c:600
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Data target at %L shall not have a coindex"
 msgid "The assumed-rank array at %C shall not have a codimension"
 msgstr "Datenziel bei %L sollte keinen Koindex haben"
 
@@ -37677,7 +37347,6 @@ msgstr "Falsche INTENT-Spezifikation bei %C"
 
 #: fortran/decl.c:689
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: deferred type parameter at %C"
 msgid "deferred type parameter at %C"
 msgstr "Fortran 2003: Parameter mit zurückgestelltem Typ bei %C"
 
@@ -37688,7 +37357,6 @@ msgstr "Konflikt in Attributen des Funktionsarguments bei %C"
 
 #: fortran/decl.c:753
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Obsolescent feature: Old-style character length at %C"
 msgid "Old-style character length at %C"
 msgstr "Veraltete Funktion: Zeichenlänge alten Stils bei %C"
 
@@ -37729,7 +37397,6 @@ msgstr "Variable »%s« bei %L ist ein Scheinargument für die BIND(C)-Prozedur 
 
 #: fortran/decl.c:1040
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Variable '%s' at %L is a parameter to the BIND(C) procedure '%s' but may not be C interoperable"
 msgid "Variable '%s' at %L is a dummy argument of the BIND(C) procedure '%s' but may not be C interoperable"
 msgstr "Variable »%s« bei %L ist ein Parameter für die BIND(C)-Prozedur »%s«, könnte jedoch inkompatibel mit C sein"
 
@@ -37755,13 +37422,11 @@ msgstr "Variable »%s« bei %L kann nicht gleichzeitig die Attribute OPTIONAL un
 
 #: fortran/decl.c:1094
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "TS29113: Variable '%s' at %L with OPTIONAL attribute in procedure '%s' which is BIND(C)"
 msgid "Variable '%s' at %L with OPTIONAL attribute in procedure '%s' which is BIND(C)"
 msgstr "TS29113: Variable »%s« bei %L mit OPTIONAL-Attribut in Prozedur »%s«, die BIND(C) ist"
 
 #: fortran/decl.c:1106
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Assumed-shape array '%s' at %L cannot be an argument to the procedure '%s' at %L because the procedure is BIND(C)"
 msgid "Assumed-shape array '%s' at %L as dummy argument to the BIND(C) procedure '%s' at %L"
 msgstr "Feld »%s« mit vermuteter Form bei %L kann kein Argument für Prozedur »%s« bei %L sein, da die Prozedur BIND(C) ist"
 
@@ -37837,7 +37502,6 @@ msgstr "NULL()-Initialisierung bei %C ist mehrdeutig"
 
 #: fortran/decl.c:1719
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "NULL() initialization at %C is ambiguous"
 msgid "NULL() initialization at %C may not have MOLD"
 msgstr "NULL()-Initialisierung bei %C ist mehrdeutig"
 
@@ -37853,7 +37517,6 @@ msgstr "Fehler in Zeigerinitialisierung bei %C"
 
 #: fortran/decl.c:1763
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: non-NULL pointer initialization at %C"
 msgid "non-NULL pointer initialization at %C"
 msgstr "Fortran 2008: Nicht-NULL-Zeigerinitialisierung bei %C"
 
@@ -37869,7 +37532,6 @@ msgstr "Nicht-PARAMETER-Symbol »%s« bei %L kann nicht implizite Form haben"
 
 #: fortran/decl.c:1864
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Implied-shape array at %L"
 msgid "Implied-shape array at %L"
 msgstr "Fortran 2008: Feld mit impliziter Form bei %L"
 
@@ -37880,7 +37542,6 @@ msgstr "Doppelte Feldspezifikation für Cray-Zeigerende bei %C"
 
 #: fortran/decl.c:1999
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Old-style initialization at %C"
 msgid "Old-style initialization at %C"
 msgstr "Erweiterung: Initialisierung im alten Stil bei %C"
 
@@ -37961,7 +37622,6 @@ msgstr "Syntaxfehler in CHARACTER-Deklaration bei %C"
 
 #: fortran/decl.c:2592
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: BYTE type at %C"
 msgid "BYTE type at %C"
 msgstr "Erweiterung: BYTE-Typ bei %C"
 
@@ -37972,7 +37632,6 @@ msgstr "Bei %C verwendeter BYTE-Typ ist auf der Zielmaschine nicht verfügbar"
 
 #: fortran/decl.c:2620
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "By-value argument at %L is not allowed in this context"
 msgid "Assumed type at %C is not allowed for components"
 msgstr "Wertargument bei %L ist in diesem Kontext nicht erlaubt"
 
@@ -37984,19 +37643,16 @@ msgstr ""
 #: fortran/decl.c:2646 fortran/decl.c:2677 fortran/decl.c:2707
 #: fortran/decl.c:2885
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: TYPE with intrinsic-type-spec at %C"
 msgid "TYPE with intrinsic-type-spec at %C"
 msgstr "Fortran 2008: TYPE mit intrinsischer Typspezifikation bei %C"
 
 #: fortran/decl.c:2702
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: DOUBLE COMPLEX at %C"
 msgid "DOUBLE COMPLEX at %C"
 msgstr "Erweiterung: DOUBLE COMPLEX bei %C"
 
 #: fortran/decl.c:2777
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: CLASS statement at %C"
 msgid "CLASS statement at %C"
 msgstr "Fortran 2003: CLASS-Anweisung bei %C"
 
@@ -38033,7 +37689,6 @@ msgstr "IMPORT-Anweisung bei %C ist nur in einem INTERFACE-Körper erlaubt"
 
 #: fortran/decl.c:3170
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Empty IMPLICIT statement at %C"
 msgid "IMPORT statement at %C"
 msgstr "Leere IMPLICIT-Anweisung bei %C"
 
@@ -38074,7 +37729,6 @@ msgstr "Doppeltes Attribut %s bei %L"
 
 #: fortran/decl.c:3667
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ALLOCATABLE attribute at %C in a TYPE definition"
 msgid "ALLOCATABLE attribute at %C in a TYPE definition"
 msgstr "Fortran 2003: Attribut ALLOCATABLE bei %C in einer TYPE-Definition"
 
@@ -38085,7 +37739,6 @@ msgstr "Attribut bei %L ist in TYPE-Definition nicht erlaubt"
 
 #: fortran/decl.c:3695
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Attribute %s at %L in a TYPE definition"
 msgid "Attribute %s at %L in a TYPE definition"
 msgstr "Fortran 2003: Attribut %s bei %L in einer TYPE-Definition"
 
@@ -38096,13 +37749,11 @@ msgstr "Attribut %s bei %L ist außerhalb des Spezifikationsabschnitts eines Mod
 
 #: fortran/decl.c:3721
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ASYNCHRONOUS attribute at %C"
 msgid "ASYNCHRONOUS attribute at %C"
 msgstr "Fortran 2003: ASYNCHRONOUS-Attribut bei %C"
 
 #: fortran/decl.c:3734
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: CONTIGUOUS attribute at %C"
 msgid "CONTIGUOUS attribute at %C"
 msgstr "Fortran 2008: CONTIGUOUS-Attribut bei %C"
 
@@ -38113,19 +37764,16 @@ msgstr "PROTECTED bei %C nur in Spezifikationsabschnitts eines Moduls erlaubt"
 
 #: fortran/decl.c:3786
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: PROTECTED attribute at %C"
 msgid "PROTECTED attribute at %C"
 msgstr "Fortran 2003: PROTECTED-Attribut bei %C"
 
 #: fortran/decl.c:3817
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: VALUE attribute at %C"
 msgid "VALUE attribute at %C"
 msgstr "Fortran 2003: VALUE-Attribut bei %C"
 
 #: fortran/decl.c:3827
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: VOLATILE attribute at %C"
 msgid "VOLATILE attribute at %C"
 msgstr "Fortran 2003: VOLATILE-Attribut bei %C"
 
@@ -38210,7 +37858,6 @@ msgstr "Syntaxfehler in Daten-Deklaration bei %C"
 
 #: fortran/decl.c:4411
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: IMPURE procedure at %C"
 msgid "IMPURE procedure at %C"
 msgstr "Fortran 2008: IMPURE-Prozedur bei %C"
 
@@ -38246,7 +37893,6 @@ msgstr "Unerwartete Angaben hinter Funktionsdeklaration bei %C"
 
 #: fortran/decl.c:4697 fortran/decl.c:5730
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: BIND(C) attribute at %L may not be specified for an internal procedure"
 msgid "BIND(C) attribute at %L may not be specified for an internal procedure"
 msgstr "Fortran 2008: BIND(C)-Attribut bei %L kann nicht für eine interne Prozedur angegeben werden"
 
@@ -38287,7 +37933,6 @@ msgstr "NOPASS oder explizite Schnittstelle bei %C erforderlich"
 
 #: fortran/decl.c:5045
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Procedure pointer component at %C"
 msgid "Procedure pointer component at %C"
 msgstr "Fortran 2003: Prozedurzeiger-Komponente bei %C"
 
@@ -38303,13 +37948,11 @@ msgstr "PROCEDURE bei %C muss in einer allgemeinen Schnittstelle sein"
 
 #: fortran/decl.c:5138 fortran/decl.c:7311
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: double colon in MODULE PROCEDURE statement at %L"
 msgid "double colon in MODULE PROCEDURE statement at %L"
 msgstr "Fortran 2008: »::« in MODULE PROCEDURE-Anweisung bei %L"
 
 #: fortran/decl.c:5208
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: PROCEDURE statement at %C"
 msgid "PROCEDURE statement at %C"
 msgstr "Fortran 2003: PROCEDURE-Anweisung bei %C"
 
@@ -38327,7 +37970,6 @@ msgstr "BIND(C)-Attribut bei %L kann nur für Variablen oder gemeinsame Blöcke 
 
 #: fortran/decl.c:5420
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Empty IMPLICIT statement at %C"
 msgid "ENTRY statement at %C"
 msgstr "Leere IMPLICIT-Anweisung bei %C"
 
@@ -38438,7 +38080,6 @@ msgstr "Unerwartete END-Anweisung bei %C"
 
 #: fortran/decl.c:6102
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: END statement instead of %s statement at %L"
 msgid "END statement instead of %s statement at %L"
 msgstr "Fortran 2008: END-Anweisung statt %s-Anweisung bei %L"
 
@@ -38545,7 +38186,6 @@ msgstr "Cray-Zeiger-Deklaration bei %C benötigt den Schalter -fcray-pointer"
 
 #: fortran/decl.c:6657
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: CONTIGUOUS statement at %C"
 msgid "CONTIGUOUS statement at %C"
 msgstr "Fortran 2008: CONTIGUOUS-Anweisung bei %C"
 
@@ -38561,7 +38201,6 @@ msgstr "Zugriffsspezifikation des Operators .%s. bei %C wurde bereits spezifizie
 
 #: fortran/decl.c:6810
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: PROTECTED statement at %C"
 msgid "PROTECTED statement at %C"
 msgstr "Fortran 2003: PROTECTED-Anweisung bei %C"
 
@@ -38627,7 +38266,6 @@ msgstr "VALUE ist in BLOCK bei %C nicht erlaubt"
 
 #: fortran/decl.c:7108
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: VALUE statement at %C"
 msgid "VALUE statement at %C"
 msgstr "Fortran 2003: VALUE-Anweisung bei %C"
 
@@ -38638,7 +38276,6 @@ msgstr "Syntaxfehler in VALUE-Anweisung bei %C"
 
 #: fortran/decl.c:7159
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: VOLATILE statement at %C"
 msgid "VOLATILE statement at %C"
 msgstr "Fortran 2003: VOLATILE-Anweisung bei %C"
 
@@ -38654,7 +38291,6 @@ msgstr "Syntaxfehler in VOLATILE-Anweisung bei %C"
 
 #: fortran/decl.c:7220
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ASYNCHRONOUS statement at %C"
 msgid "ASYNCHRONOUS statement at %C"
 msgstr "Fortran 2003: ASYNCHRONOUS-Anweisung bei %C"
 
@@ -38710,7 +38346,6 @@ msgstr "Abgeleiteter Typ bei %C kann nur PUBLIC im Spezifikationsteil eines Modu
 
 #: fortran/decl.c:7478
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "ABSTRACT type '%s' used at %L"
 msgid "ABSTRACT type at %C"
 msgstr "ABSTRACT-Typ »%s« bei %L verwendet"
 
@@ -38741,7 +38376,6 @@ msgstr "Cray-Zeigerende bei %C kann nicht Feld mit impliziter Form sein"
 
 #: fortran/decl.c:7709
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ENUM and ENUMERATOR at %C"
 msgid "ENUM and ENUMERATOR at %C"
 msgstr "Fortran 2003: ENUM AND ENUMERATOR bei %C"
 
@@ -38842,7 +38476,6 @@ msgstr "Bindungsname bei %C erwartet"
 
 #: fortran/decl.c:8203
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: PROCEDURE list at %C"
 msgid "PROCEDURE list at %C"
 msgstr "Fortran 2008: PROCEDURE-Liste bei %C"
 
@@ -39058,7 +38691,6 @@ msgstr "Variable »%s« bei %L kann nicht in einem Initialisierungs-Ausdruck auf
 
 #: fortran/expr.c:2405
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Evaluation of nonstandard initialization expression at %L"
 msgid "Evaluation of nonstandard initialization expression at %L"
 msgstr "Erweiterung: Auswertung des nicht standardisierten Initialisierungsausdrucks bei %L"
 
@@ -39189,19 +38821,16 @@ msgstr "Auf rechter Seite in Zuweisung bei %L tritt NULL auf"
 
 #: fortran/expr.c:3153
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "POINTER valued function appears on right-hand side of assignment at %L"
 msgid "POINTER-valued function appears on right-hand side of assignment at %L"
 msgstr "POINTER-wertige Funktion tritt auf rechter Seite der Zuweisung bei %L auf"
 
 #: fortran/expr.c:3163
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: BOZ literal at %L used to initialize non-integer variable '%s'"
 msgid "BOZ literal at %L used to initialize non-integer variable '%s'"
 msgstr "Erweiterung: BOZ-Literal bei %L verwendet, um Nicht-Ganzzahlvariable »%s« zu initialisieren"
 
 #: fortran/expr.c:3169 fortran/resolve.c:9505
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: BOZ literal at %L outside a DATA statement and outside INT/REAL/DBLE/CMPLX"
 msgid "BOZ literal at %L outside a DATA statement and outside INT/REAL/DBLE/CMPLX"
 msgstr "Erweiterung: BOZ-Literal bei %L außerhalb einer DATA-Anweisung und außerhalb von INT/REAL/DBLE/CMPLX"
 
@@ -39262,7 +38891,6 @@ msgstr "Grenzen für »%s« bei %L erwartet"
 
 #: fortran/expr.c:3336
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Bounds specification for '%s' in pointer assignment at %L"
 msgid "Bounds specification for '%s' in pointer assignment at %L"
 msgstr "Fortran 2003: Grenzenangabe für »%s« in Zeigerzuweisung bei %L"
 
@@ -39293,7 +38921,6 @@ msgstr "Ungültige Zuweisung eines Prozedurzeigers bei %L"
 
 #: fortran/expr.c:3435
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Statement function '%s' is invalid in procedure pointer assignment at %L"
 msgid "Function result '%s' is invalid as proc-target in procedure pointer assignment at %L"
 msgstr "Anweisungsfunktion »%s« ist in Zuweisung des Prozedurzeigers bei %L ungültig"
 
@@ -39314,13 +38941,11 @@ msgstr "Interne Prozedur »%s« ist in Zuweisung des Prozedurzeigers bei %L ung�
 
 #: fortran/expr.c:3467
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Internal procedure '%s' is invalid in procedure pointer assignment at %L"
 msgid "Intrinsic '%s' at %L is invalid in procedure pointer assignment"
 msgstr "Interne Prozedur »%s« ist in Zuweisung des Prozedurzeigers bei %L ungültig"
 
 #: fortran/expr.c:3475
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Nonintrinsic elemental procedure '%s' is invalid in procedure pointer assigment at %L"
 msgid "Nonintrinsic elemental procedure '%s' is invalid in procedure pointer assignment at %L"
 msgstr "Nichtintrinsische elementare Prozedur »%s« ist in Zuweisung des Prozedurzeigers bei %L ungültig"
 
@@ -39366,7 +38991,6 @@ msgstr "Ziel der Rang-Neuzuordnung muss Rang 1 oder einfach fortlaufend bei %L s
 
 #: fortran/expr.c:3633
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Rank remapping target is not rank 1 at %L"
 msgid "Rank remapping target is not rank 1 at %L"
 msgstr "Fortran 2008: Ziel der Rang-Neuzuordnung ist nicht Rang 1 bei %L"
 
@@ -39402,19 +39026,16 @@ msgstr "Datenziel bei %L sollte keinen Koindex haben"
 
 #: fortran/expr.c:3741
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Target expression in pointer assignment at %L must deliver a pointer result"
 msgid "Pointer at %L in pointer assignment might outlive the pointer target"
 msgstr "Zielausdruck in Zeigerzuweisung bei %L muss ein Zeigerergebnis liefern"
 
 #: fortran/expr.c:3806
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Pointer initialization target at %L must not be ALLOCATABLE "
 msgid "Pointer initialization target at %L must not be ALLOCATABLE"
 msgstr "Ziel der Zeigerinitialisierung bei %L darf nicht ALLOCATABLE sein"
 
 #: fortran/expr.c:3812
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Pointer initialization target at %C must have the TARGET attribute"
 msgid "Pointer initialization target at %L must have the TARGET attribute"
 msgstr "Ziel der Zeigerinitialisierung bei %C muss das TARGET-Attribut haben"
 
@@ -39517,25 +39138,21 @@ msgstr "Aufruf von Funktion »%s« bei %L wird entfernt"
 
 #: fortran/frontend-passes.c:1474
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Variable '%s' at %C cannot be redefined inside loop beginning at %L"
 msgid "Variable '%s' at %L set to undefined value inside loop  beginning at %L as INTENT(OUT) argument to subroutine '%s'"
 msgstr "Variable »%s« bei %C kann nicht innerhalb der bei %L beginnenden Schleife redefiniert werden"
 
 #: fortran/frontend-passes.c:1480
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Variable '%s' at %C cannot be redefined inside loop beginning at %L"
 msgid "Variable '%s' at %L not definable inside loop beginning at %L as INTENT(INOUT) argument to subroutine '%s'"
 msgstr "Variable »%s« bei %C kann nicht innerhalb der bei %L beginnenden Schleife redefiniert werden"
 
 #: fortran/frontend-passes.c:1544
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Variable '%s' at %C cannot be redefined inside loop beginning at %L"
 msgid "Variable '%s' at %L set to undefined value inside loop beginning at %L as INTENT(OUT) argument to function '%s'"
 msgstr "Variable »%s« bei %C kann nicht innerhalb der bei %L beginnenden Schleife redefiniert werden"
 
 #: fortran/frontend-passes.c:1550
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Variable '%s' at %C cannot be redefined inside loop beginning at %L"
 msgid "Variable '%s' at %L not definable inside loop beginning at %L as INTENT(INOUT) argument to function '%s'"
 msgstr "Variable »%s« bei %C kann nicht innerhalb der bei %L beginnenden Schleife redefiniert werden"
 
@@ -39566,7 +39183,6 @@ msgstr "Scheinprozedur »%s« bei %C kann keine allgemeine Schnittstelle haben"
 
 #: fortran/interface.c:254
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid " ABSTRACT INTERFACE"
 msgid "ABSTRACT INTERFACE at %C"
 msgstr " ABSTRAKTE SCHNITTSTELLE"
 
@@ -39682,7 +39298,6 @@ msgstr "In %s bei %L müssen alle Prozeduren auch FUNCTIONs sein, da der allgeme
 
 #: fortran/interface.c:1491
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Internal procedure '%s' in %s at %L"
 msgid "Internal procedure '%s' in %s at %L"
 msgstr "Fortran 2008: Interne Prozedur »%s« in %s bei %L"
 
@@ -39703,7 +39318,6 @@ msgstr "»%s« bei %L ist keine Modulprozedur"
 
 #: fortran/interface.c:1804
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Assumed shape array at %L must be a dummy argument"
 msgid "The assumed-rank array at %L requires that the dummy argument '%s' has assumed-rank"
 msgstr "Feld mit vermuteter Form bei %L muss ein Scheinargument sein"
 
@@ -39734,7 +39348,6 @@ msgstr "Schnittstelle in Scheinprozedur »%s« bei %L passt nicht: %s"
 
 #: fortran/interface.c:1894
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Actual argument to contiguous pointer dummy '%s' at %L must be simply contigous"
 msgid "Actual argument to contiguous pointer dummy '%s' at %L must be simply contiguous"
 msgstr "Effektives Argument für fortlaufenden Schein-Zeiger »%s« bei %L muss einfach fortlaufend sein"
 
@@ -40015,7 +39628,6 @@ msgstr "Schlüsselwort-Argument erfordert explizite Schnittstelle für Prozedur 
 
 #: fortran/interface.c:3171
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Symbol '%s' at %L already has an explicit interface"
 msgid "Assumed-type argument %s at %L requires an explicit interface"
 msgstr "Symbol »%s« bei %L hat bereits eine explizite Schnittstelle"
 
@@ -40031,7 +39643,6 @@ msgstr "MOLD-Argument an NULL bei %L erforderlich"
 
 #: fortran/interface.c:3201
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Keyword argument requires explicit interface for procedure '%s' at %L"
 msgid "Assumed-rank argument requires an explicit interface at %L"
 msgstr "Schlüsselwort-Argument erfordert explizite Schnittstelle für Prozedur »%s« bei %L"
 
@@ -40052,7 +39663,6 @@ msgstr "In NULL()-Argument bei %L wird MOLD= benötigt: Mehrdeutig zwischen spez
 
 #: fortran/interface.c:3785
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Entity '%s' at %C is already present in the interface"
 msgid "Entity '%s' at %L is already present in the interface"
 msgstr "Entität »%s« bei %C ist bereits in der Schnittstelle vorhanden"
 
@@ -40098,7 +39708,6 @@ msgstr "»%s« bei %L überschreibt eine FUNCTION und muss auch eine FUNCTION se
 
 #: fortran/interface.c:4067
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Argument mismatch for the overriding procedure '%s' at %L: %s"
 msgid "Result mismatch for the overriding procedure '%s' at %L: %s"
 msgstr "Unpassende Argumente für die überschreibende Prozedur »%s« bei %L: %s"
 
@@ -40184,13 +39793,11 @@ msgstr "Intrinsisches »%s« (ist %s) wird bei %L verwendet"
 
 #: fortran/intrinsic.c:4097
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Function '%s' as initialization expression at %L"
 msgid "Function '%s' as initialization expression at %L"
 msgstr "Fortran 2003: Funktion »%s« als Initialisierungsausdruck bei %L"
 
 #: fortran/intrinsic.c:4173
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Elemental function as initialization expression with non-integer/non-character arguments at %L"
 msgid "Elemental function as initialization expression with non-integer/non-character arguments at %L"
 msgstr "Fortran 2003: Elementare Funktion als Initialisierungsausdruck mit Nicht-Ganzzahl-/Nicht-Zeichen-Argumenten bei %L"
 
@@ -40231,25 +39838,21 @@ msgstr "Erweiterung: Tab-Zeichen im Format bei %C"
 
 #: fortran/io.c:455
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: DP format specifier not allowed at %C"
 msgid "DP format specifier not allowed at %C"
 msgstr "Fortran 2003: DP-Format-Spezifizierer bei %C nicht erlaubt"
 
 #: fortran/io.c:462
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: DC format specifier not allowed at %C"
 msgid "DC format specifier not allowed at %C"
 msgstr "Fortran 2003: DC-Format-Spezifizierer bei %C nicht erlaubt"
 
 #: fortran/io.c:651
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: X descriptor requires leading space count at %L"
 msgid "X descriptor requires leading space count at %L"
 msgstr "Erweiterung: X-Deskriptor benötigt führenden Leerzeichenzähler bei %L"
 
 #: fortran/io.c:681
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: $ descriptor at %L"
 msgid "$ descriptor at %L"
 msgstr "Erweiterung: $-Deskriptor bei %L"
 
@@ -40265,7 +39868,6 @@ msgstr "Erweiterung: Positive Breite hinter L-Deskriptor bei %L fehlt"
 
 #: fortran/io.c:828
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: 'G0' in format at %L"
 msgid "'G0' in format at %L"
 msgstr "Fortran 2008: »G0« in Format bei %L"
 
@@ -40291,7 +39893,6 @@ msgstr "Das Formatspezifikationssymbol H bei %L ist eine in Fortran 95 entfernte
 
 #: fortran/io.c:1061 fortran/io.c:1124
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Missing comma at %L"
 msgid "Missing comma at %L"
 msgstr "Erweiterung: Fehlendes Komma bei %L"
 
@@ -40352,7 +39953,6 @@ msgstr "FORMAT-Markierung bei %L muss vom Typ Standard-CHARACTER oder INTEGER se
 
 #: fortran/io.c:1409
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Deleted feature: ASSIGNED variable in FORMAT tag at %L"
 msgid "ASSIGNED variable in FORMAT tag at %L"
 msgstr "Gelöschte Funktion: ASSIGNED-Variable in FORMAT-Markierung bei %L"
 
@@ -40368,7 +39968,6 @@ msgstr "Skalares »%s« in FORMAT-Marke bei %L ist keine ASSIGNED-Variable"
 
 #: fortran/io.c:1434
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Non-character in FORMAT tag at %L"
 msgid "Non-character in FORMAT tag at %L"
 msgstr "Erweiterung: Nicht-Zeichen in FORMAT-Markierung bei %L"
 
@@ -40404,7 +40003,6 @@ msgstr "Markierung %s bei %L muss ein Skalar sein"
 
 #: fortran/io.c:1500
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: IOMSG tag at %L"
 msgid "IOMSG tag at %L"
 msgstr "Fortran 2003: IOMSG-Markierung bei %L"
 
@@ -40415,19 +40013,16 @@ msgstr "Fortran 95 erfordert Standard INTEGER in %s-Marke bei %L"
 
 #: fortran/io.c:1516
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Nondefault LOGICAL in %s tag at %L"
 msgid "Nondefault LOGICAL in %s tag at %L"
 msgstr "Fortran 2008: Nicht-Standard-LOGICAL in %s-Marke bei %L"
 
 #: fortran/io.c:1524
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "UNIT not specified at %L"
 msgid "NEWUNIT specifier at %L"
 msgstr "bei %L wurde kein UNIT angegeben"
 
 #: fortran/io.c:1542
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: CONVERT tag at %L"
 msgid "CONVERT tag at %L"
 msgstr "Erweiterung: CONVERT-Marke bei %L"
 
@@ -40438,7 +40033,6 @@ msgstr "Fortran 2003: Spezifizierer %s in Anweisung %s bei %C hat Wert »%s«"
 
 #: fortran/io.c:1736 fortran/io.c:1763
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "%s specifier in %s statement at %C has invalid value '%s'"
 msgid "%s specifier in %s statement at %C has value '%s'"
 msgstr "Spezifizierer %s in Anweisung %s bei %C hat ungültigen Wert »%s«"
 
@@ -40474,37 +40068,31 @@ msgstr "OPEN-Anweisung bei %C muss UNIT oder NEWUNIT haben"
 
 #: fortran/io.c:1898
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ASYNCHRONOUS= at %C not allowed in Fortran 95"
 msgid "ASYNCHRONOUS= at %C not allowed in Fortran 95"
 msgstr "Fortran 2003: ASYNCHRONOUS= bei %C ist in Fortran 95 nicht erlaubt"
 
 #: fortran/io.c:1916 fortran/io.c:3365
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: BLANK= at %C not allowed in Fortran 95"
 msgid "BLANK= at %C not allowed in Fortran 95"
 msgstr "Fortran 2003: BLANK= bei %C ist in Fortran 95 nicht erlaubt"
 
 #: fortran/io.c:1934 fortran/io.c:3344
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: DECIMAL= at %C not allowed in Fortran 95"
 msgid "DECIMAL= at %C not allowed in Fortran 95"
 msgstr "Fortran 2003: DECIMAL= bei %C ist in Fortran 95 nicht erlaubt"
 
 #: fortran/io.c:1966
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ENCODING= at %C not allowed in Fortran 95"
 msgid "ENCODING= at %C not allowed in Fortran 95"
 msgstr "Fortran 2003: ENCODING= bei %C ist in Fortran 95 nicht erlaubt"
 
 #: fortran/io.c:2017 fortran/io.c:3407
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ROUND= at %C not allowed in Fortran 95"
 msgid "ROUND= at %C not allowed in Fortran 95"
 msgstr "Fortran 2003: ROUND= bei %C ist in Fortran 95 nicht erlaubt"
 
 #: fortran/io.c:2037
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: SIGN= at %C not allowed in Fortran 95"
 msgid "SIGN= at %C not allowed in Fortran 95"
 msgstr "Fortran 2003: SIGN= bei %C ist in Fortran 95 nicht erlaubt"
 
@@ -40535,7 +40123,6 @@ msgstr "UNIT-Zahl in Anweisung bei %L muss nicht-negativ sein"
 
 #: fortran/io.c:2483
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: FLUSH statement at %C"
 msgid "FLUSH statement at %C"
 msgstr "Fortran 2003: FLUSH-Anweisung bei %C"
 
@@ -40601,7 +40188,6 @@ msgstr "NAMELIST »%s« in READ-Anweisung bei %L enthält Symbol »%s«, das im 
 
 #: fortran/io.c:2914
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Comma before i/o item list at %L"
 msgid "Comma before i/o item list at %L"
 msgstr "Erweiterung: Komma vor Ein-/Ausgabeelementliste bei %L"
 
@@ -40648,7 +40234,6 @@ msgstr "Syntaxfehler in Anweisung %s bei %C"
 
 #: fortran/io.c:3260
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Internal file at %L with namelist"
 msgid "Internal file at %L with namelist"
 msgstr "Fortran 2003: Interne Datei bei %L mit Namensliste"
 
@@ -40659,13 +40244,11 @@ msgstr "Spezifikation ASYNCHRONOUS= bei %L muss ein Initialisierungsausdruck sei
 
 #: fortran/io.c:3386
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: PAD= at %C not allowed in Fortran 95"
 msgid "PAD= at %C not allowed in Fortran 95"
 msgstr "Fortran 2003: PAD= bei %C ist in Fortran 95 nicht erlaubt"
 
 #: fortran/io.c:3452
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: DELIM= at %C not allowed in Fortran 95"
 msgid "DELIM= at %C not allowed in Fortran 95"
 msgstr "Fortran 2003: DELIM= bei %C ist in Fortran 95 nicht erlaubt"
 
@@ -40711,7 +40294,6 @@ msgstr "INQUIRE-Anweisung bei %L erfordert PENDING= mit Spezifizierung ID="
 
 #: fortran/io.c:4205
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: WAIT at %C not allowed in Fortran 95"
 msgid "WAIT at %C not allowed in Fortran 95"
 msgstr "Fortran 2003: WAIT bei %C ist in Fortran 95 nicht erlaubt"
 
@@ -40807,7 +40389,6 @@ msgstr "Ungültige Form der PROGRAM-Anweisung bei %C"
 
 #: fortran/match.c:1394 fortran/match.c:1475
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Obsolescent feature: Arithmetic IF statement at %C"
 msgid "Arithmetic IF statement at %C"
 msgstr "Veraltet: Arithmetische IF-Anweisung bei %C"
 
@@ -40868,7 +40449,6 @@ msgstr "CRITICAL-Anweisung zur Image-Steuerung bei %C in DO CONCURRENT-Block"
 
 #: fortran/match.c:1759
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: CRITICAL statement at %C"
 msgid "CRITICAL statement at %C"
 msgstr "Fortran 2008: CRITICAL-Anweisung bei %C"
 
@@ -40924,7 +40504,6 @@ msgstr "Syntaxfehler in FORALL-Iterator bei %C"
 
 #: fortran/match.c:2383
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: DO CONCURRENT construct at %C"
 msgid "DO CONCURRENT construct at %C"
 msgstr "Fortran 2008: DO CONCURRENT-Konstrukt bei %C"
 
@@ -40966,7 +40545,6 @@ msgstr "CYCLE-Anweisung bei %C ist nicht auf Nicht-Schleifenkonstrukt »%s« anw
 
 #: fortran/match.c:2582
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: EXIT statement with no do-construct-name at %C"
 msgid "EXIT statement with no do-construct-name at %C"
 msgstr "Fortran 2008: EXIT-Anweisung ohne DO-CONSTRUCT-Name bei %C"
 
@@ -41022,13 +40600,11 @@ msgstr "STOP-Code bei %L muss Standardganzzahltyp KIND=%d sein"
 
 #: fortran/match.c:2773
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Unexpected CASE statement at %C"
 msgid "PAUSE statement at %C"
 msgstr "Unerwartete CASE-Anweisung bei %C"
 
 #: fortran/match.c:2796
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: ERROR STOP statement at %C"
 msgid "ERROR STOP statement at %C"
 msgstr "Fortran 2008: ERROR STOP-Anweisung bei %C"
 
@@ -41066,13 +40642,11 @@ msgstr "Redundante ACQUIRED_LOCK-Marke bei %L gefunden"
 
 #: fortran/match.c:2982
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: LOCK statement at %C"
 msgid "LOCK statement at %C"
 msgstr "Fortran 2008: LOCK-Anweisung bei %C"
 
 #: fortran/match.c:2993
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: UNLOCK statement at %C"
 msgid "UNLOCK statement at %C"
 msgstr "Fortran 2008: UNLOCK-Anweisung bei %C"
 
@@ -41083,7 +40657,6 @@ msgstr "SYNC-Anweisung zur Image-Steuerung bei %C in PURE-Prozedur"
 
 #: fortran/match.c:3026
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: SYNC statement at %C"
 msgid "SYNC statement at %C"
 msgstr "Fortran 2008: SYNC-Anweisung bei %C"
 
@@ -41099,13 +40672,11 @@ msgstr "SYNC-Anweisung zur Image-Steuerung bei %C in DO CONCURRENT-Block"
 
 #: fortran/match.c:3224
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Deleted feature: ASSIGN statement at %C"
 msgid "ASSIGN statement at %C"
 msgstr "Gelöschte Funktion: ASSIGN-Anweisung bei %C"
 
 #: fortran/match.c:3270
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Deleted feature: Assigned GOTO statement at %C"
 msgid "Assigned GOTO statement at %C"
 msgstr "Gelöschte Funktion: Zugewiesene GOTO-Anweisung bei %C"
 
@@ -41116,7 +40687,6 @@ msgstr "Anweisungsmarkenliste in GOTO bei %C kann nicht leer sein"
 
 #: fortran/match.c:3380
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Obsolescent feature: Computed GOTO at %C"
 msgid "Computed GOTO at %C"
 msgstr "Veraltet: Berechnetes GOTO bei %C"
 
@@ -41127,7 +40697,6 @@ msgstr "Fehler in Typspezifikation bei %L"
 
 #: fortran/match.c:3463
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: typespec in ALLOCATE at %L"
 msgid "typespec in ALLOCATE at %L"
 msgstr "Fortran 2003: Typspezifikation in ALLOCATE bei %L"
 
@@ -41148,7 +40717,6 @@ msgstr "ALLOCATE von Koarray bei %C in CRITICAL-Block"
 
 #: fortran/match.c:3557
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Allocate-object at %L is not a nonprocedure pointer or an allocatable variable"
 msgid "Allocate-object at %L is neither a data pointer nor an allocatable variable"
 msgstr "ALLOCATE-Objekt bei %L ist kein Nichtprozedur-Zeiger oder eine reservierbare Variable"
 
@@ -41169,13 +40737,11 @@ msgstr "Formspezifikation für reservierbares Skalar bei %C"
 
 #: fortran/match.c:3628
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ERRMSG tag at %L"
 msgid "ERRMSG tag at %L"
 msgstr "Fortran 2003: ERRMSG-Markierung bei %L"
 
 #: fortran/match.c:3652
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: SOURCE tag at %L"
 msgid "SOURCE tag at %L"
 msgstr "Fortran 2003: SOURCE-Marke bei %L"
 
@@ -41191,13 +40757,11 @@ msgstr "SOURCE-Marke bei %L steht mit Typspezifikation bei %L in Konflikt"
 
 #: fortran/match.c:3672
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: SOURCE tag at %L with more than a single allocate object"
 msgid "SOURCE tag at %L with more than a single allocate object"
 msgstr "Fortran 2008: SOURCE-Marke bei %L mit mehr als einem reservierbaren Objekt"
 
 #: fortran/match.c:3690
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: MOLD tag at %L"
 msgid "MOLD tag at %L"
 msgstr "Fortran 2008: MOLD-Marke bei %L"
 
@@ -41223,7 +40787,6 @@ msgstr "ALLOCATE-Objekt bei %L mit Parameter aufgeschobenen Typs erfordert entwe
 
 #: fortran/match.c:3750
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Allocate-object at %L with a deferred type parameter requires either a type-spec or SOURCE tag or a MOLD tag"
 msgid "Unlimited polymorphic allocate-object at %L requires either a type-spec or SOURCE tag or a MOLD tag"
 msgstr "ALLOCATE-Objekt bei %L mit Parameter aufgeschobenen Typs erfordert entweder eine Typspezifikation, SOURCE-Marke oder MOLD-Marke"
 
@@ -41249,13 +40812,11 @@ msgstr "DEALLOCATE von Koarray bei %C in CRITICAL-Block"
 
 #: fortran/match.c:3928
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Allocate-object at %C is not a nonprocedure pointer or an allocatable variable"
 msgid "Allocate-object at %C is not a nonprocedure pointer nor an allocatable variable"
 msgstr "Allocate-Objekt bei %C ist kein Nicht-Prozedur-Zeiger oder reservierbare Variable"
 
 #: fortran/match.c:3965
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ERRMSG at %L"
 msgid "ERRMSG at %L"
 msgstr "Fortran 2003: ERRMSG bei %L"
 
@@ -41276,13 +40837,11 @@ msgstr "Alternative RETURN-Anweisung bei %C ist nur innerhalb einer SUBROUTINE e
 
 #: fortran/match.c:4043
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Obsolescent feature: Alternate RETURN at %C"
 msgid "Alternate RETURN at %C"
 msgstr "Veraltet: Alternatives RETURN bei %C"
 
 #: fortran/match.c:4073
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: RETURN statement in main program at %C"
 msgid "RETURN statement in main program at %C"
 msgstr "Erweiterung: RETURN-Anweisung im Hauptprogramm bei %C"
 
@@ -41396,7 +40955,6 @@ msgstr "Anweisungsfunktion bei %L ist rekursiv"
 
 #: fortran/match.c:4989
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Statement function at %L is recursive"
 msgid "Statement function at %C"
 msgstr "Anweisungsfunktion bei %L ist rekursiv"
 
@@ -41483,7 +41041,6 @@ msgstr "Erweiterung: Unärer Operator hinter arithmetischem Operator bei %C (Kla
 
 #: fortran/module.c:554
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: module nature in USE statement at %C"
 msgid "module nature in USE statement at %C"
 msgstr "Fortran 2003: Modul-Eigenschaft in USE-Anweisung bei %C"
 
@@ -41499,7 +41056,6 @@ msgstr "\"::\" nach Modul-Eigenschaft bei %C erwartet, aber nicht gefunden"
 
 #: fortran/module.c:590
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: \"USE :: module\" at %C"
 msgid "\"USE :: module\" at %C"
 msgstr "Fortran 2003: \"USE :: module\" bei %C"
 
@@ -41510,7 +41066,6 @@ msgstr "Fehlende allgemeine Spezifikation in USE-Anweisung bei %C"
 
 #: fortran/module.c:657
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Renaming operators in USE statements at %C"
 msgid "Renaming operators in USE statements at %C"
 msgstr "Fortran 2003: Umbenennungsoperatoren in USE-Anweisungen bei %C"
 
@@ -41627,13 +41182,11 @@ msgstr "Bei %2$L referenziertes Symbol »%1$s« nicht im intrinsischen Modul ISO
 
 #: fortran/module.c:6143
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ISO_FORTRAN_ENV intrinsic module at %C"
 msgid "ISO_FORTRAN_ENV intrinsic module at %C"
 msgstr "Fortran 2003: Intrinsisches Modul ISO_FORTRAN_ENV bei %C"
 
 #: fortran/module.c:6156
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ISO_C_BINDING module at %C"
 msgid "ISO_C_BINDING module at %C"
 msgstr "Fortran 2003: Modul ISO_C_BINDING bei %C"
 
@@ -41654,7 +41207,6 @@ msgstr "Verwendung des nicht-intrinsischen Moduls »%s« bei %C steht mit vorher
 
 #: fortran/module.c:6202
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "File '%s' opened at %C is not a GFORTRAN module file"
 msgid "File '%s' opened at %C is not a GNU Fortran module file"
 msgstr "Bei %2$C geöffnete Datei »%1$s« ist keine GFORTRAN-Moduldatei"
 
@@ -42176,25 +41728,21 @@ msgstr "Komponenten in TYPE bei %C müssen CONTAINS vorausgehen"
 
 #: fortran/parse.c:1980
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003:  Type-bound procedure at %C"
 msgid "Type-bound procedure at %C"
 msgstr "Fortran 2003: Typgebundene Prozedur bei %C"
 
 #: fortran/parse.c:1989
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Junk after GENERIC binding at %C"
 msgid "GENERIC binding at %C"
 msgstr "Ausschuss hinter GENERIC-Bindung bei %C"
 
 #: fortran/parse.c:1999
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003:  FINAL procedure declaration at %C"
 msgid "FINAL procedure declaration at %C"
 msgstr "Fortran 2003: FINAL-Prozedurdeklaration bei %C"
 
 #: fortran/parse.c:2011
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Derived type definition at %C with empty CONTAINS section"
 msgid "Derived type definition at %C with empty CONTAINS section"
 msgstr "Fortran 2008: Definition eines abgeleiteten Typs bei %C mit leerem CONTAINS-Abschnitt"
 
@@ -42230,7 +41778,6 @@ msgstr "FINAL-Deklaration bei %C muss innerhalb von CONTAINS sein"
 
 #: fortran/parse.c:2116
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Derived type definition at %C without components"
 msgid "Derived type definition at %C without components"
 msgstr "Fortran 2003: Definition des abgeleiteten Typs bei %C ohne Komponenten"
 
@@ -42256,7 +41803,6 @@ msgstr "Doppelte SEQUENCE-Anweisung bei %C"
 
 #: fortran/parse.c:2170
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003:  CONTAINS block in derived type definition at %C"
 msgid "CONTAINS block in derived type definition at %C"
 msgstr "Fortran 2003: CONTAINS-Block in Definition des abgeleiteten Typs bei %C"
 
@@ -42392,19 +41938,16 @@ msgstr "Ende der DO-Anweisung bei %C ist mit anderer DO-Schleife verwoben"
 
 #: fortran/parse.c:3274
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Statement label in END CRITICAL at %C does not match CRITIAL label"
 msgid "Statement label in END CRITICAL at %C does not match CRITICAL label"
 msgstr "Anweisungsmarke in END CRITICAL bei %C passt nicht zum CRITICAL-Marke"
 
 #: fortran/parse.c:3342
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: BLOCK construct at %C"
 msgid "BLOCK construct at %C"
 msgstr "Fortran 2008: BLOCK-Konstrukt bei %C"
 
 #: fortran/parse.c:3372
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: ASSOCIATE construct at %C"
 msgid "ASSOCIATE construct at %C"
 msgstr "Fortran 2003: ASSOCIATE-Konstrukt bei %C"
 
@@ -42435,7 +41978,6 @@ msgstr "Anweisung %s bei %C kann keine DO-Schleife ohne Block beenden"
 
 #: fortran/parse.c:3833
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "FORMAT statement at %L does not have a statement label"
 msgid "DATA statement at %C after the first executable statement"
 msgstr "FORMAT-Anweisung bei %L hat keine Anweisungsmarke"
 
@@ -42451,7 +41993,6 @@ msgstr "Unerwartete Anweisung %s in CONTAINS-Abschnitt bei %C"
 
 #: fortran/parse.c:4105
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: CONTAINS statement without FUNCTION or SUBROUTINE statement at %C"
 msgid "CONTAINS statement without FUNCTION or SUBROUTINE statement at %C"
 msgstr "Fortran 2008: CONTAINS-Anweisung ohne FUNCTION- oder SUBROUTINE-Anweisung bei %C"
 
@@ -42505,7 +42046,6 @@ msgstr "Ganzzahl zu groß für ihre Art bei %C. Diese Überprüfung kann mit der
 
 #: fortran/primary.c:270
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Hollerith constant at %C"
 msgid "Hollerith constant at %C"
 msgstr "Erweiterung: Hollerithkonstante bei %C"
 
@@ -42526,7 +42066,6 @@ msgstr "Ungültige Hollerithkonstante bei %L enthält ein Wide-Zeichen"
 
 #: fortran/primary.c:394
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Hexadecimal constant at %C uses non-standard syntax"
 msgid "Hexadecimal constant at %C uses non-standard syntax"
 msgstr "Erweiterung: Hexadezimalkonstante bei %C verwendet Nicht-Standard-Syntax"
 
@@ -42542,7 +42081,6 @@ msgstr "Unzulässiges Zeichen in BOZ-Konstante bei %C"
 
 #: fortran/primary.c:433
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: BOZ constant at %C uses non-standard postfix syntax"
 msgid "BOZ constant at %C uses non-standard postfix syntax"
 msgstr "Erweiterung: BOZ-Konstante bei %C verwendet Nicht-Standard-Postfix-Syntax"
 
@@ -42553,13 +42091,11 @@ msgstr "Ganzzahl zu groß für Ganzzahlart %i bei %C"
 
 #: fortran/primary.c:470
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: BOZ used outside a DATA statement at %C"
 msgid "BOZ used outside a DATA statement at %C"
 msgstr "Fortran 2003: BOZ außerhalb einer DATA-Anweisung bei %C verwendet"
 
 #: fortran/primary.c:561
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Invalid exponent-letter 'q' in real-literal-constant at %C"
 msgid "exponent-letter 'q' in real-literal-constant at %C"
 msgstr "Ungültiger Exponent-Buchstabe »q« in literaler Realkonstante bei %C"
 
@@ -42645,7 +42181,6 @@ msgstr "Skalarer PARAMETER in komplexer Konstante bei %C erwartet"
 
 #: fortran/primary.c:1220
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Expected PARAMETER symbol in complex constant at %C"
 msgid "PARAMETER symbol in complex constant at %C"
 msgstr "PARAMETER-Symbol in komplexer Konstante bei %C erwartet"
 
@@ -42666,7 +42201,6 @@ msgstr "Schlüsselwort »%s« bei %C bereits in aktueller Argumentliste aufgetre
 
 #: fortran/primary.c:1649
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Unknown argument list function at %L"
 msgid "argument list function at %C"
 msgstr "Unbekannte Argumentlistenfunktion bei %L"
 
@@ -42697,13 +42231,11 @@ msgstr "Koarray-Bezeichner bei %C, aber »%s« ist kein Koarray"
 
 #: fortran/primary.c:1916
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Symbol '%s' at %L has no IMPLICIT type"
 msgid "Symbol '%s' at %C has no IMPLICIT type"
 msgstr "Symbol »%s« bei %L hat keinen IMPLICIT-Typ"
 
 #: fortran/primary.c:1922
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Unexpected character in variable list at %C"
 msgid "Unexpected '%%' for nonderived-type variable '%s' at %C"
 msgstr "Unerwartetes Zeichen in Variablenliste bei %C"
 
@@ -42729,7 +42261,6 @@ msgstr "Koindizierte Prozedurzeiger-Komponente bei %C"
 
 #: fortran/primary.c:2357
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Structure constructor with missing optional arguments at %C"
 msgid "Structure constructor with missing optional arguments at %C"
 msgstr "Fortran 2003: Strukturkonstruktor mit fehlenden optionalen Argumenten bei %C"
 
@@ -42745,7 +42276,6 @@ msgstr "ABSTRACT-Typ »%s« bei %L kann nicht konstruiert werden"
 
 #: fortran/primary.c:2433
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Structure constructor with named arguments at %C"
 msgid "Structure constructor with named arguments at %C"
 msgstr "Fortran 2003: Strukturkonstruktor mit benannten Argumenten bei %C"
 
@@ -42831,31 +42361,26 @@ msgstr "ABSTRACT-Typ »%s« bei %L verwendet"
 
 #: fortran/resolve.c:145
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Interface '%s', used by procedure '%s' at %L, is declared in a later PROCEDURE statement"
 msgid "Interface '%s' at %L is declared in a later PROCEDURE statement"
 msgstr "Schnittstelle »%s«, von Prozedur »%s« bei %L verwendet, ist in späterer PROCEDURE-Anweisung deklariert"
 
 #: fortran/resolve.c:158
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Interface '%s' at %C may not be generic"
 msgid "Interface '%s' at %L may not be generic"
 msgstr "Schnittstelle »%s« bei %C kann nicht allgemein sein"
 
 #: fortran/resolve.c:165
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Interface '%s' at %C may not be a statement function"
 msgid "Interface '%s' at %L may not be a statement function"
 msgstr "Schnittstelle »%s« bei %C kann keine Anweisungsfunktion sein"
 
 #: fortran/resolve.c:174
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Intrinsic procedure '%s' not allowed in PROCEDURE statement at %C"
 msgid "Intrinsic procedure '%s' not allowed in PROCEDURE statement at %L"
 msgstr "Intrinsische Prozedur »%s« ist in PROCEDURE-Anweisung bei %C nicht erlaubt"
 
 #: fortran/resolve.c:180
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Interface '%s' of procedure '%s' at %L must be explicit"
 msgid "Interface '%s' at %L must be explicit"
 msgstr "Schnittstelle »%s« der Prozedur »%s« bei %L muss explizit sein"
 
@@ -42881,7 +42406,6 @@ msgstr "Scheinprozedur »%s« der PURE-Prozedur bei %L muss auch PURE sein"
 
 #: fortran/resolve.c:385
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Argument '%s' of pure function '%s' at %L with VALUE attribute but without INTENT(IN)"
 msgid "Argument '%s' of pure function '%s' at %L with VALUE attribute but without INTENT(IN)"
 msgstr "Fortran 2008: Argument »%s« der reinen Funktion »%s« bei %L mit VALUE-Attribut, aber ohne INTENT(IN)"
 
@@ -42892,7 +42416,6 @@ msgstr "Argument »%s« der reinen Funktion »%s« bei %L muss INTENT(IN) oder V
 
 #: fortran/resolve.c:398
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Argument '%s' of pure subroutine '%s' at %L with VALUE attribute but without INTENT"
 msgid "Argument '%s' of pure subroutine '%s' at %L with VALUE attribute but without INTENT"
 msgstr "Fortran 2008: Argument »%s« des reinen Unterprogrammes »%s« bei %L mit VALUE-Attribut, aber ohne INTENT"
 
@@ -42928,7 +42451,6 @@ msgstr "Scheinprozedur »%s« nicht in elementarer Prozedur »%s« bei %L erlaub
 
 #: fortran/resolve.c:481
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Argument '%s' of pure subroutine '%s' at %L must have its INTENT specified or have the VALUE attribute"
 msgid "Argument '%s' of elemental procedure '%s' at %L must have its INTENT specified or have the VALUE attribute"
 msgstr "Für Argument »%s« des reinen Unterprogrammes »%s« bei %L muss INTENT oder das VALUE-Attribut angegeben werden"
 
@@ -42964,7 +42486,6 @@ msgstr "Funktion %s bei %L hat Einträge mit unpassenden Feldspezifikationen"
 
 #: fortran/resolve.c:781
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: Function %s at %L with entries returning variables of different string lengths"
 msgid "Function %s at %L with entries returning variables of different string lengths"
 msgstr "Erweiterung: Funktion %s bei %L mit Einträgen, die Variablen mit verschiedenen Zeichenkettenlängen zurückgeben"
 
@@ -43045,13 +42566,11 @@ msgstr "COMMON-Block »%s« bei %L ist auch eine intrinsische Prozedur"
 
 #: fortran/resolve.c:978
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: COMMON block '%s' at %L that is also a function result"
 msgid "COMMON block '%s' at %L that is also a function result"
 msgstr "Fortran 2003: COMMON-Block »%s« bei %L der auch ein Funktionsergebnis ist"
 
 #: fortran/resolve.c:983
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: COMMON block '%s' at %L that is also a global procedure"
 msgid "COMMON block '%s' at %L that is also a global procedure"
 msgstr "Fortran 2003: COMMON-Block »%s« bei %L der auch eine globale Prozedur ist"
 
@@ -43152,7 +42671,6 @@ msgstr "Eingebautes »%s« bei %L ist nicht als effektives Argument erlaubt"
 
 #: fortran/resolve.c:1742
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Internal procedure '%s' is used as actual argument at %L"
 msgid "Internal procedure '%s' is used as actual argument at %L"
 msgstr "Fortran 2008: Interne Prozedur »%s« wird als effektives Argument bei %L verwendet"
 
@@ -43228,7 +42746,6 @@ msgstr "Prozedur »%s« bei %L mit Scheinargument »%s« mit vermuteter Form mus
 
 #: fortran/resolve.c:2275
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Procedure '%s' at %L with assumed-shape dummy argument '%s' must have an explicit interface"
 msgid "Procedure '%s' at %L with assumed-rank dummy argument '%s' must have an explicit interface"
 msgstr "Prozedur »%s« bei %L mit Scheinargument »%s« mit vermuteter Form muss explizite Schnittstelle haben"
 
@@ -43249,7 +42766,6 @@ msgstr "Prozedur »%s« bei %L mit polymorphem Scheinargument »%s« muss expliz
 
 #: fortran/resolve.c:2309
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Procedure '%s' at %L with assumed-shape dummy argument '%s' must have an explicit interface"
 msgid "Procedure '%s' at %L with assumed-type dummy argument '%s' must have an explicit interface"
 msgstr "Prozedur »%s« bei %L mit Scheinargument »%s« mit vermuteter Form muss explizite Schnittstelle haben"
 
@@ -43374,13 +42890,11 @@ msgstr "Parameter »%s« für »%s« bei %L darf nicht polymorph sein"
 #. pointers once they are implemented.
 #: fortran/resolve.c:3056
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Parameter '%s' to '%s' at %L must be a procedure"
 msgid "Argument '%s' to '%s' at %L must be a procedure"
 msgstr "Parameter »%s« für »%s« bei %L muss eine Prozedur sein"
 
 #: fortran/resolve.c:3063
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Missing actual argument '%s' in call to '%s' at %L"
 msgid "Noninteroperable argument '%s' to '%s' at %L"
 msgstr "Fehlendes effektives Argument »%s« in Aufruf von »%s« bei %L"
 
@@ -43462,19 +42976,16 @@ msgstr ""
 
 #: fortran/resolve.c:3554
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Actual argument to '%s' at %L must be polymorphic"
 msgid "Argument FPTR to C_F_POINTER at %L must not be polymorphic"
 msgstr "Effektives Argument für »%s« bei %L muss polymorph sein"
 
 #: fortran/resolve.c:3568
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Missing SHAPE parameter for call to %s at %L"
 msgid "Missing SHAPE argument for call to %s at %L"
 msgstr "Fehlender SHAPE-Parameter für Aufruf von »%s« bei %L"
 
 #: fortran/resolve.c:3575
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "SHAPE parameter for call to %s at %L must be a rank 1 INTEGER array"
 msgid "SHAPE argument for call to %s at %L must be a rank 1 INTEGER array"
 msgstr "SHAPE-Parameter für Aufruf von %s bei %L muss ein INTEGER-Feld mit Rang 1 sein"
 
@@ -43595,7 +43106,6 @@ msgstr "Feldindex bei %L muss INTEGER-Typ haben, %s gefunden"
 
 #: fortran/resolve.c:4608
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Extension: REAL array index at %L"
 msgid "REAL array index at %L"
 msgstr "Erweiterung: REAL-Feld-Index bei %L"
 
@@ -43666,7 +43176,6 @@ msgstr "Zwei oder mehr Teilreferenzen mit Rang größer Null dürfen nicht bei %
 
 #: fortran/resolve.c:5234
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Assumed shape array at %L must be a dummy argument"
 msgid "Assumed-type variable %s at %L may only be used as actual argument"
 msgstr "Feld mit vermuteter Form bei %L muss ein Scheinargument sein"
 
@@ -43681,7 +43190,6 @@ msgstr ""
 
 #: fortran/resolve.c:5260
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Assumed shape array at %L must be a dummy argument"
 msgid "Assumed-rank variable %s at %L may only be used as actual argument"
 msgstr "Feld mit vermuteter Form bei %L muss ein Scheinargument sein"
 
@@ -43696,13 +43204,11 @@ msgstr ""
 
 #: fortran/resolve.c:5282
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Coarray variable '%s' at %L shall not have codimensions with deferred shape"
 msgid "Assumed-type variable %s at %L shall not have a subobject reference"
 msgstr "Koarray-Variable »%s« bei %L sollte keine Kodimensionen mit aufgeschobener Form haben"
 
 #: fortran/resolve.c:5297
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Coarray variable '%s' at %L shall not have codimensions with deferred shape"
 msgid "Assumed-rank variable %s at %L shall not have a subobject reference"
 msgstr "Koarray-Variable »%s« bei %L sollte keine Kodimensionen mit aufgeschobener Form haben"
 
@@ -43769,7 +43275,6 @@ msgstr "%s bei %L muss skalar sein"
 
 #: fortran/resolve.c:6650
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "'%s' at %L must be nonnegative"
 msgid "%s at %L must be integer"
 msgstr "'%s' bei %L muss nichtnegativ sein"
 
@@ -44014,7 +43519,6 @@ msgstr "Selektor sollte in SELECT TYPE-Anweisung bei %L polymorph sein"
 
 #: fortran/resolve.c:8371 fortran/resolve.c:8383
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Association target at %C must not be coindexed"
 msgid "Selector at %L must not be coindexed"
 msgstr "Verknüpfungsziel bei %C darf nicht koindiziert sein"
 
@@ -44030,13 +43534,11 @@ msgstr "Abgeleiteter Typ »%s« bei %L muss eine Erweiterung von »%s« sein"
 
 #: fortran/resolve.c:8414
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Unexpected NULL() intrinsic at %L to dummy '%s'"
 msgid "Unexpected intrinsic type '%s' at %L"
 msgstr "Unerwartetes intrinsisches NULL() bei %L für Schein-»%s«"
 
 #: fortran/resolve.c:8423
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Type-spec at %L cannot contain a deferred type parameter"
 msgid "The type-spec at %L shall specify that each length type parameter is assumed"
 msgstr "Typspezifikation bei %L kann keine Parameter mit aufgeschobenem Typ haben"
 
@@ -44296,7 +43798,6 @@ msgstr "Zeichenkettenlänge bei %L ist zu groß"
 
 #: fortran/resolve.c:11084
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Allocatable array '%s' at %L must have a deferred shape"
 msgid "Allocatable array '%s' at %L must have a deferred shape or assumed rank"
 msgstr "Zuordnungsfähiges Feld »%s« bei %L muss aufgeschobene Form haben"
 
@@ -44307,7 +43808,6 @@ msgstr "Skalares Objekt »%s« bei %L kann nicht ALLOCATABLE sein"
 
 #: fortran/resolve.c:11096
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Array pointer '%s' at %L must have a deferred shape"
 msgid "Array pointer '%s' at %L must have a deferred shape or assumed rank"
 msgstr "Feldzeiger »%s« bei %L muss aufgeschobene Form haben"
 
@@ -44333,7 +43833,6 @@ msgstr "Der Typ %s kann bei %L nicht mit Wirt verbunden werden, da er von unvert
 
 #: fortran/resolve.c:11186
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2008: Implied SAVE for module variable '%s' at %L, needed due to the default initialization"
 msgid "Implied SAVE for module variable '%s' at %L, needed due to the default initialization"
 msgstr "Fortran 2008: Inbegriffenes SAVE für Modulvariable »%s« bei %L, benötigt wegen Standardkonstruktor"
 
@@ -44401,13 +43900,11 @@ msgstr "Zeichenwertige Anweisungsfunktion »%s« bei %L muss konstante Länge ha
 
 #: fortran/resolve.c:11415
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: '%s' is of a PRIVATE type and cannot be a dummy argument of '%s', which is PUBLIC at %L"
 msgid "'%s' is of a PRIVATE type and cannot be a dummy argument of '%s', which is PUBLIC at %L"
 msgstr "Fortran 2003: »%s« hat PRIVATE-Typ und kann kein Scheinargument von »%s« sein, das PUBLIC bei %L ist"
 
 #: fortran/resolve.c:11437 fortran/resolve.c:11461
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Procedure '%s' in PUBLIC interface '%s' at %L takes dummy arguments of '%s' which is PRIVATE"
 msgid "Procedure '%s' in PUBLIC interface '%s' at %L takes dummy arguments of '%s' which is PRIVATE"
 msgstr "Fortran 2003: Prozedur »%s« in PUBLIC-Schnittstelle »%s« bei %L nimmt Schneinargumente von »%s«, das PRIVATE ist"
 
@@ -44453,7 +43950,6 @@ msgstr "CHARACTER(*)-Funktion »%s« bei %L kann nicht rekursiv sein"
 
 #: fortran/resolve.c:11550
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "CHARACTER(*) function '%s' at %L cannot be pure"
 msgid "CHARACTER(*) function '%s' at %L"
 msgstr "CHARACTER(*)-Funktion »%s« bei %L kann nicht pure sein"
 
@@ -44705,7 +44201,6 @@ msgstr "Zeichenkomponente »%s« von »%s« bei %L mit aufgeschobener Länge mus
 
 #: fortran/resolve.c:12808
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: the component '%s' is a PRIVATE type and cannot be a component of '%s', which is PUBLIC at %L"
 msgid "the component '%s' is a PRIVATE type and cannot be a component of '%s', which is PUBLIC at %L"
 msgstr "Fortran 2003: Die Komponente »%s« ist ein PRIVATE-Typ und kann nicht Komponente von »%s« sein, die PUBLIC bei %L ist"
 
@@ -44731,7 +44226,6 @@ msgstr "Komponente »%s« mit CLASS bei %L muss allozierbar oder Zeiger sein"
 
 #: fortran/resolve.c:12934
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Generic name '%s' of function '%s' at %L being the same name as derived type at %L"
 msgid "Generic name '%s' of function '%s' at %L being the same name as derived type at %L"
 msgstr "Fortran 2003: Allgemeiner Name »%s« der Funktion »%s« bei %L ist der gleiche wie der des abgeleiteten Typs bei %L"
 
@@ -44742,19 +44236,16 @@ msgstr "Feld »%s« mit vermuteter Größe in Namensliste »%s« bei %L ist nich
 
 #: fortran/resolve.c:12996
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: NAMELIST array object '%s' with assumed shape in namelist '%s' at %L"
 msgid "NAMELIST array object '%s' with assumed shape in namelist '%s' at %L"
 msgstr "Fortran 2003: NAMELIST-Feldobjekt »%s« mit vermuteter Form in Namensliste »%s« bei %L"
 
 #: fortran/resolve.c:13003
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: NAMELIST array object '%s' with nonconstant shape in namelist '%s' at %L"
 msgid "NAMELIST array object '%s' with nonconstant shape in namelist '%s' at %L"
 msgstr "Fortran 2003: NAMELIST-Feldobjekt »%s« ohne konstante Form in Namensliste »%s« bei %L"
 
 #: fortran/resolve.c:13012
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: NAMELIST object '%s' with nonconstant character length in namelist '%s' at %L"
 msgid "NAMELIST object '%s' with nonconstant character length in namelist '%s' at %L"
 msgstr "Fortran 2003: NAMELIST-Objekt »%s« ohne konstante Zeichenlänge in Namensliste »%s« bei %L"
 
@@ -44765,7 +44256,6 @@ msgstr "NAMELIST-Objekt »%s« in Namensliste »%s« bei %L ist polymorph und er
 
 #: fortran/resolve.c:13032
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: NAMELIST object '%s' in namelist '%s' at %L with ALLOCATABLE or POINTER components"
 msgid "NAMELIST object '%s' in namelist '%s' at %L with ALLOCATABLE or POINTER components"
 msgstr "Fortran 2003: NAMELIST-Objekt »%s« in Namensliste »%s« bei %L mit ALLOCATABLE- oder POINTER-Komponenten"
 
@@ -44823,7 +44313,6 @@ msgstr "Attribut PROCEDURE steht mit Attribut PROTECTED bei %L in Konflikt"
 
 #: fortran/resolve.c:13322
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "'%s' at %L has the CONTIGUOUS attribute but is not an array pointer or an assumed-shape array"
 msgid "'%s' at %L has the CONTIGUOUS attribute but is not an array pointer or an assumed-shape or assumed-rank array"
 msgstr "»%s« bei %L hat Attribut CONTIGUOUS, aber ist kein Feldzeiger oder Feld vermuteter Größe"
 
@@ -44839,7 +44328,6 @@ msgstr "Feld mit vermuteter Form bei %L muss ein Scheinargument sein"
 
 #: fortran/resolve.c:13351
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Assumed shape array at %L must be a dummy argument"
 msgid "Assumed-rank array at %L must be a dummy argument"
 msgstr "Feld mit vermuteter Form bei %L muss ein Scheinargument sein"
 
@@ -44875,25 +44363,21 @@ msgstr "Der abgeleitete Typ »%s« bei %L hat Typ »%s«, der nicht definiert wu
 
 #: fortran/resolve.c:13422
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Assumed shape array '%s' at %L is not permitted in an initialization expression"
 msgid "Assumed type of variable %s at %L is only permitted for dummy variables"
 msgstr "Feld »%s« mit vermuteter Form bei %L ist nicht in einem Initialisierungs-Ausdruck erlaubt"
 
 #: fortran/resolve.c:13429
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Variable '%s' at %L cannot have both the ALLOCATABLE and BIND(C) attributes"
 msgid "Assumed-type variable %s at %L may not have the ALLOCATABLE, CODIMENSION, POINTER or VALUE attribute"
 msgstr "Variable »%s« bei %L kann nicht gleichzeitig die Attribute ALLOCATABLE und BIND(C) haben"
 
 #: fortran/resolve.c:13436
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Variable '%s' at %L cannot have both the POINTER and BIND(C) attributes"
 msgid "Assumed-type variable %s at %L may not have the INTENT(OUT) attribute"
 msgstr "Variable »%s« bei %L kann nicht gleichzeitig die Attribute POINTER und BIND(C) haben"
 
 #: fortran/resolve.c:13443
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Loop variable at %C cannot be a coarray"
 msgid "Assumed-type variable %s at %L shall not be an explicit-shape array"
 msgstr "Schleifenvariable bei %C kann kein Koarray sein"
 
@@ -44904,7 +44388,6 @@ msgstr "Variable »%s« bei %L kann nicht BIND(C) sein, weil es weder ein COMMON
 
 #: fortran/resolve.c:13548
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: PUBLIC %s '%s' at %L of PRIVATE derived type '%s'"
 msgid "PUBLIC %s '%s' at %L of PRIVATE derived type '%s'"
 msgstr "Fortran 2003: PUBLIC %s »%s« bei %L mit abgeleitetem PRIVATE-Typen »%s«"
 
@@ -44965,13 +44448,11 @@ msgstr "Coarray-Hilfsvariable '%s' bei %L in BIND(C)-Prozedur '%s' nicht erlaubt
 
 #: fortran/resolve.c:13692
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Coarray dummy variable '%s' at %L not allowed in BIND(C) procedure '%s'"
 msgid "LOGICAL dummy argument '%s' at %L with non-C_Bool kind in BIND(C) procedure '%s'"
 msgstr "Coarray-Hilfsvariable '%s' bei %L in BIND(C)-Prozedur '%s' nicht erlaubt"
 
 #: fortran/resolve.c:13698
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Coarray dummy variable '%s' at %L not allowed in BIND(C) procedure '%s'"
 msgid "LOGICAL result variable '%s' at %L with non-C_Bool kind in BIND(C) procedure '%s'"
 msgstr "Coarray-Hilfsvariable '%s' bei %L in BIND(C)-Prozedur '%s' nicht erlaubt"
 
@@ -45097,7 +44578,6 @@ msgstr "Teilzeichenkette bei %L hat Länge Null"
 
 #: fortran/resolve.c:14742
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "PUBLIC function '%s' at %L cannot be of PRIVATE type '%s'"
 msgid "PUBLIC function '%s' at %L of PRIVATE type '%s'"
 msgstr "PUBLIC-Funktion »%s« bei %L kann nicht PRIVATE-Typen »%s« haben"
 
@@ -45143,19 +44623,16 @@ msgstr "Enthaltene Prozedur »%s« bei %L einer PURE-Prozedur muss auch PURE sei
 
 #: fortran/scanner.c:335
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "can't create directory %s: %m"
 msgid "Include directory \"%s\": %s"
 msgstr "das Verzeichnis %s kann nicht erzeugt werden: %m"
 
 #: fortran/scanner.c:341
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "ignoring nonexistent directory \"%s\"\n"
 msgid "Nonexistent include directory \"%s\""
 msgstr "nicht vorhandenes Verzeichnis »%s« wird ignoriert\n"
 
 #: fortran/scanner.c:347
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "%s: Not a directory"
 msgid "\"%s\" is not a directory"
 msgstr "%s: Kein Verzeichnis"
 
@@ -45455,7 +44932,6 @@ msgstr "Name der Namenslisten-Gruppe bei %L kann kein SAVE-Attribut haben"
 
 #: fortran/symbol.c:482
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: Procedure pointer at %C"
 msgid "Procedure pointer at %C"
 msgstr "Fortran 2003: Prozedur-Zeiger bei %C"
 
@@ -45481,13 +44957,11 @@ msgstr "Attribut %s steht mit Attribut %s in »%s« bei %L in Konflikt"
 
 #: fortran/symbol.c:773
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "%s attribute conflicts with %s attribute at %L"
 msgid "%s attribute with %s attribute at %L"
 msgstr "Attribut %s steht mit Attribut %s bei %L in Konflikt"
 
 #: fortran/symbol.c:779
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "%s attribute conflicts with %s attribute in '%s' at %L"
 msgid "%s attribute with %s attribute in '%s' at %L"
 msgstr "Attribut %s steht mit Attribut %s in »%s« bei %L in Konflikt"
 
@@ -45583,7 +45057,6 @@ msgstr "Doppeltes BIND-Attribut bei %L angegeben"
 
 #: fortran/symbol.c:1598
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid " BIND(C)"
 msgid "BIND(C) at %L"
 msgstr " BIND(C)"
 
@@ -45594,7 +45067,6 @@ msgstr "Doppeltes EXTENDS-Attribut bei %L angegeben"
 
 #: fortran/symbol.c:1619
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Fortran 2003: EXTENDS at %L"
 msgid "EXTENDS at %L"
 msgstr "Fortran 2003: EXTENDS bei %L"
 
@@ -45690,7 +45162,6 @@ msgstr "Marke %d bei %C vorher als Sprungziel verwendet"
 
 #: fortran/symbol.c:2280
 #, fuzzy, gcc-internal-format, gfc-internal-format
-#| msgid "Expected terminating name at %C"
 msgid "Shared DO termination label %d at %C"
 msgstr "Beendenden Namen bei %C erwartet"
 
@@ -46432,7 +45903,6 @@ msgstr "ungültige Auflösung in Auflösungsdatei"
 
 #: lto/lto.c:2228
 #, fuzzy, gcc-internal-format
-#| msgid "resolution sub id "
 msgid "resolution sub id %wx not in object file"
 msgstr "Auflösungs-Sub-ID "
 

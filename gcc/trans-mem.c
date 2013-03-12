@@ -2633,7 +2633,7 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       flags |= PR_HASNOABORT;
     if ((subcode & GTMA_HAVE_STORE) == 0)
       flags |= PR_READONLY;
-    if (inst_edge)
+    if (inst_edge && !(subcode & GTMA_HAS_NO_INSTRUMENTATION))
       flags |= PR_INSTRUMENTEDCODE;
     if (uninst_edge)
       flags |= PR_UNINSTRUMENTEDCODE;
@@ -2837,7 +2837,8 @@ generate_tm_state (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 
       if (subcode & GTMA_DOES_GO_IRREVOCABLE)
 	subcode &= (GTMA_DECLARATION_MASK | GTMA_DOES_GO_IRREVOCABLE
-		    | GTMA_MAY_ENTER_IRREVOCABLE);
+		    | GTMA_MAY_ENTER_IRREVOCABLE
+		    | GTMA_HAS_NO_INSTRUMENTATION);
       else
 	subcode &= GTMA_DECLARATION_MASK;
       gimple_transaction_set_subcode (region->transaction_stmt, subcode);
@@ -5106,8 +5107,9 @@ ipa_tm_transform_transaction (struct cgraph_node *node)
 	  && bitmap_bit_p (d->irrevocable_blocks_normal,
 			   region->entry_block->index))
 	{
-	  transaction_subcode_ior (region, GTMA_DOES_GO_IRREVOCABLE);
-	  transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
+	  transaction_subcode_ior (region, GTMA_DOES_GO_IRREVOCABLE
+				           | GTMA_MAY_ENTER_IRREVOCABLE
+				   	   | GTMA_HAS_NO_INSTRUMENTATION);
 	  continue;
 	}
 
