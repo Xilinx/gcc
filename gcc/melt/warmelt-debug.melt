@@ -1011,9 +1011,11 @@ $TORANK}#
 	(add2out_strconst out "{")))
     (add2out_strconst out "/")
     (add2out_longdec out (mapobject_count self))
-    (if (or 
+    (if (and
 	 (melt_really_need_dbglim (+i depth 2) maxdepth)
-	 (and (<i (+i depth 2) maxdepth) (is_a dbgi class_debug_output_information)))
+	 (<i (+i depth 2) maxdepth) 
+	 (or (<i depth 4)
+	     (<i mapcount (*i 4 (+i depth 2)))))
 	(let (
 	      (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
 	      (countbox (make_integerbox discr_integer 0))

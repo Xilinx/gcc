@@ -1,5 +1,15 @@
 
 
+2013-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-debug.melt (dbgout_mapobject_method): Avoid dumping
+	large maps when deep printing.
+
+	{{still the issue with mstep_else.}}
+	* melt/warmelt-normatch.melt: More debugging.
+	(translate_matchcase) probably needs the put_else_match near line
+	5074, which was explicitly removed at some time in the past.
+
 2013-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{still an issue with mstep_else somewhere}}
 	* melt/warmelt-normatch.melt: More debug.

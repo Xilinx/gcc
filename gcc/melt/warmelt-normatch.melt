@@ -3018,7 +3018,8 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 (defun fill_matchcase (curmcase sloc)
-  (debug "fill_matchcase curmcase" curmcase)
+  (debug "fill_matchcase curmcase=" curmcase " sloc=" sloc)
+  (shortbacktrace_dbg "fill_matchcase" 10)
   (assert_msg "check curmcase" (is_a curmcase class_match_case))
   (let (
 	(ourpatvarmap (make_mapobject discr_map_objects 17))
@@ -4971,7 +4972,8 @@ the flags of the $STEP with an extra context $CTX.}#
 (compile_warning "missing other methods for matchgraphic_altstep on other step classes")
 
 (defun translate_matchcase (curmcase sloc prevstep)
-  (debug "translate_matchcase curmcase" curmcase)
+  (debug "translate_matchcase curmcase=" curmcase "\n..prevstep=" prevstep)
+  (shortbacktrace_dbg "translate_matchcase" 10)
   (assert_msg "check curmcase" (is_a curmcase class_match_case))
   (let ( (matctx (unsafe_get_field  :mcase_mctxt curmcase))
 	 (curscas (unsafe_get_field :mcase_source curmcase))
@@ -4994,9 +4996,8 @@ the flags of the $STEP with an extra context $CTX.}#
 	  (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
 	  (newenv (fresh_env env))
 	  )
-      (debug "translate_matchcase nmatx" nmatx)
-      (debug "translate_matchcase curpat" curpat)
-      (debug "translate_matchcase mdata" mdata)
+      (debug "translate_matchcase nmatx=" nmatx "\n.. curpat" curpat 
+	     "\n.. mdata" mdata)
       (assert_msg "check ncx" (is_a ncx class_normalization_context))
       (assert_msg "check env" (is_a env class_environment))
       (multicall 
@@ -5023,8 +5024,8 @@ the flags of the $STEP with an extra context $CTX.}#
        (multicall
 	(nbody nbinds)
 	(normalize_tuple curbody newenv ncx sloc)
-	(debug "translate_matchcase nbody after body normalization" nbody)
-	(debug "translate_matchcase nbinds after body normalization" nbinds)
+	(debug "translate_matchcase  after body normalization nbody=" nbody 
+	       "\n nbinds=" nbinds)
 	(let (
 	      (listvarocc (make_list discr_list))
 	      (newbindmap (get_field :env_bind newenv))
@@ -5044,14 +5045,13 @@ the flags of the $STEP with an extra context $CTX.}#
 		    (>i (get_int (unsafe_get_field :matchbind_nbocc binding)) 0))
 	       (let ( (syocc (mapobject_get sycmap bsymb))
 		      )
-		 (debug "translate_matchcase found syocc" syocc)
+		 (debug "translate_matchcase found syocc=" syocc)
 		 (assert_msg "check syocc" (is_a syocc class_nrep_locsymocc))
 		 (assert_msg "check syocc binding" (== (get_field :nocc_bind syocc) binding))
 		 (list_append listvarocc syocc)
 		 )
 	     ))
-	  (debug "translate_matchcase listvarocc" listvarocc)
-	  (debug "translate_matchcase have mstep" mstep)
+	  (debug "translate_matchcase listvarocc=" listvarocc "\n mstep" mstep)
 	  (let ( (sortedvarocc
 		  (multiple_sort 
 		   (list_to_multiple listvarocc discr_multiple)
@@ -5059,23 +5059,23 @@ the flags of the $STEP with an extra context $CTX.}#
 		     (compare_named_alpha (get_field :nocc_symb o1) (get_field :nocc_symb o2)))
 		   discr_multiple))
 		 )
-	    (debug "translate_matchcase sortedvarocc" sortedvarocc)
+	    (debug "translate_matchcase sortedvarocc=" sortedvarocc)
 	    (put_fields 
 	     stepsucc :mstepsuccess_varocc sortedvarocc))
-	  (debug "translate_matchcase stepsucc" stepsucc)
-	  (debug "translate_matchcase mstep before put_then" mstep)
+	  (debug "translate_matchcase before putthen stepsucc=" stepsucc " mstep=" mstep)
 	  (put_then_match mstep stepsucc)
-	  (debug "translate_matchcase updated mstep" mstep)
-	  (if prevstep
-	      (progn
+	  (debug "translate_matchcase updated mstep=" mstep 
+		 "\n.. prevstep=" prevstep)
+	  (when prevstep
 		(debug "translate_matchcase got prevstep" prevstep)
 		(compile_warning "translate_matchcase don't put_else_match")
 		;; the put_else_match is unneeded & wrong
+		;;@@@@@THIS IS PROBABLY NEEDED@@@@
 		;; (put_else_match prevstep mstep)
-		))
-	  (debug "translate_matchcase updated prevstep" prevstep)
-	  (debug "translate_matchcase return mstep" mstep)
-	  (debug "translate_matchcase return stepsucc" stepsucc)
+		)
+	  (debug "translate_matchcase updated prevstep=" prevstep)
+	  (debug "translate_matchcase return mstep=" mstep 
+		 "\n stepsucc" stepsucc)
 	  (return mstep stepsucc)
 	  ))))))
 
@@ -6715,7 +6715,7 @@ normalized expression.}#
 	  (debug "normexp_matchalt filled curmcase=" curmcase)
 	  (multiple_put_nth mcasetup curix curmcase)
 	  ))
-       (debug "normexp_matchalt mcasetup" mcasetup)
+       (debug "normexp_matchalt mcasetup=" mcasetup)
        ;; translate each match case
        (let ( (prevstep ()) 
 	      (matresctyp ())
@@ -6723,15 +6723,15 @@ normalized expression.}#
 	 (foreach_in_multiple
 	  (mcasetup)
 	  (curmcase :long mix)
-	  (debug "normexp_matchalt before translate_matchcase curmcase" curmcase)
-	  (debug "normexp_matchalt before translate_matchcase prevstep" prevstep)
+	  (debug "normexp_matchalt before translate_matchcase curmcase=" curmcase
+		 "\n.. prevstep=" prevstep)
 	  (let ( (mcasloc (or (get_field :loca_location (get_field :mcase_source curmcase)) sloc))
 		 )
 	    (multicall
 	     (curstep curstsucc)
 	     (translate_matchcase curmcase mcasloc prevstep)
-	     (debug "normexp_matchalt after translate_matchcase curstep" curstep)
-	     (debug "normexp_matchalt after translate_matchcase curstsucc" curstsucc)
+	     (debug "normexp_matchalt after translate_matchcase curstep=" curstep 
+		    "\n.. curstsucc=" curstsucc)
 	     (assert_msg "check curstsucc" (is_a curstsucc class_match_step_success_when_flag))
 	     (let ( 
 		   (curstbindtup (unsafe_get_field :mstepsuccess_binds curstsucc))
