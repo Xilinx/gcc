@@ -1379,57 +1379,15 @@ build_check_stmt (location_t location, tree base, gimple_stmt_iterator *iter,
       /* Slow path for 1, 2 and 4 byte accesses.
 	 Test (shadow != 0)
 	      & ((base_addr & 7) + (size_in_bytes - 1)) >= shadow).  */
-      g = gimple_build_assign_with_ops (NE_EXPR,
-					make_ssa_name (boolean_type_node,
-						       NULL),
-					shadow,
-					build_int_cst (shadow_type, 0));
-      gimple_set_location (g, location);
-      gsi_insert_after (&gsi, g, GSI_NEW_STMT);
-      t = gimple_assign_lhs (g);
-
-      g = gimple_build_assign_with_ops (BIT_AND_EXPR,
-					make_ssa_name (uintptr_type,
-						       NULL),
-					base_addr,
-					build_int_cst (uintptr_type, 7));
-      gimple_set_location (g, location);
-      gsi_insert_after (&gsi, g, GSI_NEW_STMT);
-
-      g = gimple_build_assign_with_ops (NOP_EXPR,
-					make_ssa_name (shadow_type,
-						       NULL),
-					gimple_assign_lhs (g), NULL_TREE);
-      gimple_set_location (g, location);
-      gsi_insert_after (&gsi, g, GSI_NEW_STMT);
-
+      gimple_builder_ssa gb(location);
+      t = gb.add (NE_EXPR, shadow, 0);
+      tree t1 = gb.add (BIT_AND_EXPR, base_addr, 7);
+      t1 = gb.add_type_cast (shadow_type, t1);
       if (size_in_bytes > 1)
-	{
-	  g = gimple_build_assign_with_ops (PLUS_EXPR,
-					    make_ssa_name (shadow_type,
-							   NULL),
-					    gimple_assign_lhs (g),
-					    build_int_cst (shadow_type,
-							   size_in_bytes - 1));
-	  gimple_set_location (g, location);
-	  gsi_insert_after (&gsi, g, GSI_NEW_STMT);
-	}
-
-      g = gimple_build_assign_with_ops (GE_EXPR,
-					make_ssa_name (boolean_type_node,
-						       NULL),
-					gimple_assign_lhs (g),
-					shadow);
-      gimple_set_location (g, location);
-      gsi_insert_after (&gsi, g, GSI_NEW_STMT);
-
-      g = gimple_build_assign_with_ops (BIT_AND_EXPR,
-					make_ssa_name (boolean_type_node,
-						       NULL),
-					t, gimple_assign_lhs (g));
-      gimple_set_location (g, location);
-      gsi_insert_after (&gsi, g, GSI_NEW_STMT);
-      t = gimple_assign_lhs (g);
+	t1 = gb.add (PLUS_EXPR, t1, size_in_bytes - 1);
+      t1 = gb.add (GE_EXPR, t1, shadow);
+      t = gb.add (BIT_AND_EXPR, t, t1);
+      gb.insert_after (&gsi, GSI_NEW_STMT);
     }
   else
     t = shadow;

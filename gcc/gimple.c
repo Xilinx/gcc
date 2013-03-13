@@ -4210,4 +4210,115 @@ gimple_asm_clobbers_memory_p (const_gimple stmt)
 
   return false;
 }
+
+
+/* Return the expression type to use based on the CODE and type of
+   the given operand OP.  If the expression CODE is a comparison,
+   the returned type is boolean_type_node.  Otherwise, it returns
+   the type of OP.  */
+
+tree
+gimple_builder_base::get_expr_type (enum tree_code code, tree op)
+{
+  return (TREE_CODE_CLASS (code) == tcc_comparison)
+	 ? boolean_type_node
+	 : TREE_TYPE (op);
+}
+
+
+/* Add a new assignment to this GIMPLE sequence.  The assignment has
+   the form: GIMPLE_ASSIGN <CODE, LHS, OP1, OP2>. Returns LHS.  */
+
+tree
+gimple_builder_base::add (enum tree_code code, tree lhs, tree op1, tree op2)
+{
+  gimple s = gimple_build_assign_with_ops (code, lhs, op1, op2);
+  gimple_seq_add_stmt (&seq_, s);
+  return lhs;
+}
+
+
+/* Add a new assignment to this GIMPLE sequence.  The new assignment will
+   have the opcode CODE and operands OP1 and OP2.  The type of the
+   expression on the RHS is inferred to be the type of OP1.
+
+   The LHS of the statement will be an SSA name or a GIMPLE temporary
+   in normal form depending on the type of builder invoking this
+   function.  */
+
+tree
+gimple_builder_base::add (enum tree_code code, tree op1, tree op2)
+{
+  tree lhs = create_lhs_for_assignment (get_expr_type (code, op1));
+  return add (code, lhs, op1, op2);
+}
+
+
+/* Add a new assignment to this GIMPLE sequence.  The new
+   assignment will have the opcode CODE and operands OP1 and VAL.
+   VAL is converted into a an INTEGER_CST of the same type as OP1.
+
+   The LHS of the statement will be an SSA name or a GIMPLE temporary
+   in normal form depending on the type of builder invoking this
+   function.  */
+
+tree
+gimple_builder_base::add (enum tree_code code, tree op1, int val)
+{
+  tree type = get_expr_type (code, op1);
+  tree op2 = build_int_cst (TREE_TYPE (op1), val);
+  tree lhs = create_lhs_for_assignment (type);
+  return add (code, lhs, op1, op2);
+}
+
+
+/* Add a type cast assignment to this GIMPLE sequence. This creates a NOP_EXPR
+   that converts OP to TO_TYPE.  Return the LHS of the generated assignment.  */
+
+tree
+gimple_builder_base::add_type_cast (tree to_type, tree op)
+{
+  tree lhs = create_lhs_for_assignment (to_type);
+  return add (NOP_EXPR, lhs, op, NULL_TREE);
+}
+
+
+/* Insert this sequence after the statement pointed-to by iterator I.
+   MODE is an is gs_insert_after.  Scan the statements in SEQ for new
+   operands.  */
+
+void
+gimple_builder_base::insert_after (gimple_stmt_iterator *i,
+				   enum gsi_iterator_update mode)
+{
+  /* Since we are inserting a sequence, the semantics for GSI_NEW_STMT
+     are not quite what the caller is expecting.  GSI_NEW_STMT will
+     leave the iterator pointing to the *first* statement of this
+     sequence.  Rather, we want the iterator to point to the *last*
+     statement in the sequence.  Therefore, we use
+     GSI_CONTINUE_LINKING when GSI_NEW_STMT is requested.  */
+  if (mode == GSI_NEW_STMT)
+    mode = GSI_CONTINUE_LINKING;
+  gsi_insert_seq_after (i, seq_, mode);
+}
+
+
+/* Create a GIMPLE temporary type TYPE to be used as the LHS of an
+   assignment.  */
+
+tree
+gimple_builder_normal::create_lhs_for_assignment (tree type)
+{
+  return create_tmp_var (type, NULL);
+}
+
+
+/* Create an SSA name of type TYPE to be used as the LHS of an assignment.  */
+
+tree
+gimple_builder_ssa::create_lhs_for_assignment (tree type)
+{
+  return make_ssa_name (type, NULL);
+}
+
 #include "gt-gimple.h"

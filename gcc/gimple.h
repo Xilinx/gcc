@@ -5393,4 +5393,57 @@ extern tree maybe_fold_or_comparisons (enum tree_code, tree, tree,
 				       enum tree_code, tree, tree);
 
 bool gimple_val_nonnegative_real_p (tree);
+
+
+/* GIMPLE builder class.  This type provides a simplified interface
+   for generating new GIMPLE statements.  */
+
+class gimple_builder_base
+{
+public:
+  tree add (enum tree_code, tree, tree);
+  tree add (enum tree_code, tree, int);
+  tree add (enum tree_code, tree, tree, tree);
+  tree add_type_cast (tree, tree);
+  void insert_after (gimple_stmt_iterator *, enum gsi_iterator_update);
+
+protected:
+  gimple_builder_base() : seq_(NULL), loc_(UNKNOWN_LOCATION) {}
+  gimple_builder_base(location_t l) : seq_(NULL), loc_(l) {}
+  tree get_expr_type (enum tree_code code, tree op);
+  virtual tree create_lhs_for_assignment (tree) = 0;
+
+private:
+  gimple_seq seq_;
+  location_t loc_;
+};
+
+
+/* GIMPLE builder class for statements in normal form.  Statements generated
+   by instances of this class will produce non-SSA temporaries.  */
+
+class gimple_builder_normal : public gimple_builder_base
+{
+public:
+  gimple_builder_normal() : gimple_builder_base() {}
+  gimple_builder_normal(location_t l) : gimple_builder_base(l) {}
+
+protected:
+  virtual tree create_lhs_for_assignment (tree);
+};
+
+
+/* GIMPLE builder class for statements in normal form.  Statements generated
+   by instances of this class will produce SSA names.  */
+
+class gimple_builder_ssa : public gimple_builder_base
+{
+public:
+  gimple_builder_ssa() : gimple_builder_base() {}
+  gimple_builder_ssa(location_t l) : gimple_builder_base(l) {}
+
+protected:
+  virtual tree create_lhs_for_assignment (tree);
+};
+
 #endif  /* GCC_GIMPLE_H */
