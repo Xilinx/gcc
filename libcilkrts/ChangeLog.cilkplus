@@ -1,3 +1,13 @@
+2013-03-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* runtime/sysdep-unix.c (__cilkrts_stop_workers): Inserted inline 
+	assembly inside a #if which is only invoked when compiled for i386.  
+	Otherwise, output a warning.
+	* runtime/os-unix.c (__cilkrts_gettick): Replaced #error with #warning.
+	(__cilkrts_short_pause): Likewise.
+	(__cilkrts_xchg): Likewise.
+
+
 2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* Makefile.in (am_libcilkrts_la_OBJECTS): Removed symbol_test.

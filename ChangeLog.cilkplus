@@ -1,0 +1,4 @@
+2013-03-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* configure.ac (enable_libcilkrts): Made libcilkrts unconditional.
+	* configure (enable_libcilkrts): Likewise.

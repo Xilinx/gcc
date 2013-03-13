@@ -309,11 +309,15 @@ void __cilkrts_stop_workers(global_state_t *g)
  * spawn.  This should be called each time a frame is resumed.
  */
 static inline void restore_fp_state (__cilkrts_stack_frame *sf) {
+#if defined __i386__ || defined __x86_64
     __asm__ ( "ldmxcsr %0\n\t"
               "fnclex\n\t"
               "fldcw %1"
               :
               : "m" (sf->mxcsr), "m" (sf->fpcsr));
+#else
+#   warning "unimplemented: code to restore the floating point state"
+#endif
 }
 
 /* Resume user code after a spawn or sync, possibly on a different stack.

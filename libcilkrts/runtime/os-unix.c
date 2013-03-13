@@ -344,7 +344,8 @@ COMMON_SYSDEP unsigned long long __cilkrts_getticks(void)
     __asm__ volatile("rdtsc" : "=a" (a), "=d" (d)); 
     return ((unsigned long long)a) | (((unsigned long long)d) << 32); 
 #else
-#   error "unimplemented cycle counter"
+#   warning "unimplemented cycle counter"
+    return 0;
 #endif
 }
 
@@ -359,7 +360,7 @@ COMMON_SYSDEP void __cilkrts_short_pause(void)
 #elif defined __i386__ || defined __x86_64
     __asm__("pause");
 #else
-#   error __cilkrts_short_pause undefined
+#   warning __cilkrts_short_pause undefined
 #endif
 }
 
@@ -369,7 +370,7 @@ COMMON_SYSDEP int __cilkrts_xchg(volatile int *ptr, int x)
     /* asm statement here works around icc bugs */
     __asm__("xchgl %0,%a1" :"=r" (x) : "r" (ptr), "0" (x) :"memory");
 #else
-#   error __cilkrts_xchg undefined
+    x = __sync_lock_test_and_set(ptr, x);
 #endif
     return x;
 }
