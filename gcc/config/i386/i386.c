@@ -8532,10 +8532,6 @@ ix86_can_use_return_insn_p (void)
 static bool
 ix86_frame_pointer_required (void)
 {
-  /* For all Cilk specific functions, we frame pointer is required.  */
-  if (flag_enable_cilk && cfun->is_cilk_function == 1) 
-    return true;
-
   /* If we accessed previous frames, then the generated code expects
      to be able to access the saved ebp value in our frame.  */
   if (cfun->machine->accesses_prev_frame)

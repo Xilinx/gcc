@@ -1865,15 +1865,18 @@ ira_setup_eliminable_regset (bool from_ira_p)
      sp for alloca.  So we can't eliminate the frame pointer in that
      case.  At some point, we should improve this by emitting the
      sp-adjusting insns for this case.  */
-  frame_pointer_needed
-    = (! flag_omit_frame_pointer
-       || (cfun->calls_alloca && EXIT_IGNORE_STACK)
-       /* We need the frame pointer to catch stack overflow exceptions
-	  if the stack pointer is moving.  */
-       || (flag_stack_check && STACK_CHECK_MOVING_SP)
-       || crtl->accesses_prior_frames
-       || crtl->stack_realign_needed
-       || targetm.frame_pointer_required ());
+  if (flag_enable_cilk && cfun && cfun->is_cilk_function == 1)
+    frame_pointer_needed = true;
+  else 
+    frame_pointer_needed
+      = (! flag_omit_frame_pointer
+	 || (cfun->calls_alloca && EXIT_IGNORE_STACK)
+	 /* We need the frame pointer to catch stack overflow exceptions
+	    if the stack pointer is moving.  */
+	 || (flag_stack_check && STACK_CHECK_MOVING_SP)
+	 || crtl->accesses_prior_frames
+	 || crtl->stack_realign_needed
+	 || targetm.frame_pointer_required ());
 
   if (from_ira_p && ira_use_lra_p)
     /* It can change FRAME_POINTER_NEEDED.  We call it only from IRA

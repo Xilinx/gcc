@@ -3960,7 +3960,8 @@ update_eliminables (HARD_REG_SET *pset)
 
   for (ep = reg_eliminate; ep < &reg_eliminate[NUM_ELIMINABLE_REGS]; ep++)
     if ((ep->from == HARD_FRAME_POINTER_REGNUM
-         && targetm.frame_pointer_required ())
+         && ((flag_enable_cilk && cfun && cfun->is_cilk_function == 1)
+	     || targetm.frame_pointer_required ()))
 #ifdef ELIMINABLE_REGS
 	|| ! targetm.can_eliminate (ep->from, ep->to)
 #endif

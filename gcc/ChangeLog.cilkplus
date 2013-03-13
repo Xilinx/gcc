@@ -1,3 +1,12 @@
+2013-03-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* config/i386/i386.c (ix86_frame_pointer_required): Removed statements
+	that checks if cilkplus is enabled and if the function is a cilk
+	function.
+	* ira.c (ira_setup_eliminable_regset): Enforce frame pointer usage when
+	it cilkplus is enabled and if the function is a cilk function.
+	* reload1.c (update_eliminables): Likewise.
+
 2013-03-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* builtins.c (expand_builtin): Added a check if cilkscreen is available
