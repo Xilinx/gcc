@@ -1,5 +1,7 @@
 2013-03-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	* c/c-parser.c (c_parser_simd_vectorlength): Allow using sizeof 
+	expression for vectorlength.
 	* config/i386/i386.c (ix86_frame_pointer_required): Removed statements
 	that checks if cilkplus is enabled and if the function is a cilk
 	function.

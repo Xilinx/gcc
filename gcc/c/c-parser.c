@@ -9083,14 +9083,16 @@ c_parser_simd_vectorlength (c_parser *parser)
   tree p = NULL_TREE;
   int ii = 0;
   c_token *token;
-
   cilkplus_local_simd_values.pragma_encountered = true;
   
   if (c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
     {
       while (true)
 	{
-	  if (c_parser_next_token_is_not (parser, CPP_NUMBER))
+	  tree token_value = NULL_TREE;
+	  token_value = c_parser_expression (parser).value;
+	  if (!TREE_TYPE (token_value) || !TREE_CONSTANT (token_value)
+	      || !INTEGRAL_TYPE_P (TREE_TYPE (token_value)))
 	    {
 	      c_parser_error (parser, "expected number");
 	      c_parser_skip_until_found (parser, CPP_CLOSE_BRACE, NULL);
@@ -9098,8 +9100,7 @@ c_parser_simd_vectorlength (c_parser *parser)
 	      break;
 	    }
 
-	  v_length_value = c_parser_peek_token (parser)->value;
-	  c_parser_consume_token (parser);
+	  v_length_value = token_value;
 	  vec_length_list = tree_cons (NULL_TREE, v_length_value,
 				       vec_length_list);
 	  if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
