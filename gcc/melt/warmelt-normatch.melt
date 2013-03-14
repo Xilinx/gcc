@@ -3927,7 +3927,7 @@ the flags of the $STEP with an extra context $CTX.}#
 (install_method class_source_pattern_variable translate_pattern translpat_varpat)
 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; translation of and-patterns
 (defun translpat_andpat (recv mdata mcase varmap psloc)
@@ -3963,36 +3963,37 @@ the flags of the $STEP with an extra context $CTX.}#
     (assert_msg "check sconj" (is_multiple sconj))
     (debug "translpat_andpat flagstep=" flagstep " sconj=" sconj)
     (put_fields mflag :mflag_setstep flagstep)
+    ;;
     (foreach_in_multiple
      (sconj)
      (curconj :long conjix)
-     (debug "translpat_andpat curconj=" curconj " conjix=" conjix)
+     (debug "translpat_andpat curconj=" curconj "\n..firststep=" firststep 
+	    "\n..curstep=" curstep "\n.. conjix=" conjix)
      (multicall 
       (conjstep conjflag)
       (translate_pattern curconj mdata mcase varmap sloc)
-      (debug "translpat_andpat conjstep=" conjstep "\n.. conjflag=" conjflag)
-      (if conjstep
-	  (progn
-	    (if (null curstep)
-		(progn
-		  (setq firststep conjstep)
-		  (debug "translpat_andpat firststep" firststep)
-		  (list_append thenlist firststep)
-		  )
-	      (progn
-		(debug "translpat_andpat curstep" curstep)
-		(put_then_match curstep conjstep)
-		)
+      (debug "translpat_andpat curconj=" curconj "\n.. conjstep=" conjstep "\n.. conjflag=" conjflag)
+      (when conjstep
+	(if (null curstep)
+	    (progn
+	      (setq firststep conjstep)
+	      (debug "translpat_andpat firststep" firststep)
+	      (list_append thenlist firststep)
 	      )
-	    (list_append elselist conjstep)
-	    (setq curstep conjstep)
-	    )
-	)
-      (if conjflag
 	  (progn
-	    (assert_msg "check conjflag" (is_a conjflag class_match_flag))
-	    (list_append flaglist conjflag)))
-      ))
+	    (debug "translpat_andpat curstep" curstep)
+	    (put_then_match curstep conjstep)
+	    )
+	  )
+	(list_append elselist conjstep)
+	(setq curstep conjstep)
+	)
+      ;;
+      (when conjflag
+	(assert_msg "check conjflag" (is_a conjflag class_match_flag))
+	(list_append flaglist conjflag))
+      ))				;end foreach_in_multiple sconj
+    ;;
     (put_fields stepgroup
 		:mstgroup_start firststep
 		:mstgroup_then (list_to_multiple thenlist discr_multiple)
@@ -4012,9 +4013,11 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; translation of or-patterns
 (defun translpat_orpat (recv  mdata mcase varmap psloc)
-  (debug "translpat_orpat recv" recv)
+  (debug "translpat_orpat recv=" recv "\n.. mdata=" mdata "\n.. mcase=" mcase "\n.. varmap=" varmap)
   (assert_msg "check recv" (is_a recv class_source_pattern_or))
   (debug "translpat_orpat mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))

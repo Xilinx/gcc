@@ -2,6 +2,11 @@
 
 2013-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-5 is still not working....}}
+	* melt/warmelt-normatch.melt (translate_andpat, translate_orpat):
+	More debug messages.
+
+2013-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-5 is still not working....}}
 	* melt/warmelt-normatch.melt (scanpat_srcpatand, normpat_andpat)
 	(translate_andpat): More debug messages.
 	* melt/warmelt-outobj.melt (outpucod_objlabelinstr): Emit #if
