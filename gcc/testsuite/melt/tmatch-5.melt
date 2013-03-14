@@ -17,6 +17,29 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
+(cheader ##{#define MELTDEBUG_MATCHING 1
+}#)
+
+(defun tmini5 (x g)
+  (debug "tmini5 start x=" x "\n.. g=" g "\n")
+  (matchalt 
+   x
+   ( ?(instance 
+       class_reference 
+       :referenced_value 
+       ?(integerbox_of ?bx))
+      (debug "tmini5 bx=" bx)
+      (g x bx)
+      )
+
+   (
+    ?(and ?xx
+	  ?(instance class_reference 
+		     :referenced_value ?xx)
+	  )
+    (debug "tmini5 xx=" xx)
+    (g xx))
+   ))
 
 #| 
 
@@ -43,29 +66,6 @@
 
 |#
 
-(cheader ##{#define MELTDEBUG_LABEL 1
-}#)
-
-(defun tmini5 (x g)
-  (debug "tmini5 start x=" x "\n.. g=" g "\n")
-  (matchalt 
-   x
-   ( ?(instance 
-       class_reference 
-       :referenced_value 
-       ?(integerbox_of ?bx))
-      (debug "tmini5 bx=" bx)
-      (g x bx)
-      )
-
-   (
-    ?(and ?xx
-	  ?(instance class_reference 
-		     :referenced_value ?xx)
-	  )
-    (debug "tmini5 xx=" xx)
-    (g xx))
-   ))
 
 (letrec ( (t1 (instance class_reference :referenced_value '17))
 	  (t2 (instance class_reference :referenced_value t2))

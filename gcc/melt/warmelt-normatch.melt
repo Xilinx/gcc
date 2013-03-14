@@ -414,7 +414,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;; scanning and pattern
 (defun scanpat_srcpatand (recv psloc ctyp pcn)
-  (debug "scanpat_srcpatand recv" recv)
+  (debug "scanpat_srcpatand recv=" recv "\n ctyp=" ctyp "\n pcn=" pcn)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_and))
   (let ( (sloc (unsafe_get_field :loca_location recv))
@@ -424,9 +424,10 @@ scanning variables.}#
     (foreach_in_multiple
      (sconj)
      (dis :long ix)
+     (debug "scanpat_srcpatand dis=" dis "\n ix=" ix)
      (scan_pattern dis sloc ctyp pcn)
      )
-    (debug "scanpat_srcpatand end recv" recv)
+    (debug "scanpat_srcpatand end recv=" recv)
     ))
 (install_method class_source_pattern_and scan_pattern scanpat_srcpatand)
 
@@ -1348,6 +1349,7 @@ scanning variables.}#
 ;;; normalize a conjunction [and of subpatterns]
 (defun normpat_andpat (recv nmatch hdler pcn)
   (debug "normpat_andpat recv=" recv "nmatch=" nmatch " pcn=" pcn)
+  (shortbacktrace_dbg "normpat_andpat" 15)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_and))
   (let (
@@ -1365,12 +1367,12 @@ scanning variables.}#
 	       (set_new_tester_last_then newtester testercont)
 	       )
 	      (:else
-	       (debug "normpat_andpat.subhdler before calling hdler" newtester)
+	       (debug "normpat_andpat.subhdler before calling hdler newtester=" newtester)
 	       (hdler newtester)
 	       (put_fields testercont :referenced_value newtester)
-	       (debug "normpat_andpat.subhdler after calling hdler" newtester)
+	       (debug "normpat_andpat.subhdler after calling hdler newtester=" newtester)
 	       ))
-	     (debug "normpat_andpat.subhdler done testercont" testercont)
+	     (debug "normpat_andpat.subhdler done testercont=" testercont)
 	     )))
 	)
     (foreach_in_multiple 
@@ -3929,12 +3931,12 @@ the flags of the $STEP with an extra context $CTX.}#
 ;;;;;;;;;;;;;;;;
 ;;; translation of and-patterns
 (defun translpat_andpat (recv mdata mcase varmap psloc)
-  (debug "translpat_andpat recv" recv)
+  (debug "translpat_andpat recv=" recv "\n.. mdata=" mdata
+	 "\n.. mcase=" mcase "\n.. varmap=" varmap)
   (assert_msg "check recv" (is_a recv class_source_pattern_and))
-  (debug "translpat_andpat mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
-  (debug "translpat_andpat mcase" mcase)
   (assert_msg "check mcase" (is_a mcase class_match_case))
+  (shortbacktrace_dbg "translpat_andpat" 10)
   (let (
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
 	(sconj (unsafe_get_field :andpat_conj recv))
@@ -3959,7 +3961,7 @@ the flags of the $STEP with an extra context $CTX.}#
 			    ))
 	)
     (assert_msg "check sconj" (is_multiple sconj))
-    (debug "translpat_andpat flagstep" flagstep " sconj=" sconj)
+    (debug "translpat_andpat flagstep=" flagstep " sconj=" sconj)
     (put_fields mflag :mflag_setstep flagstep)
     (foreach_in_multiple
      (sconj)
@@ -3991,19 +3993,19 @@ the flags of the $STEP with an extra context $CTX.}#
 	    (assert_msg "check conjflag" (is_a conjflag class_match_flag))
 	    (list_append flaglist conjflag)))
       ))
-    (unsafe_put_fields stepgroup
-		       :mstgroup_start firststep
-		       :mstgroup_then (list_to_multiple thenlist discr_multiple)
-		       :mstgroup_else (list_to_multiple elselist discr_multiple))
+    (put_fields stepgroup
+		:mstgroup_start firststep
+		:mstgroup_then (list_to_multiple thenlist discr_multiple)
+		:mstgroup_else (list_to_multiple elselist discr_multiple))
     (cond ( (null firststep)
 	    ;; this happens only for degenerate conjunctions like ?(and ?_)
 	    (warning_plain sloc "degenerate ?(AND ...) pattern")
 	    (return)
-	  )
+	    )
 	  )
     (put_fields flagstep :mstep_flagargs (list_to_multiple flaglist discr_multiple))
     (put_then_match stepgroup flagstep)
-    (debug "translpat_andpat return stepgroup" stepgroup)
+    (debug "translpat_andpat return stepgroup=" stepgroup "\n mflag=" mflag)
     (return stepgroup mflag)
     ))
 (install_method class_source_pattern_and translate_pattern translpat_andpat)

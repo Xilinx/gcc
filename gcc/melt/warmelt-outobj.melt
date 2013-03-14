@@ -2926,7 +2926,7 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
 		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     (output_location (unsafe_get_field :obi_loc oblab) implbuf depth "objlabel")
     (add2out implbuf ##{ /* objlabel */
-	     #if MELTDEBUG_LABEL
+	     #if MELTDEBUG_MATCHING
 	     static long meltlab_count_$OBRANK;   meltlab_count_$OBRANK++;
 	     debugeprintf("objlabel $OPREFIX#$OBRANK $OBLAB %ld", meltlab_count_$OBRANK) ;
 	     #endif

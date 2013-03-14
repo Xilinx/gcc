@@ -1,5 +1,14 @@
 
 
+2013-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tmatch-5 is still not working....}}
+	* melt/warmelt-normatch.melt (scanpat_srcpatand, normpat_andpat)
+	(translate_andpat): More debug messages.
+	* melt/warmelt-outobj.melt (outpucod_objlabelinstr): Emit #if
+	MELTDEBUG_MATCH instead of MELTDEBUG_LABEL.
+	* testsuite/melt/tmatch-5.melt: not working yet. Reordored
+	slightly, use MELTDEBUG_MATCH...
+
 2013-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{still different issue with mstep_else, tmatch-5.melt is now
 	indefinitely looping wrongly}}
