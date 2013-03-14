@@ -1,3 +1,115 @@
+2013-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53265
+	* common.opt (Waggressive-loop-optimizations): New option.
+	* tree-ssa-loop-niter.c: Include tree-pass.h.
+	(do_warn_aggressive_loop_optimizations): New function.
+	(record_estimate): Call it.  Don't add !is_exit bounds to loop->bounds
+	if number_of_latch_executions returned constant.
+	(estimate_numbers_of_iterations_loop): Call number_of_latch_executions
+	early.  If number_of_latch_executions returned constant, set
+	nb_iterations_upper_bound back to it.
+	* cfgloop.h (struct loop): Add warned_aggressive_loop_optimizations
+	field.
+	* Makefile.in (tree-ssa-loop-niter.o): Depend on $(TREE_PASS_H).
+	* doc/invoke.texi (-Wno-aggressive-loop-optimizations): Document.
+
+	* config/aarch64/t-aarch64-linux (MULTARCH_DIRNAME): Remove.
+	(MULTILIB_OSDIRNAMES): Set.
+	* genmultilib: If defaultosdirname doesn't start with :: , set
+	defaultosdirname2 instead, clear it and emit two . multilib_raw
+	entries instead of just one.
+
+2013-03-14  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/linux.h (TARGET_DEFAULT): Remove MASK_USERMODE.
+	(SUBTARGET_OVERRIDE_OPTIONS): Set TARGET_USERMODE as default.
+	* config/sh/netbsd-elf.h (TARGET_DEFAULT): Remove MASK_USERMODE.
+	(SUBTARGET_OVERRIDE_OPTIONS): New.
+
+2013-03-13  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/49880
+	* config/sh/sh.opt (FPU_SINGLE_ONLY): New mask.
+	(musermode): Convert to Var(TARGET_USERMODE).
+	* config/sh/sh.h (SELECT_SH2A_SINGLE_ONLY, SELECT_SH4_SINGLE_ONLY,
+	MASK_ARCH): Add MASK_FPU_SINGLE_ONLY.
+	* config/sh/sh.c (sh_option_override): Use
+	TARGET_FPU_DOUBLE || TARGET_FPU_SINGLE_ONLY for call-fp case.
+	* config/sh/sh.md (udivsi3_i1, divsi3_i1): Remove ! TARGET_SH4
+	condition.
+	(udivsi3_i4, divsi3_i4): Use TARGET_FPU_DOUBLE condition instead of
+	TARGET_SH4.
+	(udivsi3_i4_single, divsi3_i4_single): Use
+	TARGET_FPU_SINGLE_ONLY || TARGET_FPU_DOUBLE instead of TARGET_HARD_SH4.
+
+2013-03-13  Dave Korn  <dave.korn.cygwin@....>
+
+	* config/i386/cygwin.h (SHARED_LIBGCC_SPEC): Make shared libgcc the
+	default setting.
+
+2013-03-13  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56608
+	* tree-vect-slp.c (vect_schedule_slp): Do not remove scalar
+	calls when vectorizing basic-blocks.
+
+2013-03-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR plugins/45078
+	* config.gcc: On arm, mips, sh and sparc add vxworks-dummy.h to
+	tm_file.
+
+2013-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* doc/invoke.texi (-Waddr-space-convert): Move into the table earlier.
+
+2013-03-11  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/56557
+	* lto-streamer-out.c (output_symbol_p): Skip references from
+	constructors of external variables.
+
+2013-03-11  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/56571
+	* valtrack.c (cleanup_auto_inc_dec): Unshare clobbers originating
+	from pseudos.
+	* emit-rtl.c (verify_rtx_sharing): Likewise.
+	(copy_insn_1): Likewise.
+	* rtl.c (copy_rtx): Likewise.
+
+2013-03-11  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/56591
+	* config/avr/avr.c (avr_print_operand): Add space after '%c' in
+	output_operand_lossage message.
+	
+2013-03-11  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/56470
+	* arm.c (shift_op): Validate RTL pattern on the fly.
+	(arm_print_operand, case 'S'): Don't use shift_operator to validate
+	the RTL.
+
+2013-03-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/56347
+	* config/pa/pa.md (call_value): Check for calls to powf and direct to
+	new call patterns that clobber %fr12.
+	(call_val_powf, call_val_powf_pic, call_val_powf_64bit): New insn,
+	split and postreload patterns.
+	* config/pa/pa.c (pa_conditional_register_usage): Revert marking
+	registers %fr12 and %fr12R as call used.
+
+2013-03-09  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* dse.c (delete_dead_store_insn): Respect TDF_DETAILS.
+	(canon_address, record_store, replace_read, check_mem_read_rtx,
+	scan_insn, dse_step1, dse_step2_init, dse_step2_spill,
+	dse_step4, dse_step5_nospill, dse_step5_spill, dse_step6,
+	rest_of_handle_dse): Likewise.
+
 2013-03-09  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	PR middle-end/56524
@@ -26,8 +138,6 @@
 	* gimple.h (GTMA_HAS_NO_INSTRUMENTATION): Define.
 	* gimple-pretty-print.c (dump_gimple_transaction): Handle
 	GTMA_HAS_NO_INSTRUMENTATION.
-
-2013-02-25  Aldy Hernandez  <aldyh@redhat.com>
 
 2013-03-08  Jakub Jelinek  <jakub@redhat.com>
 

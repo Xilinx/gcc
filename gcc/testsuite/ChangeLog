@@ -1,3 +1,77 @@
+2013-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53265
+	* gcc.dg/pr53265.c: New test.
+	* gcc.dg/torture/pr49518.c: Add -Wno-aggressive-loop-optimizations
+	to dg-options.
+	* g++.dg/opt/longbranch2.C (EBCOTLut): Double sizes of a2 and a3
+	arrays.
+	* gcc.dg/tree-ssa/cunroll-10.c (main): Rename to foo.  Add argument
+	n, use it as high bound instead of 4.
+
+2013-03-13  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/49880
+	* gcc.target/sh/pr49880-1.c: New.
+	* gcc.target/sh/pr49880-2.c: New.
+	* gcc.target/sh/pr49880-3.c: New.
+	* gcc.target/sh/pr49880-4.c: New.
+	* gcc.target/sh/pr49880-5.c: New.
+
+2013-03-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.dg/cpp0x/alias-decl-32.C: Remove redundant bits.
+
+2013-03-13  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56608
+	* gcc.dg/vect/fast-math-bb-slp-call-3.c: New testcase.
+
+2013-03-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/56611
+	* g++.dg/cpp0x/alias-decl-32.C: New.
+
+2013-03-11  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/56571
+	* gcc.c-torture/compile/pr56571.c: New testcase.
+
+2013-03-11  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* gcc.dg/tree-ssa/vector-4.c: Add comment regarding xfail.
+	* gcc.dg/tree-ssa/pr55579.c: Likewise.
+
+2013-03-11  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	* gcc.dg/inline_3.c: Remove target and dg-excess-errors.
+	* gcc.dg/inline_4.c: Likewise.
+	* gcc.dg/unroll_2.c: Likewise.
+	* gcc.dg/unroll_3.c: Likewise.
+	* gcc.dg/unroll_4.c: Likewise.
+
+2013-03-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/54119
+	* gcc.dg/tree-ssa/vector-4.c: xfail on 32-bit hppa*-*-*.
+
+	PR debug/56307
+	* gcc.dg/tree-ssa/pr55579.c: xfail 32-bit hppa*-*-hpux*.
+
+2013-03-11  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/40797
+	* gcc.c-torture/compile/pr40797.c: New.
+
+2013-03-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* gcc.dg/pr44194-1.c: Skip compilation on hppa*64*-*-*.
+
+2013-03-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/56575
+	* gfortran.dg/class_56.f90: New test.
+
 2013-03-09  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	PR middle-end/56524
@@ -330,7 +404,7 @@
 2013-02-21  Marek Polacek  <polacek@redhat.com>
 
 	PR tree-optimization/56398
-	* g++.dg/torture/pr56398.C: New test. 
+	* g++.dg/torture/pr56398.C: New test.
 
 2013-02-21  Jakub Jelinek  <jakub@redhat.com>
 
