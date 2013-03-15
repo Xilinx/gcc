@@ -1223,7 +1223,8 @@ strip_typedefs (tree t)
     case TYPENAME_TYPE:
       {
 	tree fullname = TYPENAME_TYPE_FULLNAME (t);
-	if (TREE_CODE (fullname) == TEMPLATE_ID_EXPR)
+	if (TREE_CODE (fullname) == TEMPLATE_ID_EXPR
+	    && TREE_OPERAND (fullname, 1))
 	  {
 	    tree args = TREE_OPERAND (fullname, 1);
 	    tree new_args = copy_node (args);
@@ -2863,13 +2864,6 @@ maybe_dummy_object (tree type, tree* binfop)
       && (same_type_ignoring_top_level_qualifiers_p
 	  (TREE_TYPE (current_class_ref), context)))
     decl = current_class_ref;
-  else if (current != current_class_type
-	   && context == nonlambda_method_basetype ())
-    /* In a lambda, need to go through 'this' capture.  */
-    decl = (build_x_indirect_ref
-	    (input_location, (lambda_expr_this_capture
-			      (CLASSTYPE_LAMBDA_EXPR (current_class_type))),
-	     RO_NULL, tf_warning_or_error));
   else
     decl = build_dummy_object (context);
 

@@ -4717,8 +4717,9 @@ vect_finalize_reduction:
     }
 
   scalar_results.release ();
+  inner_phis.release ();
   new_phis.release ();
-} 
+}
 
 
 /* Function vectorizable_reduction.

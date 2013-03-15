@@ -232,7 +232,8 @@ Objective-C and Objective-C++ Dialects}.
 @xref{Warning Options,,Options to Request or Suppress Warnings}.
 @gccoptlist{-fsyntax-only  -fmax-errors=@var{n}  -Wpedantic @gol
 -pedantic-errors @gol
--w  -Wextra  -Wall  -Waddress  -Waggregate-return  -Warray-bounds @gol
+-w  -Wextra  -Wall  -Waddress  -Waggregate-return  @gol
+-Waggressive-loop-optimizations -Warray-bounds @gol
 -Wno-attributes -Wno-builtin-macro-redefined @gol
 -Wc++-compat -Wc++11-compat -Wcast-align  -Wcast-qual  @gol
 -Wchar-subscripts -Wclobbered  -Wcomment @gol
@@ -514,7 +515,7 @@ Objective-C and Objective-C++ Dialects}.
 @emph{AVR Options}
 @gccoptlist{-mmcu=@var{mcu} -maccumulate-args -mbranch-cost=@var{cost} @gol
 -mcall-prologues -mint8 -mno-interrupts -mrelax @gol
--mstrict-X -mtiny-stack}
+-mstrict-X -mtiny-stack -Waddr-space-convert}
 
 @emph{Blackfin Options}
 @gccoptlist{-mcpu=@var{cpu}@r{[}-@var{sirevision}@r{]} @gol
@@ -733,7 +734,7 @@ Objective-C and Objective-C++ Dialects}.
 -mmemcpy -mxl-soft-mul -mxl-soft-div -mxl-barrel-shift @gol
 -mxl-pattern-compare -mxl-stack-check -mxl-gp-opt -mno-clearbss @gol
 -mxl-multiply-high -mxl-float-convert -mxl-float-sqrt @gol
--mxl-mode-@var{app-model}}
+-mbig-endian -mlittle-endian -mxl-reorder -mxl-mode-@var{app-model}}
 
 @emph{MIPS Options}
 @gccoptlist{-EL  -EB  -march=@var{arch}  -mtune=@var{arch} @gol
@@ -4422,6 +4423,12 @@ bit-wise operator is likely to be expected.
 Warn if any functions that return structures or unions are defined or
 called.  (In languages where you can return an array, this also elicits
 a warning.)
+
+@item -Wno-aggressive-loop-optimizations
+@opindex Wno-aggressive-loop-optimizations
+@opindex Waggressive-loop-optimizations
+Warn if in a loop with constant number of iterations the compiler detects
+undefined behavior in some statement during one or more of the iterations.
 
 @item -Wno-attributes
 @opindex Wno-attributes
@@ -8168,15 +8175,11 @@ Enabled by default with @option{-funroll-loops}.
 Assume that the current compilation unit represents the whole program being
 compiled.  All public functions and variables with the exception of @code{main}
 and those merged by attribute @code{externally_visible} become static functions
-and in effect are optimized more aggressively by interprocedural optimizers. If @command{gold} is used as the linker plugin, @code{externally_visible} attributes are automatically added to functions (not variable yet due to a current @command{gold} issue) that are accessed outside of LTO objects according to resolution file produced by @command{gold}.  For other linkers that cannot generate resolution file, explicit @code{externally_visible} attributes are still necessary.
-While this option is equivalent to proper use of the @code{static} keyword for
-programs consisting of a single file, in combination with option
-@option{-flto} this flag can be used to
-compile many smaller scale programs since the functions and variables become
-local for the whole combined compilation unit, not for the single source file
-itself.
+and in effect are optimized more aggressively by interprocedural optimizers.
 
-This option implies @option{-fwhole-file} for Fortran programs.
+In combination with @code{-flto} using this option should not be used.
+Instead relying on a linker plugin should provide safer and more precise
+information.
 
 @item -flto[=@var{n}]
 @opindex flto
@@ -11636,6 +11639,11 @@ sbiw r26, const   ; X -= const
 @item -mtiny-stack
 @opindex mtiny-stack
 Only change the lower 8@tie{}bits of the stack pointer.
+
+@item -Waddr-space-convert
+@opindex Waddr-space-convert
+Warn about conversions between address spaces in the case where the
+resulting address space is not contained in the incoming address space.
 @end table
 
 @subsubsection @code{EIND} and Devices with more than 128 Ki Bytes of Flash
@@ -15820,6 +15828,18 @@ Use hardware floating-point conversion instructions.
 @opindex mxl-float-sqrt
 Use hardware floating-point square root instruction.
 
+@item -mbig-endian
+@opindex mbig-endian
+Generate code for a big-endian target.
+
+@item -mlittle-endian
+@opindex mlittle-endian
+Generate code for a little-endian target.
+
+@item -mxl-reorder
+@opindex mxl-reorder
+Use reorder instructions (swap and byte reversed load/store).
+
 @item -mxl-mode-@var{app-model}
 Select application model @var{app-model}.  Valid models are
 @table @samp
@@ -18737,8 +18757,8 @@ Set the cost to assume for a multiply insn.
 
 @item -mdiv=@var{strategy}
 @opindex mdiv=@var{strategy}
-Set the division strategy to use for SHmedia code.  @var{strategy} must be
-one of: 
+Set the division strategy to be used for integer division operations.
+For SHmedia @var{strategy} can be one of: 
 
 @table @samp
 
@@ -18795,6 +18815,36 @@ slows down the case of larger dividends.  @samp{inv20u} assumes the case of a su
 a small dividend to be unlikely, and @samp{inv20l} assumes it to be likely.
 
 @end table
+
+For targets other than SHmedia @var{strategy} can be one of:
+
+@table @samp
+
+@item call-div1
+Calls a library function that uses the single-step division instruction
+@code{div1} to perform the operation.  Division by zero calculates an
+unspecified result and does not trap.  This is the default except for SH4,
+SH2A and SHcompact.
+
+@item call-fp
+Calls a library function that performs the operation in double precision
+floating point.  Division by zero causes a floating-point exception.  This is
+the default for SHcompact with FPU.  Specifying this for targets that do not
+have a double precision FPU will default to @code{call-div1}.
+
+@item call-table
+Calls a library function that uses a lookup table for small divisors and
+the @code{div1} instruction with case distinction for larger divisors.  Division
+by zero calculates an unspecified result and does not trap.  This is the default
+for SH4.  Specifying this for targets that do not have dynamic shift
+instructions will default to @code{call-div1}.
+
+@end table
+
+When a division strategy has not been specified the default strategy will be
+selected based on the current target.  For SH2A the default strategy is to
+use the @code{divs} and @code{divu} instructions instead of library function
+calls.
 
 @item -maccumulate-outgoing-args
 @opindex maccumulate-outgoing-args

@@ -1,3 +1,206 @@
+2013-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53265
+	* gcc.dg/graphite/scop-3.c (toto): Increase array size to avoid
+	undefined behavior.
+	* gcc.dg/graphite/id-6.c (test): Likewise.
+	* gcc.dg/graphite/pr35356-2.c: Adjust regexp patterns to only look for
+	MIN_EXPR and MAX_EXPR in GIMPLE stmts.
+
+	PR tree-optimization/53265
+	* gcc.dg/pr53265.c: New test.
+	* gcc.dg/torture/pr49518.c: Add -Wno-aggressive-loop-optimizations
+	to dg-options.
+	* g++.dg/opt/longbranch2.C (EBCOTLut): Double sizes of a2 and a3
+	arrays.
+	* gcc.dg/tree-ssa/cunroll-10.c (main): Rename to foo.  Add argument
+	n, use it as high bound instead of 4.
+
+2013-03-13  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/49880
+	* gcc.target/sh/pr49880-1.c: New.
+	* gcc.target/sh/pr49880-2.c: New.
+	* gcc.target/sh/pr49880-3.c: New.
+	* gcc.target/sh/pr49880-4.c: New.
+	* gcc.target/sh/pr49880-5.c: New.
+
+2013-03-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.dg/cpp0x/alias-decl-32.C: Remove redundant bits.
+
+2013-03-13  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56608
+	* gcc.dg/vect/fast-math-bb-slp-call-3.c: New testcase.
+
+2013-03-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/56611
+	* g++.dg/cpp0x/alias-decl-32.C: New.
+
+2013-03-11  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/56571
+	* gcc.c-torture/compile/pr56571.c: New testcase.
+
+2013-03-11  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* gcc.dg/tree-ssa/vector-4.c: Add comment regarding xfail.
+	* gcc.dg/tree-ssa/pr55579.c: Likewise.
+
+2013-03-11  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	* gcc.dg/inline_3.c: Remove target and dg-excess-errors.
+	* gcc.dg/inline_4.c: Likewise.
+	* gcc.dg/unroll_2.c: Likewise.
+	* gcc.dg/unroll_3.c: Likewise.
+	* gcc.dg/unroll_4.c: Likewise.
+
+2013-03-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/54119
+	* gcc.dg/tree-ssa/vector-4.c: xfail on 32-bit hppa*-*-*.
+
+	PR debug/56307
+	* gcc.dg/tree-ssa/pr55579.c: xfail 32-bit hppa*-*-hpux*.
+
+2013-03-11  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/40797
+	* gcc.c-torture/compile/pr40797.c: New.
+
+2013-03-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* gcc.dg/pr44194-1.c: Skip compilation on hppa*64*-*-*.
+
+2013-03-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/56575
+	* gfortran.dg/class_56.f90: New test.
+
+2013-03-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/56524
+	* gcc.target/mips/pr56524.c: New test.
+
+2013-03-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/56565
+	* g++.dg/cpp0x/lambda/lambda-nsdmi2.C: New.
+
+2013-03-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51412
+	* g++.dg/cpp0x/lambda/lambda-err3.C: New.
+
+2013-03-08  Marek Polacek  <polacek@redhat.com>
+
+	PR tree-optimization/56478
+	* gcc.dg/torture/pr56478.c: New test.
+
+2013-03-08  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.c-torture/execute/builtins/builtins.exp: Add for mingw
+	targets linker option --allow-multiple-definition.
+
+	* gcc.dg/pr14092-1.c: Mark intptr_t typedef to use extension.
+	* gcc.dg/pr24683.c: Avoid warning about casting constant string.
+	* gcc.dg/pr52549.c: Add LLP64 case.
+	* gcc.dg/pr53701.c: Use for uintptr_t typedef __UINTPTR_TYPE__.
+	* gcc.dg/pr56510.c: Adjust for LLP64 targets.
+	* gcc.dg/torture/pr51071-2.c: Likewise.
+	* gcc.dg/tree-ssa/vrp72.c: Likewise.
+	* gcc.dg/tree-ssa/vrp73.c: Likewise.
+	* gcc.dg/tree-ssa/vrp75.c: Likewise.
+	* gcc.dg/torture/pr53922.c: Skip test for mingw-targets.
+	* gcc.dg/weak/weak-1.c: Likewise.
+	* gcc.dg/weak/weak-2.c: Likewise.
+	* gcc.dg/weak/weak-3.c: Likewise.
+	* gcc.dg/weak/weak-4.c: Likewise.
+	* gcc.dg/weak/weak-5.c: Likewise.
+	* gcc.dg/weak/weak-15.c: Likewise.
+	* gcc.dg/weak/weak-16.c: Likewise.
+
+	* c-c++-common/pr54486.c: Skip test for mingw-targets.
+
+2013-03-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/56559
+	* gcc.dg/tree-ssa/reassoc-26.c: New test.
+
+2013-03-07  Andreas Schwab  <schwab@suse.de>
+
+	* gcc.dg/pr31490.c: Fix last change.
+
+2013-03-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/56534
+	* g++.dg/template/crash115.C: New.
+
+2013-03-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/56539
+	* gcc.c-torture/compile/pr56539.c: New test.
+
+2013-03-06  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/lto/20090914-2_0.c: Skip for mingw and cygwin
+	targets.
+	* gcc.dg/lto/20091013-1_1.c: Set x64-mingw as xfail.
+	* gcc.dg/lto/20091013-1_2.c: Likewise.
+	* gcc.dg/pr31490.c: Adjust for LLP64 targets.
+
+2013-03-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/aggr6.ads: New test.
+
+2013-03-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization15.ad[sb]: New test.
+
+2013-03-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/56548
+	* gcc.dg/pr56548.c: New test.
+
+2013-03-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR debug/53363
+	* g++.dg/debug/dwarf2/thunk1.C: Skip on darwin.
+
+2013-03-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/56543
+	* g++.dg/template/typename20.C: New test.
+
+2013-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/56510
+	* gcc.dg/pr56510.c: New test.
+
+	PR rtl-optimization/56484
+	* gcc.c-torture/compile/pr56484.c: New test.
+
+2013-03-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/56530
+	* g++.dg/warn/Wsign-conversion-2.C: New.
+
+2013-03-05  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56270
+	* gcc.dg/vect/slp-38.c: New testcase.
+
+2013-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/56494
+	* gcc.dg/pr56494.c: New test.
+
+2013-01-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/pr56424.c: New test.
+
 2013-03-04  Georg-Johann Lay  <avr@gjlay.de>
 
 	* gcc.dg/pr55153.c: Add dg-require-effective-target scheduling.
@@ -110,7 +313,7 @@
 
 	Revert:
 	2013-02-24  Catherine Moore  <clm@codesourcery.com>
-	Richard Sandiford <rdsandiford@googlemail.com>
+	Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* gcc.target/mips/mips.exp: Add microMIPS support.
 	* gcc.target/mips/umips-movep-2.c: New test.
@@ -138,7 +341,7 @@
 	* gcc.target/mips/umips-swp-4.c: New test.
 
 2013-02-24  Catherine Moore  <clm@codesourcery.com>
-	    Richard Sandiford <rdsandiford@googlemail.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* gcc.target/mips/mips.exp: Add microMIPS support.
 	* gcc.target/mips/umips-movep-2.c: New test.
@@ -208,7 +411,7 @@
 2013-02-21  Marek Polacek  <polacek@redhat.com>
 
 	PR tree-optimization/56398
-	* g++.dg/torture/pr56398.C: New test. 
+	* g++.dg/torture/pr56398.C: New test.
 
 2013-02-21  Jakub Jelinek  <jakub@redhat.com>
 
@@ -458,7 +661,7 @@
 	* gcc.target/powerpc/ppc-stackalign-1.c: Likewise.
 	* gcc.target/powerpc/ppc-ldstruct.c: Likewise.
 
-2013-02-11  Alexander Potapenko <glider@google.com>
+2013-02-11  Alexander Potapenko  <glider@google.com>
 	    Jack Howarth  <howarth@bromo.med.uc.edu>
 	    Jakub Jelinek  <jakub@redhat.com>
 
@@ -683,7 +886,7 @@
 	PR fortran/47517
 	* gfortran.dg/realloc_on _assign_17.f90 : New test.
 
-2013-02-04  Alexander Potapenko <glider@google.com>
+2013-02-04  Alexander Potapenko  <glider@google.com>
 	    Jack Howarth  <howarth@bromo.med.uc.edu>
 	    Jakub Jelinek  <jakub@redhat.com>
 
@@ -806,7 +1009,7 @@
 	* gfortran.dg/allocatable_function_6.f90: New.
 
 2013-01-29  Janus Weil  <janus@gcc.gnu.org>
-	    Mikael Morin <mikael@gcc.gnu.org>
+	    Mikael Morin  <mikael@gcc.gnu.org>
 
 	PR fortran/54107
 	* gfortran.dg/proc_ptr_comp_36.f90: New.

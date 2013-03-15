@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   for (ii = 0; ii<10; ii++)
     printf("array[%2d] = %2d\n", ii, array[ii]);
 
-  array[0:10:2] = 20;
+  array[0:5:2] = 20;
 
   printf("==============================================\n");
   for (ii = 0; ii<10; ii++)
