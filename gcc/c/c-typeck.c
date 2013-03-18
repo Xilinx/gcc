@@ -103,6 +103,8 @@ static void readonly_warning (tree, enum lvalue_use);
 static int lvalue_or_else (location_t, const_tree, enum lvalue_use);
 static void record_maybe_used_decl (tree);
 static int comptypes_internal (const_tree, const_tree, bool *, bool *);
+extern bool contains_array_notation_expr (tree);
+extern tree find_correct_array_notation_type (tree);
 
 /* Return true if EXP is a null pointer constant, false otherwise.  */
 
@@ -2303,7 +2305,17 @@ build_array_ref (location_t loc, tree array, tree index)
   if (TREE_TYPE (array) == error_mark_node
       || TREE_TYPE (index) == error_mark_node)
     return error_mark_node;
-
+  
+  if (flag_enable_cilkplus && contains_array_notation_expr (index))
+    {
+      size_t rank = 0;
+      find_rank (index, true, &rank);
+      if (rank > 1)
+	{
+	  error_at (loc, "rank of the array's index is greater than 1.");
+	  return error_mark_node;
+	}
+    }
   if (TREE_CODE (TREE_TYPE (array)) != ARRAY_TYPE
       && TREE_CODE (TREE_TYPE (array)) != POINTER_TYPE
       /* Allow vector[index] but not index[vector].  */
@@ -2722,6 +2734,9 @@ build_function_call_vec (location_t loc, tree function,
 	 often rewritten and don't match the original parameter list.  */
       if (name && !strncmp (IDENTIFIER_POINTER (name), "__atomic_", 9))
         origtypes = NULL;
+      if (flag_enable_cilkplus && name
+	  && !strncmp (IDENTIFIER_POINTER (name), "__sec_reduce", 12))
+	origtypes = NULL;
     }
   if (TREE_CODE (TREE_TYPE (function)) == FUNCTION_TYPE)
     function = function_to_pointer_conversion (loc, function);
@@ -2944,6 +2959,14 @@ convert_arguments (tree typelist, vec<tree, va_gc> *values,
       bool npc;
       tree parmval;
 
+      /* If the function call is a builtin function call, then we do not
+	 worry about it since we break them up into its equivalent later and
+	 we do the appropriate checks there.  */
+      if (flag_enable_cilkplus && fundecl && DECL_NAME (fundecl)
+	  && !strncmp (IDENTIFIER_POINTER (DECL_NAME (fundecl)),
+		       "__sec_reduce", 12))
+	continue;
+      
       if (type == void_type_node)
 	{
 	  if (selector)
@@ -3181,10 +3204,19 @@ convert_arguments (tree typelist, vec<tree, va_gc> *values,
 
   if (typetail != 0 && TREE_VALUE (typetail) != void_type_node)
     {
-      error_at (input_location,
-		"too few arguments to function %qE", function);
-      inform_declaration (fundecl);
-      return -1;
+      /* If array notation is used and Cilk Plus is enabled, then we do not
+	 worry about this error now.  We will handle them in a later place.  */
+      if (flag_enable_cilkplus && DECL_NAME (fundecl)
+	  && !strncmp (IDENTIFIER_POINTER (DECL_NAME (fundecl)), "__sec_reduce",
+		       12))
+	;
+      else
+	{
+	  error_at (input_location,
+		    "too few arguments to function %qE", function);
+	  inform_declaration (fundecl);
+	  return -1;
+	}
     }
 
   return error_args ? -1 : (int) parmnum;
@@ -3875,6 +3907,7 @@ lvalue_p (const_tree ref)
 
     case INDIRECT_REF:
     case ARRAY_REF:
+    case ARRAY_NOTATION_REF:
     case VAR_DECL:
     case PARM_DECL:
     case RESULT_DECL:
@@ -5097,7 +5130,6 @@ convert_for_assignment (location_t location, tree type, tree rhs,
   enum tree_code coder;
   tree rname = NULL_TREE;
   bool objc_ok = false;
-
   if (errtype == ic_argpass)
     {
       tree selector;
@@ -8652,6 +8684,12 @@ c_finish_return (location_t loc, tree retval, tree origtype)
     warning_at (loc, 0,
 		"function declared %<noreturn%> has a %<return%> statement");
 
+  if (flag_enable_cilkplus && contains_array_notation_expr (retval))
+    {
+      error_at (loc, "array notation expression cannot be used as a return "
+		"value");
+      return error_mark_node;
+    }
   if (retval)
     {
       tree semantic_type = NULL_TREE;
@@ -8994,6 +9032,19 @@ c_finish_loop (location_t start_locus, tree cond, tree incr, tree body,
 {
   tree entry = NULL, exit = NULL, t;
 
+  if (flag_enable_cilkplus && contains_array_notation_expr (cond))
+    {
+      error_at (start_locus, "array notation expression cannot be used in a "
+		"loop's condition");
+      return;
+    }
+  if (flag_enable_cilkplus && contains_array_notation_expr (incr) && 0)
+    {
+      error_at (start_locus, "array notation expression cannot be used in a "
+		"loop's increment expression.");
+      return;
+    }
+  
   /* If the condition is zero don't generate a loop construct.  */
   if (cond && integer_zerop (cond))
     {
@@ -9500,8 +9551,18 @@ build_binary_op (location_t location, enum tree_code code,
       op1 = default_conversion (op1);
     }
 
-  orig_type0 = type0 = TREE_TYPE (op0);
-  orig_type1 = type1 = TREE_TYPE (op1);
+  /* When Cilk Plus is enabled and there is array notations inside op0, then
+     we check to see if there they are builtin array notation functions.  If
+     so, then we take on the type of the array notation inside it.  */
+  if (flag_enable_cilkplus && contains_array_notation_expr (op0)) 
+    orig_type0 = type0 = find_correct_array_notation_type (op0);
+  else
+    orig_type0 = type0 = TREE_TYPE (op0);
+
+  if (flag_enable_cilkplus && contains_array_notation_expr (op1))
+    orig_type1 = type1 = find_correct_array_notation_type (op1);
+  else 
+    orig_type1 = type1 = TREE_TYPE (op1);
 
   /* The expression codes of the data types of the arguments tell us
      whether the arguments are integers, floating, pointers, etc.  */

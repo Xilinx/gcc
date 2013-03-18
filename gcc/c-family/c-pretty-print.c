@@ -1476,6 +1476,17 @@ pp_c_postfix_expression (c_pretty_printer *pp, tree e)
       pp_c_right_bracket (pp);
       break;
 
+    case ARRAY_NOTATION_REF:
+      pp_postfix_expression (pp, ARRAY_NOTATION_ARRAY (e));
+      pp_c_left_bracket (pp);
+      pp_postfix_expression (pp, ARRAY_NOTATION_START (e));
+      pp_colon (pp);
+      pp_postfix_expression (pp, ARRAY_NOTATION_LENGTH (e));
+      pp_colon (pp);
+      pp_postfix_expression (pp, ARRAY_NOTATION_STRIDE (e));
+      pp_c_right_bracket (pp);
+      break;
+      
     case CALL_EXPR:
       {
 	call_expr_arg_iterator iter;
