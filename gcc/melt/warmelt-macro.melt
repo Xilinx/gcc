@@ -344,6 +344,14 @@ the location of the expansion.}#
 	   sprim_exploc			;precise location of expansion
 	   ))
 
+;; define a hook
+(defclass class_source_defhook
+  :doc #{The internal $CLASS_SOURCE_DEFHOOK is the abstract syntax for
+  $DEFHOOK. Inherited $SFORMAL_ARGS are the input formals, and
+  $SHOOK_OUT_FORMALS are the output formals, $SHOOK_PREDEF is the
+  optional predefined slot, and $SHOOK_BODY is the body. }#
+  :super class_source_definition_formal
+  :fields (shook_out_formals shook_predef shook_body))
 
 ;;; define a citerator
 (defclass class_source_defciterator
@@ -2311,11 +2319,49 @@ modules.  See also the classes $CLASS_PRIMITIVE, and
 $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; the defhook expander
+(defun mexpand_defhook (sexpr env mexpander modctx)
+  (debug "mexpand_defhook sexpr=" sexpr " modctx=" modctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 (intup ())			;formal input tuple
+	 (outup ())			;formal output tuple
+	 (predefv ())			;optional :predef
+	 (docv ())			;optional :doc
+	 )
+    (when (is_not_a symb class_symbol)
+      (error_plain loc 
+		   "missing symbol for (DEFHOOK <symb> <informals> <outformals> [:predef <predef>] [:doc <doc>] <body....>)")
+      (return))
+    (setq curpair (pair_tail curpair))
+    ;; parse the formal input arguments
+    (setq intup (lambda_arg_bindings (pair_head curpair)))
+    (debug "mexpand_defhook intup=" intup)
+    (when (is_a intup  discr_variadic_formal_sequence)
+      (error_plain loc "DEFHOOK cannot have variadic input formals")
+      (return))
+    (setq curpair (pair_tail curpair))
+    ;; parse the formal input arguments
+    (setq outup (lambda_arg_bindings (pair_head curpair)))
+    (debug "mexpand_defhook outup=" outup)
+    (when (is_a outup  discr_variadic_formal_sequence)
+      (error_plain loc "DEFHOOK cannot have variadic output formals")
+      (return))
+    (assert_msg "@$@unimplemented mexpand_defhook")
+    ))
+(install_initial_macro 'defhook mexpand_defhook)
+(export_macro defhook mexpand_defhook
+	      :doc #{The $DEFHOOK macro defines hooks.}#)
 
 ;; the defciterator expander
 ;;(DEFCITERATOR symb startformals statesymb varformals [:doc documentation] expbefore expafter)
 (defun mexpand_defciterator (sexpr env mexpander modctx)
-  (debug "mexpand_defciterator sexpr" sexpr)
+  (debug "mexpand_defciterator sexpr=" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
@@ -2323,53 +2369,48 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 	 (curpair (pair_tail (list_first cont)))
 	 (symb (pair_head curpair))
 	 ;; the following variables are set later by setq
-	 (bstartup ())		     ;the start formals tuple
-	 (statsymb ())		     ;the state symbol
-	 (blocvtup ())		     ;the local var formals tuple
+	 (bstartup ())			;the start formals tuple
+	 (statsymb ())			;the state symbol
+	 (blocvtup ())			;the local var formals tuple
 	 (docv ())
 	 (expbef ())		     ;the tuple expansion before tuple
 	 (expaft ())		     ;the tuple expansion after tuple
 	 (befloc ())		     ;location of before chunk
 	 (aftloc ())		     ;location of after chunk
 	 )
-    (if (is_not_a symb class_symbol)
-	(progn
-	  (error_plain loc 
-		       "missing symbol for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
-	  (return)
-	  ))
+    (when (is_not_a symb class_symbol)
+      (error_plain loc 
+		   "missing symbol for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
+      (return)
+      )
     (setq curpair (pair_tail curpair))
     ;; parse the formal start arguments
     (setq bstartup (lambda_arg_bindings (pair_head curpair)))
     (setq curpair (pair_tail curpair))
     (setq statsymb (pair_head curpair))
-    (if (is_not_a statsymb class_symbol)
-	(progn
-	  (error_plain loc 
-		       "missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
-	  (return)))
-    (if (is_a bstartup discr_variadic_formal_sequence)
-	(progn
+    (when (is_not_a statsymb class_symbol)
+      (error_plain loc 
+		   "missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
+      (return))
+    (when (is_a bstartup discr_variadic_formal_sequence)
 	  (error_plain loc
 		       "(DEFCITERATOR symb startformals...) cannot have variadic start formals")
-	  (return)))
+	  (return))
     ;; parse the formal local arguments
     (setq curpair (pair_tail curpair))
     (setq blocvtup  (lambda_arg_bindings (pair_head curpair)))
-      (if (is_a blocvtup  discr_variadic_formal_sequence)
-	  (progn
-	    (error_plain loc
-			 "(DEFCITERATOR symb startformals state localformals...) cannot have variadic local formals")
-	    (return)))
+    (when (is_a blocvtup  discr_variadic_formal_sequence)
+      (error_plain loc
+		   "(DEFCITERATOR symb startformals state localformals...) cannot have variadic local formals")
+      (return))
     (setq curpair (pair_tail curpair))
     ;; parse the documentation, if any
-    (if (== (pair_head curpair) ':doc)
-	(progn
-	  (setq curpair (pair_tail curpair))
-	  (if docv (error_plain loc
-				"duplicate documentation in DEFCITERATOR"))
-	  (setq docv (pair_head curpair))
-	  (setq curpair (pair_tail curpair))))
+    (when (== (pair_head curpair) ':doc)
+      (setq curpair (pair_tail curpair))
+      (if docv (error_plain loc
+			    "duplicate documentation in DEFCITERATOR"))
+      (setq docv (pair_head curpair))
+      (setq curpair (pair_tail curpair)))
     ;; parse the before expansion
     (let ( (sexpbef (pair_head curpair)) )
       (if (is_not_a sexpbef class_sexpr)
@@ -2424,7 +2465,7 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 		      discr_map_objects
 		      (+i 7 (+i (*i 2 (multiple_length bstartup))
 				(*i 2 (multiple_length blocvtup))))))
-	   )      ;; fill the substmap
+	   ) ;; fill the substmap
       (debug "srcit citer" srcit)
       (mapobject_put substmap statsymb statsymb)
       (debug "bstartup citer" bstartup)
@@ -2440,7 +2481,7 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
        (debug "curlbind local citer" curlbind)
        (assert_msg "check local curlbind" (is_a curlbind class_any_binding))
        (mapobject_put substmap (get_field :binder curlbind) curlbind))
-      ;;; check the expansions
+;;; check the expansions
       (check_c_expansion expbef loc substmap)
       (check_c_expansion expaft loc substmap)
       ;; fill the citerator binding
@@ -7168,6 +7209,7 @@ $CURRENT_MODULE_ENVIRONMENT_CONTAINER. Will be renamed as
  class_source_defciterator
  class_source_defclass
  class_source_defcmatcher
+ class_source_defhook
  class_source_define
  class_source_definition
  class_source_definition_formal

@@ -1,6 +1,12 @@
 
 
 2013-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-macro.melt (mexpand_defhook): New very incomplete.
+	(class_source_defhook): New class with fields shook_out_formals
+	shook_predef shook_body.
+
+2013-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{grouped GC predefined roots in chunks}}
 	* melt-runtime.h (melt_globarr): Remove declaration.
 	(MELT_GLOBAL_ENTRY_CHUNK, MELT_NB_GLOBAL_CHUNKS, MELT_NB_GLOBALS):
