@@ -1,5 +1,21 @@
 
 
+2013-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{grouped GC predefined roots in chunks}}
+	* melt-runtime.h (melt_globarr): Remove declaration.
+	(MELT_GLOBAL_ENTRY_CHUNK, MELT_NB_GLOBAL_CHUNKS, MELT_NB_GLOBALS):
+	New macros.
+	(melt_globalptrs): New array declaration.
+	(melt_touchedglobalchunk): New boolean array for changes of global
+	predefined roots.
+	(melt_fetch_predefined): Use melt_globalptrs instead of melt_globarr.
+	(melt_store_predefined): Likewise, and update
+	melt_touchedglobalchunk.
+	* melt-runtime.c (melt_globarr): Remove definition.
+	(melt_globalptrs, melt_touchedglobalchunk): Add definitions.
+	(melt_minor_copying_garbage_collector): Forward only the touched
+	globals, by chunks. Use melt_globalptrs & melt_touchedglobalchunk.
+
 2013-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-5 is still not working....}}
 	* melt/warmelt-normatch.melt (translate_andpat, translate_orpat):

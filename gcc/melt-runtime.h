@@ -1,8 +1,7 @@
 /**
    MELT header melt-runtime.h
-   [[middle end lisp translator, see http://gcc.gnu.org/wiki/MELT or
-   www.gcc-melt.org ]]
-   Copyright (C)  2008 - 2012 Free Software Foundation, Inc.
+   [[middle end lisp translator, see http://gcc-melt.org/ for more.]]
+   Copyright (C)  2008 - 2013 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
    and Pierre Vittet <piervit@pvittet.com>
 
@@ -2643,24 +2642,23 @@ melt_ptr_t meltgc_send (melt_ptr_t recv,
 /**************************** globals **************************/
 
 /* *INDENT-OFF* */
-
-/* the array of global values */
-extern GTY (()) melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB];
+/* We group the globals in small chunks, to ease forwarding them in
+   the GC.  Notice that MELT_GLOBAL_ENTRY_CHUNK should be a small power
+   of two. */
+#define MELT_GLOBAL_ENTRY_CHUNK 8
+#define MELT_NB_GLOBAL_CHUNKS (2+MELTGLOB__LASTGLOB/MELT_GLOBAL_ENTRY_CHUNK)
+#define MELT_NB_GLOBALS (MELT_GLOBAL_ENTRY_CHUNK*MELT_NB_GLOBAL_CHUNKS)
+extern GTY(()) melt_ptr_t melt_globalptrs[MELT_NB_GLOBALS];
+extern bool melt_touchedglobalchunk[MELT_NB_GLOBAL_CHUNKS];
 
 /* *INDENT-ON* */
-
-
-/* currently each predefined is a GC root (so we have about two
-   hundreds of them), scanned at every minor garbage collection. We
-   might change that, e.g. by grouping the predefined set by 16 and
-   scanning in minor GC only groups which have been changed */
 
 
 static inline melt_ptr_t
 melt_fetch_predefined(int ix)
 {
   if (ix>0 && ix<MELTGLOB__LASTWIRED)
-    return (melt_ptr_t)melt_globarr[ix];
+    return (melt_ptr_t) melt_globalptrs[ix];
   return NULL;
 }
 
@@ -2669,8 +2667,8 @@ static inline void melt_store_predefined(int ix, melt_ptr_t p)
   if (ix < 0)
     return;
   gcc_assert (ix>0 && ix<MELTGLOB__LASTWIRED);
-  gcc_assert (melt_globarr[ix] == NULL);
-  melt_globarr[ix] = p;
+  melt_globalptrs[ix] = p;
+  melt_touchedglobalchunk[ix / MELT_GLOBAL_ENTRY_CHUNK] = true;
 }
 
 #define melt_globpredef(Ix) ((void*)melt_fetch_predefined((Ix)))

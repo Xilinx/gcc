@@ -1,4 +1,4 @@
-/*** file melt-runtime.c
+/*** file melt-runtime.c - see http://gcc-melt.org/ for more.
      Middle End Lisp Translator [MELT] runtime support.
 
      Copyright (C) 2008 - 2013 Free Software Foundation, Inc.
@@ -273,9 +273,6 @@ const char* melt_plugin_name;
 
 int melt_nb_modules;
 
-
-melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB]= {0};
-
 /* The start and end of the birth region. */
 void* melt_startalz=NULL;
 void* melt_endalz=NULL;
@@ -403,7 +400,8 @@ static void melt_resize_scangcvect (unsigned long size);
 char* melt_gccversionstr;
 
 int melt_last_global_ix = MELTGLOB__LASTGLOB;
-
+melt_ptr_t melt_globalptrs[MELT_NB_GLOBALS];
+bool melt_touchedglobalchunk[MELT_NB_GLOBAL_CHUNKS];
 
 static void* proghandle;
 
@@ -1412,10 +1410,17 @@ melt_minor_copying_garbage_collector (size_t wanted)
 
   melt_is_forwarding = TRUE;
   melt_forward_counter = 0;
-  for (ix = 0; ix < MELTGLOB__LASTWIRED; ix++)
-    MELT_FORWARDED (melt_globarr[ix]);
-  for (ix = MELTGLOB__LASTWIRED; ix < MELTGLOB__LASTGLOB; ix++)
-    melt_globarr[ix] = NULL;
+  /* Forward the global predefined. We only forward recently touched entry chunks. */
+  for (ix = 0; ix < MELT_NB_GLOBAL_CHUNKS; ix++)
+    {
+      melt_ptr_t* chp = NULL;
+      int j = 0;
+      if (!melt_touchedglobalchunk[ix])
+	continue;
+      chp = melt_globalptrs + ix * MELT_GLOBAL_ENTRY_CHUNK;
+      for (j=0; j<MELT_GLOBAL_ENTRY_CHUNK; j++)
+	MELT_FORWARDED(chp[j]);
+    };
 
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev) {
     int varix = 0;
