@@ -19,7 +19,7 @@
 	     #endif /*__cplusplus */
 	     
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.8.0 20130227 (experimental) [melt-branch revision 196306] MELT_0\
+const char melt_genversionstr[]="4.8.0 20130314 (experimental) [melt-branch revision 196794] MELT_0\
 .9.8-post"
 
 	     #ifdef __cplusplus
@@ -29,17 +29,18 @@ const char melt_genversionstr[]="4.8.0 20130227 (experimental) [melt-branch revi
 	     #endif
 					;
 	     
-const char melt_versionmeltstr[]="0.9.8-post [melt-branch_revision_196306]";
+const char melt_versionmeltstr[]="0.9.8-post [melt-branch_revision_196794]";
 
 /* source name & real path of the module */
 /*MELTMODULENAME meltbuild-sources/warmelt-normal */
 const char melt_modulename[]="warmelt-normal";
-const char melt_modulerealpath[]="/usr/local/libexec/gcc/x86_64-linux-gnu/4.8.0/melt-modules/0.9.8-post/warmelt-normal";
+const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt\
+-modules/0.9.8-post/warmelt-normal";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="311fb14fdf105bfeee283c078c353ada";
+const char melt_prepromd5meltrun[]="dbcd08746ee013b3b2e3a4ba5d8b2086";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="19c3cb8337fa07b36750132aa2dc9e5e";
+const char melt_primaryhexmd5[]="6ad5c94c8d4e5da69a98869aecdde1ba";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
@@ -56,10 +57,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=6;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="3022448cd1bda7c7e9844cdb6e782cc2" ;
+const char melt_cumulated_hexmd5[]="586a84847fc91c6b19f4c68e86ba2435" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_normal_mds__3022448cd1bda7c7e9844cdb6e782cc2 1
+#define meltmod_warmelt_normal_mds__586a84847fc91c6b19f4c68e86ba2435 1
 #include "warmelt-normal+melttime.h"
 	 
 
