@@ -6964,7 +6964,7 @@ c_parser_postfix_expression_after_primary (c_parser *parser,
 	  c_parser_consume_token (parser);
 	  if (flag_enable_cilkplus
 	      && c_parser_peek_token (parser)->type == CPP_COLON)
-	    /* If we are here, thenwe have something like this:
+	    /* If we are here, then we have something like this:
 	       Array [ : ]
 	    */
 	    expr.value = c_parser_array_notation (expr_loc, parser, NULL_TREE,
@@ -11082,7 +11082,15 @@ c_parser_array_notation (location_t loc, c_parser *parser, tree initial_index,
 		}
 	    }
 	  array_type_domain = TYPE_DOMAIN (array_type);
-	  gcc_assert (array_type_domain);
+
+	  if (!array_type_domain)
+	    {
+	      error_at (loc, "start-index and length fields necessary for "
+			"using array notations in dimensionless arrays.");
+	      c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE, NULL);
+	      return error_mark_node;
+	    }
+
 	  start_index = TYPE_MINVAL (array_type_domain);
 	  start_index = fold_build1 (CONVERT_EXPR, ptrdiff_type_node,
 				     start_index);
