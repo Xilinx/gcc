@@ -21,45 +21,14 @@ load_lib gcc-dg.exp
 
 dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -fcilkplus" " "
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -O0 -fcilkplus" " "
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -O1 -fcilkplus" " "
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -O2 -ftree-vectorize -fcilkplus" " "
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -O3 -fcilkplus" " "
-dg-finish
-
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -g -fcilkplus" " "
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -g -O0 -fcilkplus" " "
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -g -O1 -fcilkplus" " "
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -g -O2 -ftree-vectorize -fcilkplus" " "
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -g -O3 -fcilkplus" " "
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/array_notation_tests/errors/*.c]] " -O3 -ftree-vectorize -fcilkplus -g" " "
 dg-finish

@@ -125,7 +125,25 @@ inside conditions, they are transformed using the function
 @code{fix_conditional_array_notations}.  The C language-specific routines are 
 located in @file{c/c-array-notation.c} and the equivalent C++ routines are in 
 file @file{cp/cp-array-notation.c}.  Common routines such as functions to 
-initialize builtin functions are stored in @file{array-notation-common.c}.
+initialize builtin functions are stored in @file{array-notation-common.c}.  In
+the current array notation implementation there are 12 builtin reduction
+operations.  Details about these functions and their usage are available in
+the Cilk Plus language specification at @w{@uref{http://www.cilkplus.org}}.
+
+@itemize @bullet
+@item __sec_reduce_add
+@item __sec_reduce_mul
+@item __sec_reduce_max
+@item __sec_reduce_min
+@item __sec_reduce_max_ind
+@item __sec_reduce_min_ind
+@item __sec_reduce_all_zero
+@item __sec_reduce_all_nonzero
+@item __sec_reduce_any_zero
+@item __sec_reduce_any_nonzero
+@item __sec_reduce
+@item __sec_reduce_mutating
+@end itemize
 @end itemize
 
 Detailed information about Cilk Plus and language specification is provided in 
