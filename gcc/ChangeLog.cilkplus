@@ -1,0 +1,10 @@
+2013-03-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* doc/passes.texi (Passes): Added documentation about changes done
+	for Cilk Plus.
+	* doc/invoke.texi (C Dialect Options): Added documentation about
+	the -fcilkplus flag.
+	* doc/generic.texi (Storage References): Added documentation for
+	ARRAY_NOTATION_REF storage.
+	* Makefile.in (C_COMMON_OBJS): Added
+	c-family/array-notation-common.o.

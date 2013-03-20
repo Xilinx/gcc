@@ -1,0 +1,4 @@
+2012-03-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/array_notation: New directory and supporting
+	infrastructure.
