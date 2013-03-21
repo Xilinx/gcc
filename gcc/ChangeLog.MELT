@@ -1,6 +1,15 @@
 
 2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normal.melt (class_nrep_hookproc): New class with
+	fields nrhook_name, nrhook_inb, nrhook_outb, nrhook_datahook.
+	(class_nrep_datahook): New class with fields ndhook_proc,
+	ndhook_closv.
+	(normexp_defhook): New incomplete method for normal_exp of
+	class_source_defhook.
+
+2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-predef.list (DISCR_HOOK): New predefined.
 
 	* melt/warmelt-first.melt (DISCR_HOOK): New discriminent for hook

@@ -493,6 +493,19 @@ routine procedures.}#
   :fields ())
 
 
+
+;; the class of the normalized hook procedures
+(defclass class_nrep_hookproc
+  :super class_nrep_anyproc
+  :doc #{The $CLASS_NREP_HOOKPROC is the class for a hook
+procedure in a module, defined with $DEFHOOK. }#
+  :fields (nrhook_name			;name
+	   nrhook_inb			;input arguments binding tuple
+           nrhook_outb			;output arguments binding tuple
+	   nrhook_datahook		;hook data object
+	   
+	   ))
+
 ;;; static normalized predef
 (defclass class_nrep_predef
   :doc #{The $CLASS_NREP_PREDEF is for normalized predefined
@@ -586,6 +599,13 @@ routine procedures.}#
 (defclass class_nrep_dataroutine
   :super class_nrep_discriminated_data
   :fields (ndrou_proc		    ;associated procedure
+	   ))
+
+;; normal static hook data
+(defclass class_nrep_datahook
+  :super class_nrep_discriminated_data
+  :fields (ndhook_proc		    ;associated procedure
+	   ndhook_closv		    ;tuple of closed values
 	   ))
 
 ;; normal static closure data
@@ -752,6 +772,7 @@ routine procedures.}#
  class_nrep_bound_data
  class_nrep_databoxedinteger
  class_nrep_dataclosure
+ class_nrep_datahook
  class_nrep_datainstance
  class_nrep_datakeyword
  class_nrep_dataroutine
@@ -766,6 +787,7 @@ routine procedures.}#
  class_nrep_fieldacc
  class_nrep_fieldassign
  class_nrep_forever
+ class_nrep_hookproc
  class_nrep_if
  class_nrep_ifcommon
  class_nrep_ifisa
@@ -4147,10 +4169,10 @@ source location.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFUN
 (defun normexp_defun (recv  env ncx psloc)
+  (debug "normexp_defun recv=" recv)
   (assert_msg "check defun recv" (is_a recv class_source_defun))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_defun recv" recv)
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (snam (unsafe_get_field :sdef_name recv))
 	 (sformals (unsafe_get_field :sformal_args recv))
@@ -4246,6 +4268,34 @@ source location.}#
 (install_method class_source_defun normal_exp normexp_defun)
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; normalize a DEFHOOK
+(defun normexp_defhook (recv  env ncx psloc)
+  (debug "normexp_defhook recv=" recv "\n.. ncx=" ncx)
+  (assert_msg "check defhook recv" (is_a recv class_source_defhook))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
+	 (snam (unsafe_get_field :sdef_name recv))
+	 (sinformals (unsafe_get_field :sformal_args recv))
+	 (soutformals (unsafe_get_field :shook_out_formals recv))
+	 (spredef (unsafe_get_field :shook_predef recv))
+	 (sbody (unsafe_get_field :shook_body recv))
+	 (shobind (find_env env snam))
+	 (newenv (fresh_env env))
+	 (oldproc (unsafe_get_field :nctx_curproc ncx))
+	 (oldsymbcache (unsafe_get_field :nctx_symbcachemap ncx))
+	 )
+    (assert_msg "check sname" (is_string snam))
+    (assert_msg "check sinformals" (and (is_multiple_or_null sinformals)
+					(is_not_a sinformals discr_variadic_formal_sequence)))
+    (assert_msg "check soutformals" (and (is_multiple_or_null soutformals)
+					 (is_not_a soutformals discr_variadic_formal_sequence)))
+    (debug "normexp_defhook shobind=" shobind "\n oldproc=" oldproc)
+    (assert_msg "@$@unimplemented normex_defhook")
+))
+(install_method class_source_defhook normal_exp normexp_defhook)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a LAMBDA
