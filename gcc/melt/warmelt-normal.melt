@@ -4277,23 +4277,32 @@ source location.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (sloc (unsafe_get_field :loca_location recv))
-	 (snam (unsafe_get_field :sdef_name recv))
+	 (symb (get_field :sdef_name recv))
+	 (symbname (get_field :named_name symb))
 	 (sinformals (unsafe_get_field :sformal_args recv))
 	 (soutformals (unsafe_get_field :shook_out_formals recv))
 	 (spredef (unsafe_get_field :shook_predef recv))
 	 (sbody (unsafe_get_field :shook_body recv))
-	 (shobind (find_env env snam))
+	 (shobind (find_env env symb))
 	 (newenv (fresh_env env))
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
 	 (oldsymbcache (unsafe_get_field :nctx_symbcachemap ncx))
+	 (nproc (instance class_nrep_hookproc
+;;; dont forget to put the nil fields at end
+			  :nrep_loc sloc
+			  :nrhook_name symbname
+			  :nrhook_inb ()
+			  :nrhook_outb ()
+			  :nrhook_datahook ()))
 	 )
-    (assert_msg "check sname" (is_string snam))
+    (assert_msg "check symbname" (is_string symbname))
     (assert_msg "check sinformals" (and (is_multiple_or_null sinformals)
 					(is_not_a sinformals discr_variadic_formal_sequence)))
     (assert_msg "check soutformals" (and (is_multiple_or_null soutformals)
 					 (is_not_a soutformals discr_variadic_formal_sequence)))
-    (debug "normexp_defhook shobind=" shobind "\n oldproc=" oldproc)
-    (assert_msg "@$@unimplemented normex_defhook")
+    (debug "normexp_defhook shobind=" shobind "\n oldproc=" oldproc " \n nproc=" nproc 
+	   "\n class_nrep_hookproc=" class_nrep_hookproc)
+    (assert_msg "@$@unimplemented normexp_defhook")
 ))
 (install_method class_source_defhook normal_exp normexp_defhook)
 

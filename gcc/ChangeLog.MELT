@@ -1,6 +1,11 @@
 
 2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* testsuite/melt/thook-1.melt: New file.
+	* melt/warmelt-normal.melt (normexp_defhook): Still incomplete.
+
+2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normal.melt (class_nrep_hookproc): New class with
 	fields nrhook_name, nrhook_inb, nrhook_outb, nrhook_datahook.
 	(class_nrep_datahook): New class with fields ndhook_proc,
