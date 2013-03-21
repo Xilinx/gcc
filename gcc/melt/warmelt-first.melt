@@ -2328,6 +2328,15 @@ the routine pointer and the constants inside MELT function closure values. See a
   :disc_super discr_any_receiver
   :named_name '"DISCR_ROUTINE")
 
+;;; the discriminant for hooks
+(definstance discr_hook class_discriminant
+  :doc #{The $DISCR_ROUTINE is the discriminant of MELT hook values, which boxes 
+the hooks called from C or C++ code, notably the MELT runtime.}#
+  :predef DISCR_HOOK
+  :obj_num MELTOBMAG_HOOK
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_HOOK")
+
 
 (definstance container_ctype_gty_dict class_reference
   :referenced_value (make_mapstring discr_map_strings 60))

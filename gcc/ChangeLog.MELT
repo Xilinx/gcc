@@ -1,5 +1,12 @@
 
 2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-predef.list (DISCR_HOOK): New predefined.
+
+	* melt/warmelt-first.melt (DISCR_HOOK): New discriminent for hook
+	values.
+
+2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
