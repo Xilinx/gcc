@@ -7,7 +7,7 @@ int main ()
   float a[256];
 
   // The line below should be OK! 
-  #pragma simd vectorlength(sizeof (a) == sizeof (float) ? 8 : 4) 
+  #pragma simd vectorlength(sizeof (a) == sizeof (float) ? 4 : 8) 
   for (i = 0; i < 256; i++)
     {
       a[i] = i;

@@ -1,3 +1,9 @@
+2013-03-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/pragma_simd_tests/execute/vlength_comma.c: New test
+	* gcc.dg/cilk-plus/pragma_simd_tests/execute/vlength_comma2.c: New test
+	* gcc.dg/cilk-plus/pragma_simd_tests/execute/vlength_comma3.c: New test
+
 2013-03-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/array_notation_tests/compile/array_test1.c (main):

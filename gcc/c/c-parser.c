@@ -9090,7 +9090,7 @@ c_parser_simd_vectorlength (c_parser *parser)
       while (true)
 	{
 	  tree token_value = NULL_TREE;
-	  token_value = c_parser_expression (parser).value;
+	  token_value = c_parser_expr_no_commas (parser, NULL).value;
 	  if (!TREE_TYPE (token_value) || !TREE_CONSTANT (token_value)
 	      || !INTEGRAL_TYPE_P (TREE_TYPE (token_value)))
 	    {
