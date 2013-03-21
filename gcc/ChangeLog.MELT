@@ -1,5 +1,9 @@
 
 2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (dbgout_fields): Revert the change from
+	svn rev 196877.
+
+2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 
 	* melt/generated/warmelt-base+01.c: Regenerate.

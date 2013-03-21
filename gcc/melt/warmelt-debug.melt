@@ -522,8 +522,6 @@ $DBGI at given $DEPTH}#
 	(forever fldloop
 		 (if (>=i ix nbf)
 		     (exit fldloop))
-		 (if (<=i depth 1) 
-		     (add2out_indentnl out depth))
 		 (and (>i torank 0)
 		      (>i ix torank)
 		      (exit fldloop))
