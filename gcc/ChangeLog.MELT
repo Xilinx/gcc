@@ -1,5 +1,12 @@
 
 
+2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-first.melt (class_hook_binding): New class
+	with hookbind_defhook field.
+
+	* melt/warmelt-macro.melt (mexpand_defhook): Complete.
+
 2013-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate all}}

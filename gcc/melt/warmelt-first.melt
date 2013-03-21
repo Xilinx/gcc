@@ -591,6 +591,17 @@ definition.}#
 )
 
 
+;; hook binding
+(defclass class_hook_binding
+  :super class_fixed_binding
+  :fields (hookbind_defhook ;the source definition
+	   )
+  :doc #{The internal $CLASS_HOOK_BINDING is for hook
+bindings. See the $DEFHOOK macro. The $HOOKBIND_DEFHOOK provides the
+definition.}# 
+)
+
+
 ;; define-d value binding
 (defclass class_defined_value_binding
   :super class_fixed_binding
@@ -4334,6 +4345,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_gcc_simple_ipa_pass
  class_gcc_transform_ipa_pass
  class_generated_c_code
+ class_hook_binding
  class_initial_generation_context
  class_input_channel_handler
  class_instance_binding

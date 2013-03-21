@@ -1224,8 +1224,9 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		    (unsafe_get_field :named_name citer))
 	(return)
 	))
-    (multiple_every varformals 
-		    (lambda (lb) (put_env newenv lb)))
+    (foreach_in_multiple 
+     (varformals)
+     (lb :long lix) (put_env newenv lb))
     ;; parse the body in the new environment
     (setq bodytup (expand_pairlist_as_tuple spair newenv mexpander modctx))
     ;; build & return the result
@@ -2253,13 +2254,12 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 		 ))
 	  ;; parse the rest as to be expanded
 	  (setq curpair (pair_tail curpair))
-	  (if (== (pair_head curpair) ':doc)
-	      (progn
-		(setq curpair (pair_tail curpair))
-		(if docv (error_plain loc "duplicate :doc in DEFPRIMITIVE"))
-		(setq docv (pair_head curpair))
-		(setq curpair (pair_tail curpair))
-		))
+	  (when (== (pair_head curpair) ':doc)
+	    (setq curpair (pair_tail curpair))
+	    (if docv (error_plain loc "duplicate :doc in DEFPRIMITIVE"))
+	    (setq docv (pair_head curpair))
+	    (setq curpair (pair_tail curpair))
+	    )
 	  (let (
 		(curhead (pair_head curpair))
 		(exploc (or (get_field :loca_location curhead) loc))
@@ -2319,45 +2319,8 @@ modules.  See also the classes $CLASS_PRIMITIVE, and
 $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; the defhook expander
-(defun mexpand_defhook (sexpr env mexpander modctx)
-  (debug "mexpand_defhook sexpr=" sexpr " modctx=" modctx)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (symb (pair_head curpair))
-	 (intup ())			;formal input tuple
-	 (outup ())			;formal output tuple
-	 (predefv ())			;optional :predef
-	 (docv ())			;optional :doc
-	 )
-    (when (is_not_a symb class_symbol)
-      (error_plain loc 
-		   "missing symbol for (DEFHOOK <symb> <informals> <outformals> [:predef <predef>] [:doc <doc>] <body....>)")
-      (return))
-    (setq curpair (pair_tail curpair))
-    ;; parse the formal input arguments
-    (setq intup (lambda_arg_bindings (pair_head curpair)))
-    (debug "mexpand_defhook intup=" intup)
-    (when (is_a intup  discr_variadic_formal_sequence)
-      (error_plain loc "DEFHOOK cannot have variadic input formals")
-      (return))
-    (setq curpair (pair_tail curpair))
-    ;; parse the formal input arguments
-    (setq outup (lambda_arg_bindings (pair_head curpair)))
-    (debug "mexpand_defhook outup=" outup)
-    (when (is_a outup  discr_variadic_formal_sequence)
-      (error_plain loc "DEFHOOK cannot have variadic output formals")
-      (return))
-    (assert_msg "@$@unimplemented mexpand_defhook")
-    ))
-(install_initial_macro 'defhook mexpand_defhook)
-(export_macro defhook mexpand_defhook
-	      :doc #{The $DEFHOOK macro defines hooks.}#)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; the defciterator expander
 ;;(DEFCITERATOR symb startformals statesymb varformals [:doc documentation] expbefore expafter)
 (defun mexpand_defciterator (sexpr env mexpander modctx)
@@ -2860,6 +2823,7 @@ function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
 	 (symb (pair_head curpair))
+	 (symbname (get_field :named_name symb))
 	 (newenv (fresh_env env))
 	 (docv ())
 	 (fbind 
@@ -2882,15 +2846,14 @@ function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 		    (lambda_arg_bindings (pair_head curpair) sexpr))
 		  (:else
 		   (debug "mexpand_defun strange arglist curpairhead" curpairhead)
-		   (error_plain loc "missing or invalid arglist for DEFUN"_)
+		   (error_strv loc "missing or invalid arglist for DEFUN"_ symbname)
 		   ()
 		   )))
 	   )
-      (if (not (is_multiple btup))
-	  (progn
+      (when (not (is_multiple btup))
 	    (debug "mexpand_defun strange btup" btup)
-	    (error_plain loc "missing formal arguments for DEFUN"_)))
-      (multiple_every btup (lambda (fb) (put_env newenv fb)))
+	    (error_strv loc "missing formal arguments for DEFUN"_ symbname))
+      (foreach_in_multiple (btup) (fb :long bix) (put_env newenv fb))
       (setq curpair (pair_tail curpair))
       ;; handle the optional :doc documentationvalue
       (if (== (pair_head curpair) ':doc)
@@ -2913,7 +2876,7 @@ function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 	     )
 	(put_fields fbind :fubind_defun sdefun)
 	(unless (multiple_length bodytup)
-	  (error_plain loc "missing or empty body for DEFUN"))
+	  (error_strv loc "missing or empty body for DEFUN" symbname))
 	(return sdefun)
 	))))
 (install_initial_macro 'defun mexpand_defun)
@@ -2923,8 +2886,97 @@ is ($DEFUN @var{funame} @var{formals} [:doc @var{documentation}]
 @var{body}...). The first formal argument, if any, is required to be
 of ctype @code{:value}. The expressions in the @var{body} are evaluated
 in sequence. The value of the last is returned. See also $RETURN and
-$LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VALUES to be visible outside its module.}#)
+$LAMBDA macros. A function defined by $DEFUN has to be exported with 
+$EXPORT_VALUES to be visible outside its module.}#)
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; the defhook expander
+(defun mexpand_defhook (sexpr env mexpander modctx)
+  (debug "mexpand_defhook sexpr=" sexpr " modctx=" modctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 (symbname (get_field :named_name symb))
+	 (intup ())			;formal input tuple
+	 (outup ())			;formal output tuple
+	 (predefv ())			;optional :predef
+	 (docv ())			;optional :doc
+	 (newenv (fresh_env env))
+	 (hbind (instance class_hook_binding
+			  :binder symb
+			  :hookbind_defhook ())) ;to be filled later
+	 )
+    (when (is_not_a symb class_symbol)
+      (error_plain loc 
+		   "missing symbol for (DEFHOOK <symb> <informals> <outformals> [:predef <predef>] [:doc <doc>] <body....>)")
+      (return))
+    (setq curpair (pair_tail curpair))
+    (warn_if_redefined symb env loc)
+    ;; parse the formal input arguments
+    (setq intup (lambda_arg_bindings (pair_head curpair)))
+    (debug "mexpand_defhook intup=" intup)
+    (when (is_a intup  discr_variadic_formal_sequence)
+      (error_strv loc "DEFHOOK cannot have variadic input formals" symbname)
+      (return))
+    (setq curpair (pair_tail curpair))
+    ;; parse the formal input arguments
+    (setq outup (lambda_arg_bindings (pair_head curpair)))
+    (debug "mexpand_defhook outup=" outup)
+    (when (is_a outup  discr_variadic_formal_sequence)
+      (error_strv loc "DEFHOOK cannot have variadic output formals" symbname)
+      (return))
+    (setq curpair (pair_tail curpair))
+    ;; handle :predef
+    (when (== (pair_head curpair) ':predef)
+      (setq curpair (pair_tail curpair))
+      (if predefv (error_strv loc "duplicate :predef in DEFHOOK" symbname))
+      (setq predefv (pair_head curpair))
+      (setq curpair (pair_tail curpair))
+      )
+    ;; handle :doc
+    (when (== (pair_head curpair) ':doc)
+      (setq curpair (pair_tail curpair))
+      (if docv (error_strv loc "duplicate :doc in DEFHOOK" symbname))
+      (setq docv (pair_head curpair))
+      (setq curpair (pair_tail curpair))
+      )
+    ;; update the newenv
+    (put_env newenv hbind)
+    (foreach_in_multiple
+     (intup)
+     (inbnd :long inix)
+     (warn_if_redefined (get_field :binder inbnd) env loc)
+     (put_env newenv inbnd))
+    (foreach_in_multiple
+     (outup)
+     (outbnd :long outix)
+     (warn_if_redefined (get_field :binder outbnd) env loc)
+     (put_env newenv outbnd))
+    ;; parse the rest as to be expanded 
+    (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander modctx)) 
+	   (sdefhook
+	    (instance class_source_defhook
+		      :loca_location loc
+		      :sdef_name symb
+		      :sdef_doc docv
+		      :sformal_args intup
+		      :shook_out_formals outup
+		      :shook_predef predefv
+		      :shook_body bodytup
+		      ))
+	   )
+      (put_fields hbind :hookbind_defhook sdefhook)
+      (debug "mexpand_defhook result sdefhook=" sdefhook "\n hbind=" hbind)
+      (return sdefhook)
+      )))
+(install_initial_macro 'defhook mexpand_defhook)
+(export_macro defhook mexpand_defhook
+	      :doc #{The $DEFHOOK macro defines hooks.}#)
 
 
 
