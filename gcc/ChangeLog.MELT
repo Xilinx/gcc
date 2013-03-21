@@ -1,5 +1,9 @@
 
 2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_defhook): More, now
+	normalizing the body...
+
+2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (dbgout_fields): Revert the change from
 	svn rev 196877.
 

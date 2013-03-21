@@ -4212,12 +4212,11 @@ source location.}#
 		       :nctx_symbcachemap (make_mapobject discr_map_objects 40))
     (add_nctx_data ncx ndatarout)
     (add_nctx_data ncx ndataclos)
-    (if (is_not_a sfubind class_function_binding)
-	(progn
-	(error_strv sloc
-		    "bad DEFUN-ed function [nested definitions are prohibited; consider using LETREC]"
-		    (get_field :named_name snam))
-	(return)))
+    (when (is_not_a sfubind class_function_binding)
+      (error_strv sloc
+		  "bad DEFUN-ed function [nested definitions are prohibited; consider using LETREC]"
+		  (get_field :named_name snam))
+      (return))
     (unsafe_put_fields nproc :nrpro_datarout ndatarout :nrpro_dataclos ndataclos)
     (foreach_in_multiple 
      (sformals)
@@ -4305,8 +4304,38 @@ source location.}#
 					 (is_not_a soutformals discr_variadic_formal_sequence)))
     (debug "normexp_defhook shobind=" shobind "\n oldproc=" oldproc " \n nproc=" nproc
 	   "\n ndatahook=" ndatahook "\n class_nrep_datahook=" class_nrep_datahook)
-    (assert_msg "@$@unimplemented normexp_defhook")
-))
+    (put_fields ncx 
+		:nctx_curproc nproc
+		:nctx_symbcachemap (make_mapobject discr_map_objects 40))
+    (add_nctx_data ncx ndatahook)
+    (when (is_not_a shobind class_hook_binding)
+      (error_strv sloc
+		  "bad DEFHOOK, not bound to a hook [nested hooks are prohibited]"
+		  symbname)
+      (return))
+    (put_fields nproc :nrhook_datahook ndatahook)
+    (debug "normexp_defhook updated ncx=" ncx "\n .. nproc=" nproc)
+    (foreach_in_multiple
+     (sinformals)
+     (fbi :long ix)
+     (assert_msg "check fbi" (is_a fbi class_formal_binding))
+     (put_env newenv fbi))
+    (foreach_in_multiple
+     (soutformals)
+     (fbo :long ix)
+     (assert_msg "check fbo" (is_a fbo class_formal_binding))
+     (put_env newenv fbo))
+    (put_fields newenv :env_proc nproc)
+    (debug "normexp_defhook newenv=" newenv)
+    ;; add nproc into ncx
+    (list_append (get_field :nctx_proclist ncx) nproc)
+    (debug "normexp_defhook sbody=" sbody " updated ncx=" ncx)
+    (multicall
+     (nbody nbindings)
+     (normalize_tuple sbody newenv ncx sloc)
+     (debug "normexp_defhook nbody=" nbody "\n.. nbindings=" nbindings)
+     (assert_msg "@$@unimplemented normexp_defhook")
+     )))
 (install_method class_source_defhook normal_exp normexp_defhook)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
