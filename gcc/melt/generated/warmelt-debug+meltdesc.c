@@ -37,15 +37,15 @@ const char melt_modulename[]="warmelt-debug";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc/x86_64-linux-gnu/4.8.0/melt-modules/0.9.8-post/warmelt-debug";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="2db71d912ec4051d6af07bd8ba894de3";
+const char melt_prepromd5meltrun[]="e1316317ddad9d841c7b2d2054a60159";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="7e9fe062713cca220e8ac8d2c8c2dc6f";
+const char melt_primaryhexmd5[]="8c94576b4191a3220cc9ffa84c565f42";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum meltbuild-sources/warmelt-debug+01.c #1 */ "540d0018cacb6654f6ceae3e1060875b",
- /*sechexmd5checksum meltbuild-sources/warmelt-debug+02.c #2 */ "99fc7031c2324c9434a8ea20bba2c9ea",
+ /*sechexmd5checksum meltbuild-sources/warmelt-debug+01.c #1 */ "3dec68d31cecc4f261a1892085f6e756",
+ /*sechexmd5checksum meltbuild-sources/warmelt-debug+02.c #2 */ "41a740e3a143d1a5e523af8ea9701647",
  /*nosecfile*/ (const char*)0,
  (const char*)0 };
 
@@ -53,10 +53,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=2;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="4ce0e3138e012133a608617e52543ec9" ;
+const char melt_cumulated_hexmd5[]="61c84c1718ae8423d0add31e93c8e02f" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_debug_mds__4ce0e3138e012133a608617e52543ec9 1
+#define meltmod_warmelt_debug_mds__61c84c1718ae8423d0add31e93c8e02f 1
 #include "warmelt-debug+melttime.h"
 	 
 
