@@ -1,5 +1,11 @@
 
 2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (discr_hook): Export it.
+	* melt/warmelt-debug.melt (dbgout_fields): Add an indent if depth
+	is at most 1.
+	* melt/warmelt-normal.melt (normexp_defhook): Still incomplete.
+
+2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* testsuite/melt/thook-1.melt: New file.
 	* melt/warmelt-normal.melt (normexp_defhook): Still incomplete.
@@ -17,7 +23,7 @@
 
 	* melt-predef.list (DISCR_HOOK): New predefined.
 
-	* melt/warmelt-first.melt (DISCR_HOOK): New discriminent for hook
+	* melt/warmelt-first.melt (DISCR_HOOK): New discriminant for hook
 	values.
 
 2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>

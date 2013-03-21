@@ -4536,6 +4536,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_formal_sequence
  discr_gimple
  discr_gimple_seq
+ discr_hook
  discr_integer                        
  discr_list    
  discr_loop 

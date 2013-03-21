@@ -4288,20 +4288,23 @@ source location.}#
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
 	 (oldsymbcache (unsafe_get_field :nctx_symbcachemap ncx))
 	 (nproc (instance class_nrep_hookproc
-;;; dont forget to put the nil fields at end
 			  :nrep_loc sloc
+			  :nproc_body ()
 			  :nrhook_name symbname
 			  :nrhook_inb ()
 			  :nrhook_outb ()
 			  :nrhook_datahook ()))
+	 (ndatahook (instance class_nrep_datahook
+			      :ndata_name symbname
+			      :ndata_discrx (normal_predef discr_hook ncx sloc "discr_hook")))
 	 )
     (assert_msg "check symbname" (is_string symbname))
     (assert_msg "check sinformals" (and (is_multiple_or_null sinformals)
 					(is_not_a sinformals discr_variadic_formal_sequence)))
     (assert_msg "check soutformals" (and (is_multiple_or_null soutformals)
 					 (is_not_a soutformals discr_variadic_formal_sequence)))
-    (debug "normexp_defhook shobind=" shobind "\n oldproc=" oldproc " \n nproc=" nproc 
-	   "\n class_nrep_hookproc=" class_nrep_hookproc)
+    (debug "normexp_defhook shobind=" shobind "\n oldproc=" oldproc " \n nproc=" nproc
+	   "\n ndatahook=" ndatahook "\n class_nrep_datahook=" class_nrep_datahook)
     (assert_msg "@$@unimplemented normexp_defhook")
 ))
 (install_method class_source_defhook normal_exp normexp_defhook)
