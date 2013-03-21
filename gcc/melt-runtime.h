@@ -356,6 +356,9 @@ static inline int melt_magic_discr (melt_ptr_t p);
 /* the maximal length of name of melt routines descriptions */
 #define MELT_ROUTDESCR_LEN 100
 
+/* the maximal length of melt hooks names */
+#define MELT_HOOKNAME_LEN 80
+
 #ifndef meltobject_ptr_t_TYPEDEFINED
 typedef struct meltobject_st* meltobject_ptr_t ;
 #define meltobject_ptr_t_TYPEDEFINED

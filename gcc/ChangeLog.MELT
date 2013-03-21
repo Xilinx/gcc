@@ -2,6 +2,14 @@
 
 2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (MELT_HOOKNAME_LEN): New macro constant.
+
+	* melt/warmelt-base.melt (valdesc_routine): Also forward routdata
+	in struct melt_routine_st.
+	(valdesc_hook): New value descriptor.
+
+2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-first.melt (class_hook_binding): New class
 	with hookbind_defhook field.
 

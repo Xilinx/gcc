@@ -3121,12 +3121,81 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
      int ix = 0;
      for (ix = 0; ix < nbval; ix++)
        MELT_FORWARDED (src->tabval[ix]);
+     MELT_FORWARDED (src->routdata);
   }#
 )
 (install_value_descriptor valdesc_routine)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(definstance valdesc_hook class_varisized_value_descriptor
+  :doc #{$VALDESC_HOOK describes hook values.}#
+  :named_name '"VALDESC_HOOK"
+  :valdesc_objmagic '"MELTOBMAG_HOOK"
+  :valdesc_struct '"melthook_st"
+  :valdesc_unionmem '"u_hook"
+  :valdesc_membchunk #{$' /* from VALDESC_HOOK in warmelt-base.melt */
+    char hookname[MELT_HOOKNAME_LEN];
+    void* GTY ((skip)) hookad;
+    melt_ptr_t hookdata;
+    unsigned nbval;
+    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[MELT_FLEXIBLE_DIM];
+  }#
+  :valdesc_declchunk #{$' /* decl VALDESC_HOOK  in warmelt-base.melt */
+#ifndef melthook_ptr_t_TYPEDEFINED
+typedef struct melthook_st *melthook_ptr_t;
+#define  melthook_ptr_t_TYPEDEFINED
+#endif /*melthook_ptr_t_TYPEDEFINED from VALDESC_ROUTINE */
+
+/* unsafely set inside the melthook_st pointed by Hptr the
+   routine function pointer to Hookroot */
+#define MELT_HOOK_SET_ROUTCODE(Hptr,Hookrout) do {	\
+  ((struct melthook_st*)(Hptr))->hookad		        \
+     = (void*) (Hookrout);				\
+} while(0)
+
+#define MELT_HOOK_STRUCT(N) {		        \
+  meltobject_ptr_t discr;			\
+  char hookname[MELT_HOOKNAME_LEN];		\
+  void* hookad;			                \
+  melt_ptr_t hookdata;				\
+  unsigned nbval;				\
+  melt_ptr_t tabval[N+1]; }
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_HOOK in warmelt-base.melt */
+  /* ggc_alloc_melthook_st should be gengtype generated for VALDESC_HOOK */
+#ifndef ggc_alloc_melthook_st
+#define ggc_alloc_melthook_st(SIZE) ((struct melthook_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
+#endif 
+     int nbv = (int) src->nbval;
+     int ix = 0;
+     dst =
+       /* Don't need a cleared allocation!  */
+       ggc_alloc_melthook_st
+       (nbv*sizeof(void*) + offsetof(struct melthook_st, tabval));
+     dst->discr = src->discr;
+     strncpy (dst->hookname, src->hookname, MELT_HOOKNAME_LEN);
+     dst->hookname[MELT_HOOKNAME_LEN - 1] = 0;
+     dst->nbval = (unsigned) nbv;
+     dst->hookad = src->hookad;
+     for (ix = 0; ix < nbv; ix++)
+       dst->tabval[ix] = src->tabval[ix];
+     dst->hookdata = src->hookdata;
+  }#
+  ;; don't clone hooks!
+  :valdesc_forwchunk #{$' /* from VALDESC_HOOK in warmelt-base.melt */
+     int nbval = (int) src->nbval;
+     int ix = 0;
+     for (ix = 0; ix < nbval; ix++)
+       MELT_FORWARDED (src->tabval[ix]);
+     MELT_FORWARDED (src->hookdata);
+  }#
+)
+(install_value_descriptor valdesc_hook)
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; long bucket values
 (definstance valdesc_bucketlongs class_varisized_value_descriptor
   :doc #{$VALDESC_BUCKETLONGS describe internal long-keyed buckets inside long bighashtables.}#
@@ -4074,6 +4143,7 @@ which signals are not handled. It could be dynamically nested.}#
  valdesc_bucketlongs
  valdesc_closure
  valdesc_decay
+ valdesc_hook
  valdesc_int
  valdesc_list
  valdesc_mapobjects
