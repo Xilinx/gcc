@@ -1137,8 +1137,8 @@ enum stv_conv {
 extern enum stv_conv scalar_to_vector (location_t loc, enum tree_code code,
 				       tree op0, tree op1, bool);
 
-/* These #defines allow users to access different operands of the 
-      array notation tree.  */
+/* These #defines allow users to access different operands of the
+   array notation tree.  */
 
 #define ARRAY_NOTATION_CHECK(NODE) TREE_CHECK (NODE, ARRAY_NOTATION_REF)
 #define ARRAY_NOTATION_ARRAY(NODE) \
