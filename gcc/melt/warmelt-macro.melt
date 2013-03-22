@@ -2910,10 +2910,10 @@ $EXPORT_VALUES to be visible outside its module.}#)
 	 (resctyp ())			;the ctype of result
 	 (predefv ())			;optional :predef
 	 (docv ())			;optional :doc
-	 (newenv (fresh_env env))
 	 (hbind (instance class_hook_binding
 			  :binder symb
 			  :hookbind_defhook ())) ;to be filled later
+	 (newenv (fresh_env env))
 	 )
     (when (is_not_a symb class_symbol)
       (error_plain loc 
@@ -2961,8 +2961,8 @@ $EXPORT_VALUES to be visible outside its module.}#)
       (setq docv (pair_head curpair))
       (setq curpair (pair_tail curpair))
       )
-    ;; update the newenv
-    (put_env newenv hbind)
+    ;; update the env & newenv
+    (put_env env hbind)
     (foreach_in_multiple
      (intup)
      (inbnd :long inix)

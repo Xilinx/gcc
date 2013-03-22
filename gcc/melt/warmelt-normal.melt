@@ -4272,7 +4272,7 @@ source location.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFHOOK
 (defun normexp_defhook (recv  env ncx psloc)
-  (debug "normexp_defhook recv=" recv "\n.. ncx=" ncx)
+  (debug "normexp_defhook recv=" recv "\n.. ncx=" ncx "\n.. env=" env)
   (assert_msg "check defhook recv" (is_a recv class_source_defhook))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
@@ -4306,7 +4306,7 @@ source location.}#
     (assert_msg "check soutformals" (and (is_multiple_or_null soutformals)
 					 (is_not_a soutformals discr_variadic_formal_sequence)))
     (debug "normexp_defhook shobind=" shobind "\n oldproc=" oldproc " \n nproc=" nproc
-	   "\n ndatahook=" ndatahook "\n class_nrep_datahook=" class_nrep_datahook)
+	   "\n ndatahook=" ndatahook)
     (put_fields ncx 
 		:nctx_curproc nproc
 		:nctx_symbcachemap (make_mapobject discr_map_objects 40))

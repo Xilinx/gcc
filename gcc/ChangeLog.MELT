@@ -1,5 +1,11 @@
 
 2013-03-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_defhook): Extend the current
+	-not the new- environment with the hook binding.
+
+	* melt/warmelt-normal.melt (normexp_defhook): More debug.
+
+2013-03-22  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{defhook wants a result ctype}}
 	* melt/warmelt-macro.melt (class_source_defhook): Add shook_ctype
