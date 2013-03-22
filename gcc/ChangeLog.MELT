@@ -1,5 +1,17 @@
 
 2013-03-22  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt (normexp_defhook): Return the nproc.
+
+	* melt/warmelt-genobj.melt (compile2obj_hook): Add incomplete
+	stub.
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Call
+	compile2obj_hook for hooks.
+
+	* testsuite/melt/thook-1.melt: Improve.
+
+2013-03-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_defhook): Extend the current
 	-not the new- environment with the hook binding.
 

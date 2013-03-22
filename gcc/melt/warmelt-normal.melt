@@ -2671,31 +2671,43 @@ source location.}#
 	)))))
 (install_method class_source_msend normal_exp normexp_msend)
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a return
 (defun normexp_return (recv env ncx psloc)
-  (debug "normexp_return recv" recv)
+  (debug "normexp_return recv=" recv "\n ncx=" ncx)
   (assert_msg "check return recv" (is_a recv class_source_return))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (let ( (sloc (unsafe_get_field :loca_location recv)) 
+  (let ( (sloc (or (get_field :loca_location recv) psloc))
 	 (srets (unsafe_get_field :sargop_args recv))
 	 (:long nbrets (multiple_length srets))
-	 (csym (clone_symbol 'return_)) 
+	 (csym (clone_symbol 'return_))
+	 (curproc (get_field :nctx_curproc ncx))
+	 (restype (cond ( (is_a curproc class_nrep_routproc)
+			  ctype_value)
+			( (is_a curproc class_nrep_hookproc)
+			  (get_field :nrhook_ctype curproc))
+			( :else
+			  (error_plain sloc 
+				       "RETURN outside of LAMBDA or DEFUN procedure or DEFHOOK")
+			  (return))))
 	 ;; while the return effectively go out, it is preferable to give it a value type
 	 ;; to avoid make warning on code like (if (p x) (return) (.....))
 	 (cbind (instance class_normal_let_binding
 			  :letbind_loc sloc
 			  :binder csym
-			  :letbind_type ctype_value 
+			  :letbind_type restype 
 			  ;; :letbind_expr is filled later
 			  ))
 	 (clocc (instance class_nrep_locsymocc
 			  :nrep_loc sloc
-			  :nocc_ctyp ctype_value
+			  :nocc_ctyp restype
 			  :nocc_symb csym
 			  :nocc_bind cbind)) 
 	 )
+    (debug "normexp_return srets=" srets " curproc=" curproc)
     ;; special case for empty return
     (if (<=i nbrets 0)
 	(let ( 
@@ -2718,8 +2730,23 @@ source location.}#
 	      (toth (make_multiple discr_multiple (-i nbrets 1))) 
 	      (ctyp0 (get_ctype nret0 env))
 	      )
-	 (if (!= ctyp0 ctype_value)
-	     (error_plain sloc "main return is not a value"))
+	 (when 
+	     (and 
+	      (!= ctyp0 ctype_value)
+	      (is_a curproc class_nrep_routproc))
+	   (error_plain sloc 
+			"primary RETURN-ed result from procedure is not a value")
+	   (return))
+	 (when (is_a curproc class_nrep_hookproc)
+	   (when (>i nbrets 1)
+	     (error_plain sloc "RETURN with secondary results impossible in a hook")
+	     (return))
+	   (when (and nret0 ctyp0 (!= ctyp0 restype))
+	     (error_plain sloc "RETURN with incompatible type in hook")
+	     (inform_strv sloc "expected hook return ctype is" (get_field :named_name restype))
+	     (inform_strv sloc "actual returned ctype in hook is" (get_field :named_name ctyp0))
+	     (return))
+	   )
 	 (if (null nbindrets) 
 	     (setq nbindrets (make_list discr_list)))
 	 ;; add a void binding to check interrupts
@@ -2731,7 +2758,7 @@ source location.}#
 				    :letbind_type ctype_void
 				    :letbind_expr nchint
 				    ))
-	       )
+		)
 	   (list_append nbindrets rintbind)
 	   )
 	 ;;
@@ -2746,6 +2773,7 @@ source location.}#
 	    )
 	  (if (>i ix 0)
 	      (multiple_put_nth toth (-i ix 1) ncomp)))
+;;;
 	 (let ( (nret
 		 (instance class_nrep_return
 			   :nrep_loc sloc
@@ -2758,6 +2786,8 @@ source location.}#
 	   (return clocc nbindrets)
 	   ))))))
 (install_method class_source_return normal_exp normexp_return)
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize an if
@@ -4328,6 +4358,9 @@ source location.}#
      (fbo :long ix)
      (assert_msg "check fbo" (is_a fbo class_formal_binding))
      (put_env newenv fbo))
+    (put_fields nproc 
+		:nrhook_inb sinformals
+		:nrhook_outb soutformals)
     (put_fields newenv :env_proc nproc)
     (debug "normexp_defhook newenv=" newenv)
     ;; add nproc into ncx
@@ -4346,13 +4379,15 @@ source location.}#
      (let ( (nseq (wrap_normal_letseq nbody nbindings sloc))
 	   )
        (debug "normexp_defhook nseq=" nseq)
+       (put_fields nproc :nproc_body nseq)
        ;; restore the previous symbol cache map & the old proc 
        (put_fields ncx 
 		   :nctx_symbcachemap oldsymbcache
 		   :nctx_curproc oldproc
 		   )
        (debug "normexp_defhook restored ncx=" ncx)
-       (assert_msg "@$@unimplemented normexp_defhook")
+       (debug "normexp_defhook result nproc=" nproc)
+       (return nproc)
        ))))
 (install_method class_source_defhook normal_exp normexp_defhook)
 

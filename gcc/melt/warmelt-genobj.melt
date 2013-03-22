@@ -1031,6 +1031,13 @@ $SBUF.}#
   (variadic_idstr variadsym "_len"))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; compile a single hook
+(defun compile2obj_hook (nhook modctx compicache :long num)
+  (debug "compile2obj_hook nhook=" nhook "\n.. modctx=" modctx
+	 "\n.. compicache=" compicache "\n.. num=" num)
+  (assert_msg "@$@unimplemented compile2obj_hook"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1832,6 +1839,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
+ compile2obj_hook
  compile2obj_initproc
  compile2obj_initextendproc
  compile2obj_procedure

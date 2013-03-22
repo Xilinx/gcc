@@ -16,10 +16,10 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
-(defhook justahook (:long in) (:long out) :long
-  (debug "justahook in=" in " out=" out " class_reference=" class_reference)
-  (setq out int)
-  (return (+i in 1))
+(defhook justahook (:long inp) (:long out) :long
+  (debug "justahook inp=" inp " out=" out " class_reference=" class_reference)
+  (setq out inp)
+  (return (+i inp 1))
   )
 
 ;; eof thook-1.melt

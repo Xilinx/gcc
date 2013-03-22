@@ -5674,7 +5674,7 @@ if (1) return;
   ;;
   ;; INIPROCTRANSL is the translator of the initial routine
   ;;
-  ;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
   (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx
 	 "\n* inienv=" inienv
 	 "\n* iniproctransl=" iniproctransl)
@@ -5741,15 +5741,27 @@ if (1) return;
        ;;
        ;; compile each procedure and check for errors
        (assert_msg "check prolist" (is_list prolist))
-       (list_every
-	prolist
-	(lambda (pro)
-	  (assert_msg "check pro" (is_a pro class_nrep_anyproc))
-	  (put_int countbox (+i (get_int countbox) 1))
-	  (let ( (objpro (compile2obj_procedure pro modctx compicache (get_int countbox))) )
+       (foreach_in_list
+	(prolist)
+	(curpair pro)
+	(debug "translate_macroexpanded_list pro=" pro)
+	(put_int countbox (+i (get_int countbox) 1))
+	(cond 
+	( (is_a pro class_nrep_anyproc)
+	  (let ( (objpro (compile2obj_procedure pro modctx compicache (get_int countbox))) 
+		 )
 	    (debug "translate_macroexpanded_list objpro=" objpro " pro=" pro)
 	    (list_append objlist objpro)
-	    )))
+	  ))
+	( (is_a pro class_nrep_hookproc)
+	  (let ( (objhook (compile2obj_hook pro modctx compicache (get_int countbox)))
+		 )
+	    (debug "translate_macroexpanded_list objhook=" objhook " pro=" pro)
+	    (list_append objlist objhook)))
+	( :else
+	  (assert_msg "translate_macroexpanded_list unexecpected procedure" pro))
+	))
+       ;;
        (when (melt_error_counter)
 	 (if (is_closure errorhdlr) 
 	     (errorhdlr '"MELT translation failed after generation"))
