@@ -348,10 +348,11 @@ the location of the expansion.}#
 (defclass class_source_defhook
   :doc #{The internal $CLASS_SOURCE_DEFHOOK is the abstract syntax for
   $DEFHOOK. Inherited $SFORMAL_ARGS are the input formals, and
-  $SHOOK_OUT_FORMALS are the output formals, $SHOOK_PREDEF is the
-  optional predefined slot, and $SHOOK_BODY is the body. }#
+  $SHOOK_OUT_FORMALS are the output formals, $SHOOK_CTYPE is the
+  result ctype, $SHOOK_PREDEF is the optional predefined slot, and
+  $SHOOK_BODY is the body. }#
   :super class_source_definition_formal
-  :fields (shook_out_formals shook_predef shook_body))
+  :fields (shook_out_formals shook_ctype shook_predef shook_body))
 
 ;;; define a citerator
 (defclass class_source_defciterator
@@ -2228,8 +2229,9 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
       (setq curpair (pair_tail curpair))
       ;; parse the type keyword
       (let ( (typkw  (pair_head curpair)) )
-	(if (is_not_a typkw class_keyword)
-	    (error_plain loc "missing type keyword for (DEFPRIMITIVE symb args type [:doc documentation] expansion...)"_))
+	(when (is_not_a typkw class_keyword)
+	    (error_strv loc "missing type keyword for (DEFPRIMITIVE symb args type [:doc documentation] expansion...)"_ (get_field :named_name symb))
+	    (return))
 	(let ( (cty (unsafe_get_field :symb_data typkw)) 
 	       (typknam (unsafe_get_field :named_name typkw))
 	       )
@@ -2904,6 +2906,8 @@ $EXPORT_VALUES to be visible outside its module.}#)
 	 (symbname (get_field :named_name symb))
 	 (intup ())			;formal input tuple
 	 (outup ())			;formal output tuple
+	 (restypkw ())			;the ctype keyword of result
+	 (resctyp ())			;the ctype of result
 	 (predefv ())			;optional :predef
 	 (docv ())			;optional :doc
 	 (newenv (fresh_env env))
@@ -2913,7 +2917,7 @@ $EXPORT_VALUES to be visible outside its module.}#)
 	 )
     (when (is_not_a symb class_symbol)
       (error_plain loc 
-		   "missing symbol for (DEFHOOK <symb> <informals> <outformals> [:predef <predef>] [:doc <doc>] <body....>)")
+		   "missing symbol for (DEFHOOK <symb> <informals> <outformals> <ctype-key> [:predef <predef>] [:doc <doc>] <body....>)")
       (return))
     (setq curpair (pair_tail curpair))
     (warn_if_redefined symb env loc)
@@ -2924,12 +2928,24 @@ $EXPORT_VALUES to be visible outside its module.}#)
       (error_strv loc "DEFHOOK cannot have variadic input formals" symbname)
       (return))
     (setq curpair (pair_tail curpair))
-    ;; parse the formal input arguments
+    ;; parse the formal output arguments
     (setq outup (lambda_arg_bindings (pair_head curpair)))
     (debug "mexpand_defhook outup=" outup)
     (when (is_a outup  discr_variadic_formal_sequence)
       (error_strv loc "DEFHOOK cannot have variadic output formals" symbname)
       (return))
+    (setq curpair (pair_tail curpair))
+    ;; parse the type keyword
+    (setq restypkw (pair_head curpair))
+    (when (is_not_a restypkw class_keyword)
+      (error_strv loc "DEFHOOK needs a ctype keyword after output formals" symbname)
+      (return))
+    (let ( (cty (unsafe_get_field :symb_data restypkw))
+	   )
+      (when (is_not_a cty class_ctype)
+      (error_strv loc "DEFHOOK with bad ctype keyword after output formals" symbname)
+      (return))
+      (setq resctyp cty))
     (setq curpair (pair_tail curpair))
     ;; handle :predef
     (when (== (pair_head curpair) ':predef)
@@ -2966,6 +2982,7 @@ $EXPORT_VALUES to be visible outside its module.}#)
 		      :sdef_doc docv
 		      :sformal_args intup
 		      :shook_out_formals outup
+		      :shook_ctype resctyp
 		      :shook_predef predefv
 		      :shook_body bodytup
 		      ))

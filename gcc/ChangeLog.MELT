@@ -1,4 +1,18 @@
 
+2013-03-22  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{defhook wants a result ctype}}
+	* melt/warmelt-macro.melt (class_source_defhook): Add shook_ctype
+	field.
+	(mexpand_defprimitive): More checks.
+	(mexpand_defhook): parse the ctype of result.
+
+	* melt/warmelt-normal.melt (class_nrep_hookproc): Add nrhook_ctype
+	field.
+	(normexp_defhook): More code.
+
+	* testsuite/melt/thook-1.melt: More code, since result.
+
 2013-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_defhook): More, now
 	normalizing the body...

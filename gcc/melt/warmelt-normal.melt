@@ -494,7 +494,7 @@ routine procedures.}#
 
 
 
-;; the class of the normalized hook procedures
+;; the class of the normalized hook procedure
 (defclass class_nrep_hookproc
   :super class_nrep_anyproc
   :doc #{The $CLASS_NREP_HOOKPROC is the class for a hook
@@ -502,6 +502,7 @@ procedure in a module, defined with $DEFHOOK. }#
   :fields (nrhook_name			;name
 	   nrhook_inb			;input arguments binding tuple
            nrhook_outb			;output arguments binding tuple
+	   nrhook_ctype			;ctype of result
 	   nrhook_datahook		;hook data object
 	   
 	   ))
@@ -4280,6 +4281,7 @@ source location.}#
 	 (symbname (get_field :named_name symb))
 	 (sinformals (unsafe_get_field :sformal_args recv))
 	 (soutformals (unsafe_get_field :shook_out_formals recv))
+	 (sctype (unsafe_get_field :shook_ctype recv))
 	 (spredef (unsafe_get_field :shook_predef recv))
 	 (sbody (unsafe_get_field :shook_body recv))
 	 (shobind (find_env env symb))
@@ -4292,6 +4294,7 @@ source location.}#
 			  :nrhook_name symbname
 			  :nrhook_inb ()
 			  :nrhook_outb ()
+			  :nrhook_ctype sctype
 			  :nrhook_datahook ()))
 	 (ndatahook (instance class_nrep_datahook
 			      :ndata_name symbname
@@ -4334,8 +4337,23 @@ source location.}#
      (nbody nbindings)
      (normalize_tuple sbody newenv ncx sloc)
      (debug "normexp_defhook nbody=" nbody "\n.. nbindings=" nbindings)
-     (assert_msg "@$@unimplemented normexp_defhook")
-     )))
+     ;; make the bindings in the newenv
+     (foreach_in_multiple
+      (nbindings)
+      (nbi :long bix)
+      (put_env newenv nbi))
+     (debug "normexp_defhook updated newenv=" newenv)
+     (let ( (nseq (wrap_normal_letseq nbody nbindings sloc))
+	   )
+       (debug "normexp_defhook nseq=" nseq)
+       ;; restore the previous symbol cache map & the old proc 
+       (put_fields ncx 
+		   :nctx_symbcachemap oldsymbcache
+		   :nctx_curproc oldproc
+		   )
+       (debug "normexp_defhook restored ncx=" ncx)
+       (assert_msg "@$@unimplemented normexp_defhook")
+       ))))
 (install_method class_source_defhook normal_exp normexp_defhook)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
