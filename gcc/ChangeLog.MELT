@@ -1,6 +1,18 @@
 
 2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (class_hookroutineobj): Add
+	ohookrout_epilog field.
+	(compile2obj_hook): Done, but not tested.
+
+	* melt/warmelt-outobj.melt (outpucod_procroutine)
+	(outpucod_initialmoduleroutine): Generated labels start with
+	meltlab_...
+	(outpucod_hookroutine): New stub method for output_c_code of
+	class_hookroutineobj.
+
+2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-genobj.melt (compile2obj_hook): More, but still
 	incomplete.
 

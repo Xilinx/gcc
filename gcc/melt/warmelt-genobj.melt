@@ -586,6 +586,8 @@
 	   ohookrout_datarg		;the argument for the data
 	   ohookrout_inargs
 	   ohookrout_outargs
+	   ohookrout_epilog		;list of objinstr after the
+					;meltlabend_rout label
 	   ))
 	   
 ;; initial routine common super-class
@@ -1080,6 +1082,7 @@ $SBUF.}#
 	(resctype (get_field :nrhook_ctype nhook))
 	(ndatahook (get_field :nrhook_datahook nhook))
 	(obodylist (make_list discr_list))
+	(oepiloglist (make_list discr_list))
 	(oinargs (make_multiple discr_multiple (multiple_length ninbinds)))
 	(ooutargs (make_multiple discr_multiple (multiple_length noutbinds)))
 	(odatarg (instance class_objcformal
@@ -1101,6 +1104,7 @@ $SBUF.}#
 			    :ohookrout_datarg odatarg
 			    :ohookrout_inargs oinargs
 			    :ohookrout_outargs ooutargs
+			    :ohookrout_epilog oepiloglist
 			    ))
 	(locmap (make_mapobject discr_map_objects 
 				(+i 30 (*i 3 (+i (multiple_length ninbinds)
@@ -1196,9 +1200,23 @@ $SBUF.}#
 	 (debug "compile2obj_hook obody=" obody)
 	 (list_append obodylist obody)
 	 ;;
-	 (debug "compile2obj_hook hookrout=" hookrout)
+	 ;; set the output parameters in the epilog
+	 (foreach_in_multiple
+	  (ooutargs)
+	  (curout :long outix)
+	  (debug "compile2obj_hook curout=" curout "\n... outix=" outix)
+	  (let (
+		(outloc (get_field :oformal_locv curout))
+		(ctypoutb (get_field :obv_type curout))
+		(ofargout (make_objcompute loc ctypoutb
+					 ##{/*gethookoutput*/ MELTHOOK_OUTPUT($OUTLOC, $CUROUT)}#))
+	      )
+	      (list_append oepiloglist ofargout)
+	  ))
+	 (debug "compile2obj_hook oepiloglist=" oepiloglist)
 	 ;;
-	 (assert_msg "@$@unimplemented compile2obj_hook"))))))
+	 (debug "compile2obj_hook return hookrout=" hookrout)
+	 (return hookrout))))))
 
 
 
@@ -1351,7 +1369,7 @@ $SBUF.}#
 	(list_append obodylist obody)
 	)
       (debug "compile2obj_procedure return obrout=" obrout)
-      obrout
+      (return obrout)
       )))
 
 
