@@ -1,4 +1,9 @@
 
+2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Test
+	first for hooks.
+
 2013-03-22  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}

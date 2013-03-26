@@ -5747,17 +5747,18 @@ if (1) return;
 	(debug "translate_macroexpanded_list pro=" pro)
 	(put_int countbox (+i (get_int countbox) 1))
 	(cond 
+	 ;; first check for hooks
+	( (is_a pro class_nrep_hookproc)
+	  (let ( (objhook (compile2obj_hook pro modctx compicache (get_int countbox)))
+		 )
+	    (debug "translate_macroexpanded_list objhook=" objhook " pro=" pro)
+	    (list_append objlist objhook)))
 	( (is_a pro class_nrep_anyproc)
 	  (let ( (objpro (compile2obj_procedure pro modctx compicache (get_int countbox))) 
 		 )
 	    (debug "translate_macroexpanded_list objpro=" objpro " pro=" pro)
 	    (list_append objlist objpro)
 	  ))
-	( (is_a pro class_nrep_hookproc)
-	  (let ( (objhook (compile2obj_hook pro modctx compicache (get_int countbox)))
-		 )
-	    (debug "translate_macroexpanded_list objhook=" objhook " pro=" pro)
-	    (list_append objlist objhook)))
 	( :else
 	  (assert_msg "translate_macroexpanded_list unexecpected procedure" pro))
 	))
