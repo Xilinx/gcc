@@ -2686,8 +2686,8 @@ meltrout_32_warmelt_normal_LAMBDA___5__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:1644:/ getarg");
  /*_.PR__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -2930,8 +2930,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -3026,8 +3026,8 @@ meltrout_33_warmelt_normal_LAMBDA___6__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:1651:/ getarg");
  /*_.CX__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -3124,7 +3124,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -3134,8 +3134,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -3230,8 +3230,8 @@ meltrout_34_warmelt_normal_LAMBDA___7__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:1700:/ getarg");
  /*_.PR__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -3474,8 +3474,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -3570,8 +3570,8 @@ meltrout_35_warmelt_normal_LAMBDA___8__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:1707:/ getarg");
  /*_.CX__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -3668,7 +3668,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -3678,8 +3678,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -3774,8 +3774,8 @@ meltrout_36_warmelt_normal_LAMBDA___9__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:1729:/ getarg");
  /*_.PR__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -4018,8 +4018,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -4115,8 +4115,8 @@ meltrout_37_warmelt_normal_LAMBDA___10__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:1735:/ getarg");
  /*_.CLBND__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -4214,7 +4214,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -4224,8 +4224,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -4324,14 +4324,14 @@ meltrout_38_warmelt_normal_GECTYP_SYMOCC (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -4427,7 +4427,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -4437,8 +4437,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("GECTYP_SYMOCC", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -4537,7 +4537,7 @@ meltrout_39_warmelt_normal_NORMEXP_CLASS (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -4546,7 +4546,7 @@ meltrout_39_warmelt_normal_NORMEXP_CLASS (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -4555,15 +4555,15 @@ meltrout_39_warmelt_normal_NORMEXP_CLASS (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -5276,7 +5276,7 @@ lab_endgetargs:;
 	  ;
 	  /*^finalreturn */
 	  ;
-	  /*finalret */ goto labend_rout;
+	  /*finalret */ goto meltlabend_rout;
 	  /*_.LET___V25*/ meltfptr[21] = /*_.RETURN___V33*/ meltfptr[28];;
 
 	  MELT_LOCATION ("warmelt-normal.melt:1778:/ clear");
@@ -5628,7 +5628,7 @@ lab_endgetargs:;
 		;
 		/*^finalreturn */
 		;
-		/*finalret */ goto labend_rout;
+		/*finalret */ goto meltlabend_rout;
 		/*_.LET___V38*/ meltfptr[21] =
 		  /*_.RETURN___V46*/ meltfptr[41];;
 
@@ -5813,7 +5813,7 @@ lab_endgetargs:;
 		;
 		/*^finalreturn */
 		;
-		/*finalret */ goto labend_rout;
+		/*finalret */ goto meltlabend_rout;
 		MELT_LOCATION ("warmelt-normal.melt:1795:/ quasiblock");
 
 
@@ -5882,7 +5882,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -5898,8 +5898,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_CLASS", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -6000,7 +6000,7 @@ meltrout_40_warmelt_normal_NORMEXP_PRIMITIVE (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -6009,7 +6009,7 @@ meltrout_40_warmelt_normal_NORMEXP_PRIMITIVE (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -6018,15 +6018,15 @@ meltrout_40_warmelt_normal_NORMEXP_PRIMITIVE (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -6595,7 +6595,7 @@ lab_endgetargs:;
 	  ;
 	  /*^finalreturn */
 	  ;
-	  /*finalret */ goto labend_rout;
+	  /*finalret */ goto meltlabend_rout;
 	  MELT_LOCATION ("warmelt-normal.melt:1834:/ quasiblock");
 
 
@@ -8330,16 +8330,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V82*/ meltfptr[81];;
     MELT_LOCATION ("warmelt-normal.melt:1929:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBIND__V24*/ meltfptr[23]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V76*/ meltfptr[48] = /*_.RETURN___V94*/ meltfptr[85];;
 
     MELT_LOCATION ("warmelt-normal.melt:1902:/ clear");
@@ -8442,7 +8442,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -8458,8 +8458,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_PRIMITIVE", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -8557,7 +8557,7 @@ meltrout_41_warmelt_normal_NORMEXP_BOX (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -8566,7 +8566,7 @@ meltrout_41_warmelt_normal_NORMEXP_BOX (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -8575,15 +8575,15 @@ meltrout_41_warmelt_normal_NORMEXP_BOX (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -9541,7 +9541,7 @@ lab_endgetargs:;
 	  ;
 	  /*^finalreturn */
 	  ;
-	  /*finalret */ goto labend_rout;
+	  /*finalret */ goto meltlabend_rout;
 	  MELT_LOCATION ("warmelt-normal.melt:1964:/ quasiblock");
 
 
@@ -10787,16 +10787,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V85*/ meltfptr[73];;
     MELT_LOCATION ("warmelt-normal.melt:2036:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBIND__V21*/ meltfptr[20]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V63*/ meltfptr[53] = /*_.RETURN___V95*/ meltfptr[69];;
 
     MELT_LOCATION ("warmelt-normal.melt:1991:/ clear");
@@ -10888,7 +10888,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -10904,8 +10904,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_BOX", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -11006,7 +11006,7 @@ meltrout_42_warmelt_normal_NORMEXP_CONSTBOX (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -11015,7 +11015,7 @@ meltrout_42_warmelt_normal_NORMEXP_CONSTBOX (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -11024,15 +11024,15 @@ meltrout_42_warmelt_normal_NORMEXP_CONSTBOX (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -11990,7 +11990,7 @@ lab_endgetargs:;
 	  ;
 	  /*^finalreturn */
 	  ;
-	  /*finalret */ goto labend_rout;
+	  /*finalret */ goto meltlabend_rout;
 	  MELT_LOCATION ("warmelt-normal.melt:2062:/ quasiblock");
 
 
@@ -13176,16 +13176,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V82*/ meltfptr[70];;
     MELT_LOCATION ("warmelt-normal.melt:2130:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBIND__V21*/ meltfptr[20]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V60*/ meltfptr[53] = /*_.RETURN___V92*/ meltfptr[66];;
 
     MELT_LOCATION ("warmelt-normal.melt:2085:/ clear");
@@ -13277,7 +13277,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -13293,8 +13293,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_CONSTBOX", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -13393,7 +13393,7 @@ meltrout_43_warmelt_normal_NORMEXP_UNBOX (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -13402,7 +13402,7 @@ meltrout_43_warmelt_normal_NORMEXP_UNBOX (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -13411,15 +13411,15 @@ meltrout_43_warmelt_normal_NORMEXP_UNBOX (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -14118,7 +14118,7 @@ lab_endgetargs:;
 		;
 		/*^finalreturn */
 		;
-		/*finalret */ goto labend_rout;
+		/*finalret */ goto meltlabend_rout;
 		MELT_LOCATION ("warmelt-normal.melt:2154:/ quasiblock");
 
 
@@ -15177,16 +15177,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V66*/ meltfptr[65];;
     MELT_LOCATION ("warmelt-normal.melt:2196:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBIND__V40*/ meltfptr[39]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V54*/ meltfptr[50] = /*_.RETURN___V76*/ meltfptr[69];;
 
     MELT_LOCATION ("warmelt-normal.melt:2166:/ clear");
@@ -15278,7 +15278,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -15294,8 +15294,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_UNBOX", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -15396,7 +15396,7 @@ meltrout_44_warmelt_normal_NORMEXP_CODE_CHUNK (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -15405,7 +15405,7 @@ meltrout_44_warmelt_normal_NORMEXP_CODE_CHUNK (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -15414,15 +15414,15 @@ meltrout_44_warmelt_normal_NORMEXP_CODE_CHUNK (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -16389,16 +16389,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V34*/ meltfptr[33];;
     MELT_LOCATION ("warmelt-normal.melt:2248:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.LIST___V42*/ meltfptr[37]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V16*/ meltfptr[14] = /*_.RETURN___V45*/ meltfptr[42];;
 
     MELT_LOCATION ("warmelt-normal.melt:2208:/ clear");
@@ -16452,7 +16452,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -16468,8 +16468,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_CODE_CHUNK", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -16568,11 +16568,11 @@ meltrout_45_warmelt_normal_LAMBDA___11__ (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_LONG)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_#CURIX__L1*/ meltfnum[0] = meltxargtab_[0].meltbp_long;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -16792,7 +16792,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -16802,8 +16802,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -16904,7 +16904,7 @@ meltrout_46_warmelt_normal_NORMEXP_CMATCHEXPR (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -16913,7 +16913,7 @@ meltrout_46_warmelt_normal_NORMEXP_CMATCHEXPR (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -16922,15 +16922,15 @@ meltrout_46_warmelt_normal_NORMEXP_CMATCHEXPR (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -17576,7 +17576,7 @@ lab_endgetargs:;
 	  ;
 	  /*^finalreturn */
 	  ;
-	  /*finalret */ goto labend_rout;
+	  /*finalret */ goto meltlabend_rout;
 	  MELT_LOCATION ("warmelt-normal.melt:2282:/ quasiblock");
 
 
@@ -18302,16 +18302,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V59*/ meltfptr[58];;
     MELT_LOCATION ("warmelt-normal.melt:2374:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBIND__V24*/ meltfptr[23]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V53*/ meltfptr[52] = /*_.RETURN___V67*/ meltfptr[61];;
 
     MELT_LOCATION ("warmelt-normal.melt:2349:/ clear");
@@ -18420,7 +18420,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -18436,8 +18436,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_CMATCHEXPR", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -18536,11 +18536,11 @@ meltrout_47_warmelt_normal_LAMBDA___12__ (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_LONG)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_#IX__L1*/ meltfnum[0] = meltxargtab_[0].meltbp_long;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -19066,8 +19066,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -19166,11 +19166,11 @@ meltrout_48_warmelt_normal_LAMBDA___13__ (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_LONG)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_#JX__L1*/ meltfnum[0] = meltxargtab_[0].meltbp_long;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -19497,8 +19497,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -19599,7 +19599,7 @@ meltrout_49_warmelt_normal_NORMEXP_FUNMATCHEXPR (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -19608,7 +19608,7 @@ meltrout_49_warmelt_normal_NORMEXP_FUNMATCHEXPR (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -19617,15 +19617,15 @@ meltrout_49_warmelt_normal_NORMEXP_FUNMATCHEXPR (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -21177,16 +21177,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CALOCC__V65*/ meltfptr[64];;
     MELT_LOCATION ("warmelt-normal.melt:2450:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBIND__V21*/ meltfptr[20]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V59*/ meltfptr[55] = /*_.RETURN___V71*/ meltfptr[67];;
 
     MELT_LOCATION ("warmelt-normal.melt:2428:/ clear");
@@ -21286,7 +21286,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -21302,8 +21302,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_FUNMATCHEXPR", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -21402,7 +21402,7 @@ meltrout_50_warmelt_normal_NORMEXP_APPLY (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -21411,7 +21411,7 @@ meltrout_50_warmelt_normal_NORMEXP_APPLY (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -21420,15 +21420,15 @@ meltrout_50_warmelt_normal_NORMEXP_APPLY (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -23388,16 +23388,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V81*/ meltfptr[80];;
     MELT_LOCATION ("warmelt-normal.melt:2544:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBINDARGS__V46*/ meltfptr[29]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V75*/ meltfptr[69] = /*_.RETURN___V83*/ meltfptr[82];;
 
     MELT_LOCATION ("warmelt-normal.melt:2524:/ clear");
@@ -23483,7 +23483,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -23497,8 +23497,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_APPLY", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -23597,7 +23597,7 @@ meltrout_51_warmelt_normal_NORMEXP_MSEND (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -23606,7 +23606,7 @@ meltrout_51_warmelt_normal_NORMEXP_MSEND (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -23615,15 +23615,15 @@ meltrout_51_warmelt_normal_NORMEXP_MSEND (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -26329,16 +26329,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V74*/ meltfptr[73];;
     MELT_LOCATION ("warmelt-normal.melt:2670:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBINDRECV__V30*/ meltfptr[29]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V56*/ meltfptr[42] = /*_.RETURN___V109*/ meltfptr[94];;
 
     MELT_LOCATION ("warmelt-normal.melt:2598:/ clear");
@@ -26442,7 +26442,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -26458,8 +26458,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_MSEND", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -26558,7 +26558,7 @@ meltrout_52_warmelt_normal_NORMEXP_RETURN (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -26567,7 +26567,7 @@ meltrout_52_warmelt_normal_NORMEXP_RETURN (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -26576,15 +26576,15 @@ meltrout_52_warmelt_normal_NORMEXP_RETURN (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -27088,7 +27088,7 @@ lab_endgetargs:;
 		;
 		/*^finalreturn */
 		;
-		/*finalret */ goto labend_rout;
+		/*finalret */ goto meltlabend_rout;
 		MELT_LOCATION ("warmelt-normal.melt:2692:/ quasiblock");
 
 
@@ -27580,16 +27580,16 @@ lab_endgetargs:;
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V29*/ meltfptr[22];;
 	  MELT_LOCATION ("warmelt-normal.melt:2725:/ putxtraresult");
 	  if (!meltxrestab_ || !meltxresdescr_)
-	    goto labend_rout;
+	    goto meltlabend_rout;
 	  if (meltxresdescr_[0] != MELTBPAR_PTR)
-	    goto labend_rout;
+	    goto meltlabend_rout;
 	  if (meltxrestab_[0].meltbp_aptr)
 	    *(meltxrestab_[0].meltbp_aptr) =
 	      (melt_ptr_t) ( /*_.NBINDEMP__V37*/ meltfptr[36]);
 	  ;
 	  /*^finalreturn */
 	  ;
-	  /*finalret */ goto labend_rout;
+	  /*finalret */ goto meltlabend_rout;
 	  /*_.LET___V36*/ meltfptr[32] = /*_.RETURN___V44*/ meltfptr[40];;
 
 	  MELT_LOCATION ("warmelt-normal.melt:2713:/ clear");
@@ -27754,7 +27754,7 @@ lab_endgetargs:;
 		;
 		/*^finalreturn */
 		;
-		/*finalret */ goto labend_rout;
+		/*finalret */ goto meltlabend_rout;
 		MELT_LOCATION ("warmelt-normal.melt:2733:/ quasiblock");
 
 
@@ -27836,7 +27836,7 @@ lab_endgetargs:;
 		      ;
 		      /*^finalreturn */
 		      ;
-		      /*finalret */ goto labend_rout;
+		      /*finalret */ goto meltlabend_rout;
 		      MELT_LOCATION ("warmelt-normal.melt:2741:/ quasiblock");
 
 
@@ -28034,7 +28034,7 @@ lab_endgetargs:;
 		      ;
 		      /*^finalreturn */
 		      ;
-		      /*finalret */ goto labend_rout;
+		      /*finalret */ goto meltlabend_rout;
 		      MELT_LOCATION ("warmelt-normal.melt:2744:/ quasiblock");
 
 
@@ -28738,16 +28738,16 @@ lab_endgetargs:;
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V29*/ meltfptr[22];;
 	  MELT_LOCATION ("warmelt-normal.melt:2786:/ putxtraresult");
 	  if (!meltxrestab_ || !meltxresdescr_)
-	    goto labend_rout;
+	    goto meltlabend_rout;
 	  if (meltxresdescr_[0] != MELTBPAR_PTR)
-	    goto labend_rout;
+	    goto meltlabend_rout;
 	  if (meltxrestab_[0].meltbp_aptr)
 	    *(meltxrestab_[0].meltbp_aptr) =
 	      (melt_ptr_t) ( /*_.NBINDRETS__V47*/ meltfptr[37]);
 	  ;
 	  /*^finalreturn */
 	  ;
-	  /*finalret */ goto labend_rout;
+	  /*finalret */ goto meltlabend_rout;
 	  /*_.LET___V81*/ meltfptr[79] = /*_.RETURN___V89*/ meltfptr[85];;
 
 	  MELT_LOCATION ("warmelt-normal.melt:2777:/ clear");
@@ -28851,7 +28851,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -28867,8 +28867,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_RETURN", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -28966,7 +28966,7 @@ meltrout_53_warmelt_normal_NORMEXP_IF (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -28975,7 +28975,7 @@ meltrout_53_warmelt_normal_NORMEXP_IF (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -28984,15 +28984,15 @@ meltrout_53_warmelt_normal_NORMEXP_IF (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -30447,16 +30447,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V58*/ meltfptr[57];;
     MELT_LOCATION ("warmelt-normal.melt:2861:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBINDIF__V28*/ meltfptr[27]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V56*/ meltfptr[55] = /*_.RETURN___V72*/ meltfptr[66];;
 
     MELT_LOCATION ("warmelt-normal.melt:2837:/ clear");
@@ -30564,7 +30564,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -30580,8 +30580,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_IF", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -30677,8 +30677,8 @@ meltrout_54_warmelt_normal_LAMBDA___14__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:2833:/ getarg");
  /*_.B__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -30720,7 +30720,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -30728,8 +30728,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -30828,7 +30828,7 @@ meltrout_55_warmelt_normal_NORMEXP_IFELSE (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -30837,7 +30837,7 @@ meltrout_55_warmelt_normal_NORMEXP_IFELSE (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -30846,15 +30846,15 @@ meltrout_55_warmelt_normal_NORMEXP_IFELSE (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -33019,16 +33019,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V89*/ meltfptr[84];;
     MELT_LOCATION ("warmelt-normal.melt:2974:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBINDIF__V24*/ meltfptr[23]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V87*/ meltfptr[81] = /*_.RETURN___V104*/ meltfptr[98];;
 
     MELT_LOCATION ("warmelt-normal.melt:2950:/ clear");
@@ -33148,7 +33148,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -33164,8 +33164,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_IFELSE", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -33261,8 +33261,8 @@ meltrout_56_warmelt_normal_LAMBDA___15__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:2909:/ getarg");
  /*_.B__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -33304,7 +33304,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -33312,8 +33312,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -33409,8 +33409,8 @@ meltrout_57_warmelt_normal_LAMBDA___16__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:2922:/ getarg");
  /*_.B__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -33452,7 +33452,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -33460,8 +33460,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -33560,7 +33560,7 @@ meltrout_58_warmelt_normal_NORMEXP_CPPIF (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -33569,7 +33569,7 @@ meltrout_58_warmelt_normal_NORMEXP_CPPIF (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -33578,15 +33578,15 @@ meltrout_58_warmelt_normal_NORMEXP_CPPIF (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -35082,16 +35082,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V60*/ meltfptr[59];;
     MELT_LOCATION ("warmelt-normal.melt:3047:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBINDRES__V68*/ meltfptr[67]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V58*/ meltfptr[55] = /*_.RETURN___V73*/ meltfptr[69];;
 
     MELT_LOCATION ("warmelt-normal.melt:3023:/ clear");
@@ -35211,7 +35211,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -35227,8 +35227,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_CPPIF", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -35324,8 +35324,8 @@ meltrout_59_warmelt_normal_LAMBDA___17__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:3000:/ getarg");
  /*_.B__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -35367,7 +35367,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -35375,8 +35375,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -35472,8 +35472,8 @@ meltrout_60_warmelt_normal_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:3013:/ getarg");
  /*_.B__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -35515,7 +35515,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -35523,8 +35523,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -35622,7 +35622,7 @@ meltrout_61_warmelt_normal_NORMEXP_OR (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -35631,7 +35631,7 @@ meltrout_61_warmelt_normal_NORMEXP_OR (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -35640,15 +35640,15 @@ meltrout_61_warmelt_normal_NORMEXP_OR (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -36470,16 +36470,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.REFERENCED_VALUE__V37*/ meltfptr[33];;
     MELT_LOCATION ("warmelt-normal.melt:3129:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.REFERENCED_VALUE__V38*/ meltfptr[34]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V16*/ meltfptr[12] = /*_.RETURN___V39*/ meltfptr[31];;
 
     MELT_LOCATION ("warmelt-normal.melt:3059:/ clear");
@@ -36537,7 +36537,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -36553,8 +36553,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_OR", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -36653,11 +36653,11 @@ meltrout_62_warmelt_normal_LAMBDA___19__ (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_LONG)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_#SIX__L1*/ meltfnum[0] = meltxargtab_[0].meltbp_long;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -37880,7 +37880,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -37890,8 +37890,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -37987,8 +37987,8 @@ meltrout_63_warmelt_normal_LAMBDA___20__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:3079:/ getarg");
  /*_.BND__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -38030,7 +38030,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -38038,8 +38038,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -38138,7 +38138,7 @@ meltrout_64_warmelt_normal_NORMEXP_PROGN (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -38147,7 +38147,7 @@ meltrout_64_warmelt_normal_NORMEXP_PROGN (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -38156,15 +38156,15 @@ meltrout_64_warmelt_normal_NORMEXP_PROGN (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -38681,7 +38681,7 @@ lab_endgetargs:;
 	  ;
 	  /*^finalreturn */
 	  ;
-	  /*finalret */ goto labend_rout;
+	  /*finalret */ goto meltlabend_rout;
 	  /*_.LET___V21*/ meltfptr[20] = /*_.RETURN___V28*/ meltfptr[24];;
 
 	  MELT_LOCATION ("warmelt-normal.melt:3148:/ clear");
@@ -38910,7 +38910,7 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:3162:/ loop");
     /*loop */
     {
-    labloop_BODYLOOP_1:;	/*^loopbody */
+    meltlabloop_BODYLOOP_1:;	/*^loopbody */
 
       /*^block */
       /*anyblock */
@@ -38941,7 +38941,7 @@ lab_endgetargs:;
 	      /*^exit */
 	      /*exit */
 	      {
-		goto labexit_BODYLOOP_1;
+		goto meltlabexit_BODYLOOP_1;
 	      }
 	      ;
 	      /*epilog */
@@ -38984,8 +38984,8 @@ lab_endgetargs:;
       }
       ;
       ;
-      goto labloop_BODYLOOP_1;
-    labexit_BODYLOOP_1:;	/*^loopepilog */
+      goto meltlabloop_BODYLOOP_1;
+    meltlabexit_BODYLOOP_1:;	/*^loopepilog */
       /*loopepilog */
       /*_.FOREVER___V41*/ meltfptr[40] = /*_.BODYLOOP__V42*/ meltfptr[41];;
     }
@@ -39485,16 +39485,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V58*/ meltfptr[57];;
     MELT_LOCATION ("warmelt-normal.melt:3187:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBIND__V31*/ meltfptr[23]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V51*/ meltfptr[45] = /*_.RETURN___V64*/ meltfptr[60];;
 
     MELT_LOCATION ("warmelt-normal.melt:3168:/ clear");
@@ -39580,7 +39580,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -39596,8 +39596,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_PROGN", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -39696,14 +39696,14 @@ meltrout_65_warmelt_normal_LAMBDA___21__ (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -39752,7 +39752,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -39762,8 +39762,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -39861,7 +39861,7 @@ meltrout_66_warmelt_normal_NORMEXP_LET (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -39870,7 +39870,7 @@ meltrout_66_warmelt_normal_NORMEXP_LET (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -39879,15 +39879,15 @@ meltrout_66_warmelt_normal_NORMEXP_LET (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -42234,16 +42234,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V102*/ meltfptr[101];;
     MELT_LOCATION ("warmelt-normal.melt:3338:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.RESBINDS__V104*/ meltfptr[103]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V92*/ meltfptr[33] = /*_.RETURN___V109*/ meltfptr[105];;
 
     MELT_LOCATION ("warmelt-normal.melt:3315:/ clear");
@@ -42319,7 +42319,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -42335,8 +42335,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_LET", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -42432,8 +42432,8 @@ meltrout_67_warmelt_normal_LAMBDA___22__ (meltclosure_ptr_t meltclosp_,
   MELT_LOCATION ("warmelt-normal.melt:3267:/ getarg");
  /*_.B__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -42473,8 +42473,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -42573,14 +42573,14 @@ meltrout_68_warmelt_normal_LAMBDA___23__ (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -42686,7 +42686,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -42694,8 +42694,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -42800,7 +42800,7 @@ meltrout_69_warmelt_normal_NORMEXP_UNSAFE_GET_FIELD (meltclosure_ptr_t
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -42809,7 +42809,7 @@ meltrout_69_warmelt_normal_NORMEXP_UNSAFE_GET_FIELD (meltclosure_ptr_t
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -42818,15 +42818,15 @@ meltrout_69_warmelt_normal_NORMEXP_UNSAFE_GET_FIELD (meltclosure_ptr_t
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -43605,16 +43605,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V35*/ meltfptr[34];;
     MELT_LOCATION ("warmelt-normal.melt:3384:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBIND__V24*/ meltfptr[23]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V28*/ meltfptr[25] = /*_.RETURN___V41*/ meltfptr[37];;
 
     MELT_LOCATION ("warmelt-normal.melt:3366:/ clear");
@@ -43678,7 +43678,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -43694,8 +43694,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_UNSAFE_GET_FIELD", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
@@ -43796,7 +43796,7 @@ meltrout_70_warmelt_normal_NORMEXP_GET_FIELD (meltclosure_ptr_t meltclosp_,
   /*getarg#1 */
   /*^getarg */
   if (meltxargdescr_[0] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
     (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
@@ -43805,7 +43805,7 @@ meltrout_70_warmelt_normal_NORMEXP_GET_FIELD (meltclosure_ptr_t meltclosp_,
   /*getarg#2 */
   /*^getarg */
   if (meltxargdescr_[1] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.NCX__V4*/ meltfptr[3] =
     (meltxargtab_[1].meltbp_aptr) ? (*(meltxargtab_[1].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3])) != NULL);
@@ -43814,15 +43814,15 @@ meltrout_70_warmelt_normal_NORMEXP_GET_FIELD (meltclosure_ptr_t meltclosp_,
   /*getarg#3 */
   /*^getarg */
   if (meltxargdescr_[2] != MELTBPAR_PTR)
-    goto lab_endgetargs;
+    goto meltlab_endgetargs;
  /*_.PSLOC__V5*/ meltfptr[4] =
     (meltxargtab_[2].meltbp_aptr) ? (*(meltxargtab_[2].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4])) !=
 	      NULL);
 
   ;
-  goto lab_endgetargs;
-lab_endgetargs:;
+  goto meltlab_endgetargs;
+meltlab_endgetargs:;
 /*body*/
 /*^block*/
 /*anyblock*/
@@ -44934,16 +44934,16 @@ lab_endgetargs:;
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CLOCC__V49*/ meltfptr[48];;
     MELT_LOCATION ("warmelt-normal.melt:3433:/ putxtraresult");
     if (!meltxrestab_ || !meltxresdescr_)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxresdescr_[0] != MELTBPAR_PTR)
-      goto labend_rout;
+      goto meltlabend_rout;
     if (meltxrestab_[0].meltbp_aptr)
       *(meltxrestab_[0].meltbp_aptr) =
 	(melt_ptr_t) ( /*_.NBIND__V24*/ meltfptr[23]);
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*_.LET___V32*/ meltfptr[26] = /*_.RETURN___V55*/ meltfptr[51];;
 
     MELT_LOCATION ("warmelt-normal.melt:3404:/ clear");
@@ -45017,7 +45017,7 @@ lab_endgetargs:;
     ;
     /*^finalreturn */
     ;
-    /*finalret */ goto labend_rout;
+    /*finalret */ goto meltlabend_rout;
     /*epilog */
 
     /*^clear */
@@ -45033,8 +45033,8 @@ lab_endgetargs:;
   }
 
   ;
-  goto labend_rout;
-labend_rout:
+  goto meltlabend_rout;
+meltlabend_rout:
   melt_trace_end ("NORMEXP_GET_FIELD", meltcallcount);
   MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
