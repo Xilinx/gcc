@@ -2469,7 +2469,7 @@ lookup_destructor (tree object, tree scope, tree dtor_name)
 	     scope, dtor_type);
       return error_mark_node;
     }
-  if (TREE_CODE (dtor_type) == IDENTIFIER_NODE)
+  if (identifier_p (dtor_type))
     {
       /* In a template, names we can't find a match for are still accepted
 	 destructor names, and we check them here.  */
@@ -2590,7 +2590,7 @@ finish_class_member_access_expr (tree object, tree name, bool template_p,
 	  dependent_type_p (object_type)
 	  /* If NAME is just an IDENTIFIER_NODE, then the expression
 	     is dependent.  */
-	  || TREE_CODE (object) == IDENTIFIER_NODE
+	  || identifier_p (object)
 	  /* If NAME is "f<args>", where either 'f' or 'args' is
 	     dependent, then the expression is dependent.  */
 	  || (TREE_CODE (name) == TEMPLATE_ID_EXPR
@@ -2606,7 +2606,7 @@ finish_class_member_access_expr (tree object, tree name, bool template_p,
       object = build_non_dependent_expr (object);
     }
   else if (c_dialect_objc ()
-	   && TREE_CODE (name) == IDENTIFIER_NODE
+	   && identifier_p (name)
 	   && (expr = objc_maybe_build_component_ref (object, name)))
     return expr;
     
@@ -2673,8 +2673,7 @@ finish_class_member_access_expr (tree object, tree name, bool template_p,
 	    }
 
 	  gcc_assert (CLASS_TYPE_P (scope));
-	  gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE
-		      || TREE_CODE (name) == BIT_NOT_EXPR);
+	  gcc_assert (identifier_p (name) || TREE_CODE (name) == BIT_NOT_EXPR);
 
 	  if (constructor_name_p (name, scope))
 	    {
@@ -4040,7 +4039,7 @@ cp_build_binary_op (location_t location,
 	{
 	  enum tree_code tcode0 = code0, tcode1 = code1;
 
-	  warn_for_div_by_zero (location, op1);
+	  warn_for_div_by_zero (location, maybe_constant_value (op1));
 
 	  if (tcode0 == COMPLEX_TYPE || tcode0 == VECTOR_TYPE)
 	    tcode0 = TREE_CODE (TREE_TYPE (TREE_TYPE (op0)));
@@ -4076,7 +4075,7 @@ cp_build_binary_op (location_t location,
 
     case TRUNC_MOD_EXPR:
     case FLOOR_MOD_EXPR:
-      warn_for_div_by_zero (location, op1);
+      warn_for_div_by_zero (location, maybe_constant_value (op1));
 
       if (code0 == VECTOR_TYPE && code1 == VECTOR_TYPE
 	  && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE
@@ -5092,8 +5091,7 @@ cp_build_addr_expr_1 (tree arg, bool strict_lvalue, tsubst_flags_t complain)
   arg = mark_lvalue_use (arg);
   argtype = lvalue_type (arg);
 
-  gcc_assert (TREE_CODE (arg) != IDENTIFIER_NODE
-	      || !IDENTIFIER_OPNAME_P (arg));
+  gcc_assert (!identifier_p (arg) || !IDENTIFIER_OPNAME_P (arg));
 
   if (flag_enable_cilk && TREE_CODE (arg) == ARRAY_NOTATION_REF)
     {
@@ -6276,6 +6274,12 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
      Any expression can be explicitly converted to type cv void.  */
   if (TREE_CODE (type) == VOID_TYPE)
     return convert_to_void (expr, ICV_CAST, complain);
+
+  /* [class.abstract]
+     An abstract class shall not be used ... as the type of an explicit
+     conversion.  */
+  if (abstract_virtuals_error_sfinae (ACU_CAST, type, complain))
+    return error_mark_node;
 
   /* [expr.static.cast]
 
@@ -8018,11 +8022,11 @@ convert_for_initialization (tree exp, tree type, tree rhs, int flags,
       int savew = 0, savee = 0;
 
       if (fndecl)
-	savew = warningcount, savee = errorcount;
+	savew = warningcount + werrorcount, savee = errorcount;
       rhs = initialize_reference (type, rhs, flags, complain);
       if (fndecl)
 	{
-	  if (warningcount > savew)
+	  if (warningcount + werrorcount > savew)
 	    warning (0, "in passing argument %P of %q+D", parmnum, fndecl);
 	  else if (errorcount > savee)
 	    error ("in passing argument %P of %q+D", parmnum, fndecl);

@@ -1808,6 +1808,18 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
       return false;
     }
 
+  /* Analyze the access patterns of the data-refs in the loop (consecutive,
+     complex, etc.). FORNOW: Only handle consecutive access pattern.  */
+
+  ok = vect_analyze_data_ref_accesses (loop_vinfo, NULL);
+  if (!ok)
+    {
+      if (dump_enabled_p ())
+	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
+			 "bad data access.");
+      return false;
+    }
+
   /* Classify all cross-iteration scalar data-flow cycles.
      Cross-iteration cycles caused by virtual phis are analyzed separately.  */
 
@@ -1831,7 +1843,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
      the dependences.
      FORNOW: fail at the first data dependence that we encounter.  */
 
-  ok = vect_analyze_data_ref_dependences (loop_vinfo, NULL, &max_vf);
+  ok = vect_analyze_data_ref_dependences (loop_vinfo, &max_vf);
   if (!ok
       || max_vf < min_vf)
     {
@@ -1866,18 +1878,6 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
       if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "bad data alignment.");
-      return false;
-    }
-
-  /* Analyze the access patterns of the data-refs in the loop (consecutive,
-     complex, etc.). FORNOW: Only handle consecutive access pattern.  */
-
-  ok = vect_analyze_data_ref_accesses (loop_vinfo, NULL);
-  if (!ok)
-    {
-      if (dump_enabled_p ())
-	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
-			 "bad data access.");
       return false;
     }
 
@@ -6002,11 +6002,6 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 	   && loop->nb_iterations_estimate != double_int_zero)
 	 loop->nb_iterations_estimate = loop->nb_iterations_estimate - double_int_one;
     }
-
-  /* The memory tags and pointers in vectorized statements need to
-     have their SSA forms updated.  FIXME, why can't this be delayed
-     until all the loops have been transformed?  */
-  update_ssa (TODO_update_ssa);
 
   if (dump_enabled_p ())
     dump_printf_loc (MSG_OPTIMIZED_LOCATIONS, vect_location, "LOOP VECTORIZED.");

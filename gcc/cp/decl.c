@@ -3309,7 +3309,7 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
 	error ("%qD used without template parameters", name);
       return error_mark_node;
     }
-  gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
+  gcc_assert (identifier_p (name));
   gcc_assert (TYPE_P (context));
 
   if (!MAYBE_CLASS_TYPE_P (context))
@@ -3415,7 +3415,7 @@ make_unbound_class_template (tree context, tree name, tree parm_list,
     name = TYPE_IDENTIFIER (name);
   else if (DECL_P (name))
     name = DECL_NAME (name);
-  gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
+  gcc_assert (identifier_p (name));
 
   if (!dependent_type_p (context)
       || currently_open_class (context))
@@ -4795,7 +4795,7 @@ check_array_designated_initializer (const constructor_elt *ce,
 	}
       else
 	{
-	  gcc_assert (TREE_CODE (ce->index) == IDENTIFIER_NODE);
+	  gcc_assert (identifier_p (ce->index));
 	  error ("name %qD used in a GNU-style designated "
 		 "initializer for an array", ce->index);
 	}
@@ -6448,11 +6448,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
       /* Check for abstractness of the type. Notice that there is no
 	 need to strip array types here since the check for those types
 	 is already done within create_array_type_for_decl.  */
-      if (TREE_CODE (type) == FUNCTION_TYPE
-	  || TREE_CODE (type) == METHOD_TYPE)
-	abstract_virtuals_error (decl, TREE_TYPE (type));
-      else
-	abstract_virtuals_error (decl, type);
+      abstract_virtuals_error (decl, type);
 
       if (TREE_TYPE (decl) == error_mark_node)
 	/* No initialization required.  */
@@ -7433,8 +7429,7 @@ grokfndecl (tree ctype,
 			  == current_class_type);
 	      fns = TREE_OPERAND (fns, 1);
 	    }
-	  gcc_assert (TREE_CODE (fns) == IDENTIFIER_NODE
-		      || TREE_CODE (fns) == OVERLOAD);
+	  gcc_assert (identifier_p (fns) || TREE_CODE (fns) == OVERLOAD);
 	  DECL_TEMPLATE_INFO (decl) = build_template_info (fns, args);
 
 	  for (t = TYPE_ARG_TYPES (TREE_TYPE (decl)); t; t = TREE_CHAIN (t))
@@ -7792,7 +7787,7 @@ grokvardecl (tree type,
   tree decl;
   tree explicit_scope;
 
-  gcc_assert (!name || TREE_CODE (name) == IDENTIFIER_NODE);
+  gcc_assert (!name || identifier_p (name));
 
   /* Compute the scope in which to place the variable, but remember
      whether or not that scope was explicitly specified by the user.   */
@@ -8529,7 +8524,7 @@ check_var_type (tree identifier, tree type)
     {
       if (!identifier)
 	error ("unnamed variable or field declared void");
-      else if (TREE_CODE (identifier) == IDENTIFIER_NODE)
+      else if (identifier_p (identifier))
 	{
 	  gcc_assert (!IDENTIFIER_OPNAME_P (identifier));
 	  error ("variable or field %qE declared void", identifier);
@@ -8672,6 +8667,7 @@ grokdeclarator (const cp_declarator *declarator,
   bool template_type_arg = false;
   bool template_parm_flag = false;
   bool constexpr_p = decl_spec_seq_has_spec_p (declspecs, ds_constexpr);
+  source_location saved_loc = input_location;
   const char *errmsg;
 
   signed_p = decl_spec_seq_has_spec_p (declspecs, ds_signed);
@@ -8797,7 +8793,7 @@ grokdeclarator (const cp_declarator *declarator,
 		  tree fns = TREE_OPERAND (decl, 0);
 
 		  dname = fns;
-		  if (TREE_CODE (dname) != IDENTIFIER_NODE)
+		  if (!identifier_p (dname))
 		    {
 		      gcc_assert (is_overloaded_fn (dname));
 		      dname = DECL_NAME (get_first_fn (dname));
@@ -8806,7 +8802,7 @@ grokdeclarator (const cp_declarator *declarator,
 		/* Fall through.  */
 
 	      case IDENTIFIER_NODE:
-		if (TREE_CODE (decl) == IDENTIFIER_NODE)
+		if (identifier_p (decl))
 		  dname = decl;
 
 		if (C_IS_RESERVED_WORD (dname))
@@ -8871,7 +8867,7 @@ grokdeclarator (const cp_declarator *declarator,
     }
 
   if (dname
-      && TREE_CODE (dname) == IDENTIFIER_NODE
+      && identifier_p (dname)
       && UDLIT_OPER_P (dname)
       && innermost_code != cdk_function)
     {
@@ -8996,7 +8992,7 @@ grokdeclarator (const cp_declarator *declarator,
 	 common.  With no options, it is allowed.  With -Wreturn-type,
 	 it is a warning.  It is only an error with -pedantic-errors.  */
       is_main = (funcdef_flag
-		 && dname && TREE_CODE (dname) == IDENTIFIER_NODE
+		 && dname && identifier_p (dname)
 		 && MAIN_NAME_P (dname)
 		 && ctype == NULL_TREE
 		 && in_namespace == NULL_TREE
@@ -9356,7 +9352,6 @@ grokdeclarator (const cp_declarator *declarator,
   if (declspecs->std_attributes)
     {
       /* Apply the c++11 attributes to the type preceding them.  */
-      source_location saved_loc = input_location;
       input_location = declspecs->locations[ds_std_attribute];
       decl_attributes (&type, declspecs->std_attributes, 0);
       input_location = saved_loc;
@@ -9444,11 +9439,10 @@ grokdeclarator (const cp_declarator *declarator,
 		error ("%qs declared as function returning an array", name);
 		return error_mark_node;
 	      }
-	    /* When decl_context == NORMAL we emit a better error message
-	       later in abstract_virtuals_error.  */
-	    if (decl_context == TYPENAME && ABSTRACT_CLASS_TYPE_P (type))
-	      error ("%qs declared as function returning an abstract "
-		     "class type", name);
+
+	    input_location = declspecs->locations[ds_type_spec];
+	    abstract_virtuals_error (ACU_RETURN, type);
+	    input_location = saved_loc;
 
 	    /* Pick up type qualifiers which should be applied to `this'.  */
 	    memfn_quals = declarator->u.function.qualifiers;
@@ -9651,9 +9645,11 @@ grokdeclarator (const cp_declarator *declarator,
 	     but to the target of the pointer.  */
 	  type_quals = TYPE_UNQUALIFIED;
 
+	  /* This code used to handle METHOD_TYPE, but I don't think it's
+	     possible to get it here anymore.  */
+	  gcc_assert (TREE_CODE (type) != METHOD_TYPE);
 	  if (declarator->kind == cdk_ptrmem
-	      && (TREE_CODE (type) == FUNCTION_TYPE
-		  || (memfn_quals && TREE_CODE (type) == METHOD_TYPE)))
+	      && TREE_CODE (type) == FUNCTION_TYPE)
 	    {
 	      memfn_quals |= type_memfn_quals (type);
 	      type = build_memfn_type (type,
@@ -11908,13 +11904,14 @@ lookup_and_check_tag (enum tag_types tag_code, tree name,
 
 static tree
 xref_tag_1 (enum tag_types tag_code, tree name,
-            tag_scope scope, bool template_header_p)
+            tag_scope orig_scope, bool template_header_p)
 {
   enum tree_code code;
   tree t;
   tree context = NULL_TREE;
+  tag_scope scope;
 
-  gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
+  gcc_assert (identifier_p (name));
 
   switch (tag_code)
     {
@@ -11931,6 +11928,11 @@ xref_tag_1 (enum tag_types tag_code, tree name,
     default:
       gcc_unreachable ();
     }
+
+  if (orig_scope == ts_lambda)
+    scope = ts_current;
+  else
+    scope = orig_scope;
 
   /* In case of anonymous name, xref_tag is only called to
      make type node and push name.  Name lookup is not required.  */
@@ -12005,6 +12007,10 @@ xref_tag_1 (enum tag_types tag_code, tree name,
 	{
 	  t = make_class_type (code);
 	  TYPE_CONTEXT (t) = context;
+	  if (orig_scope == ts_lambda)
+	    /* Remember that we're declaring a lambda to avoid bogus errors
+	       in push_template_decl.  */
+	    CLASSTYPE_LAMBDA_EXPR (t) = error_mark_node;
 	  t = pushtag (name, t, scope);
 	}
     }
@@ -12332,7 +12338,7 @@ start_enum (tree name, tree enumtype, tree underlying_type,
 	    bool scoped_enum_p, bool *is_new)
 {
   tree prevtype = NULL_TREE;
-  gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
+  gcc_assert (identifier_p (name));
 
   if (is_new)
     *is_new = false;
@@ -14048,7 +14054,10 @@ grokmethod (cp_decl_specifier_seq *declspecs,
 
 
 /* VAR is a VAR_DECL.  If its type is incomplete, remember VAR so that
-   we can lay it out later, when and if its type becomes complete.  */
+   we can lay it out later, when and if its type becomes complete.
+
+   Also handle constexpr pointer to member variables where the initializer
+   is an unlowered PTRMEM_CST because the class isn't complete yet.  */
 
 void
 maybe_register_incomplete_var (tree var)
@@ -14073,6 +14082,15 @@ maybe_register_incomplete_var (tree var)
 	  incomplete_var iv = {var, inner_type};
 	  vec_safe_push (incomplete_vars, iv);
 	}
+      else if (TYPE_PTRMEM_P (inner_type)
+	       && DECL_INITIAL (var)
+	       && TREE_CODE (DECL_INITIAL (var)) == PTRMEM_CST)
+	{
+	  tree context = TYPE_PTRMEM_CLASS_TYPE (inner_type);
+	  gcc_assert (TYPE_BEING_DEFINED (context));
+	  incomplete_var iv = {var, context};
+	  vec_safe_push (incomplete_vars, iv);
+	}
     }
 }
 
@@ -14092,10 +14110,17 @@ complete_vars (tree type)
 	{
 	  tree var = iv->decl;
 	  tree type = TREE_TYPE (var);
-	  /* Complete the type of the variable.  The VAR_DECL itself
-	     will be laid out in expand_expr.  */
-	  complete_type (type);
-	  cp_apply_type_quals_to_decl (cp_type_quals (type), var);
+
+	  if (TYPE_PTRMEM_P (type))
+	    DECL_INITIAL (var) = cplus_expand_constant (DECL_INITIAL (var));
+	  else
+	    {
+	      /* Complete the type of the variable.  The VAR_DECL itself
+		 will be laid out in expand_expr.  */
+	      complete_type (type);
+	      cp_apply_type_quals_to_decl (cp_type_quals (type), var);
+	    }
+
 	  /* Remove this entry from the list.  */
 	  incomplete_vars->unordered_remove (ix);
 	}

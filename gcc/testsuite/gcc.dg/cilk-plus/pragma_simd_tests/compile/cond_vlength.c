@@ -1,5 +1,5 @@
 /* { dg-do run } */
-/* { dg-options " " } */
+/* { dg-options " -w " } */
 
 int main ()
 {

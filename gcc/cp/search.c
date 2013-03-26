@@ -188,6 +188,14 @@ lookup_base (tree t, tree base, base_access access,
   tree t_binfo;
   base_kind bk;
 
+  /* "Nothing" is definitely not derived from Base.  */
+  if (t == NULL_TREE)
+    {
+      if (kind_ptr)
+	*kind_ptr = bk_not_base;
+      return NULL_TREE;
+    }
+
   if (t == error_mark_node || base == error_mark_node)
     {
       if (kind_ptr)
@@ -373,7 +381,7 @@ lookup_field_1 (tree type, tree name, bool want_type)
 {
   tree field;
 
-  gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
+  gcc_assert (identifier_p (name));
 
   if (TREE_CODE (type) == TEMPLATE_TYPE_PARM
       || TREE_CODE (type) == BOUND_TEMPLATE_TEMPLATE_PARM
@@ -1182,7 +1190,7 @@ lookup_member (tree xbasetype, tree name, int protect, bool want_type,
       || xbasetype == error_mark_node)
     return NULL_TREE;
 
-  gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
+  gcc_assert (identifier_p (name));
 
   if (TREE_CODE (xbasetype) == TREE_BINFO)
     {

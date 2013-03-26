@@ -2652,18 +2652,13 @@ static tree valueize_expr (tree expr);
 static bool
 visit_copy (tree lhs, tree rhs)
 {
-  /* Follow chains of copies to their destination.  */
-  while (TREE_CODE (rhs) == SSA_NAME
-	 && SSA_VAL (rhs) != rhs)
-    rhs = SSA_VAL (rhs);
-
   /* The copy may have a more interesting constant filled expression
      (we don't, since we know our RHS is just an SSA name).  */
-  if (TREE_CODE (rhs) == SSA_NAME)
-    {
-      VN_INFO (lhs)->has_constants = VN_INFO (rhs)->has_constants;
-      VN_INFO (lhs)->expr = VN_INFO (rhs)->expr;
-    }
+  VN_INFO (lhs)->has_constants = VN_INFO (rhs)->has_constants;
+  VN_INFO (lhs)->expr = VN_INFO (rhs)->expr;
+
+  /* And finally valueize.  */
+  rhs = SSA_VAL (rhs);
 
   return set_ssa_val_to (lhs, rhs);
 }
@@ -3062,25 +3057,38 @@ expr_has_constants (tree expr)
 static bool
 stmt_has_constants (gimple stmt)
 {
+  tree tem;
+
   if (gimple_code (stmt) != GIMPLE_ASSIGN)
     return false;
 
   switch (get_gimple_rhs_class (gimple_assign_rhs_code (stmt)))
     {
-    case GIMPLE_UNARY_RHS:
-      return is_gimple_min_invariant (gimple_assign_rhs1 (stmt));
+    case GIMPLE_TERNARY_RHS:
+      tem = gimple_assign_rhs3 (stmt);
+      if (TREE_CODE (tem) == SSA_NAME)
+	tem = SSA_VAL (tem);
+      if (is_gimple_min_invariant (tem))
+	return true;
+      /* Fallthru.  */
 
     case GIMPLE_BINARY_RHS:
-      return (is_gimple_min_invariant (gimple_assign_rhs1 (stmt))
-	      || is_gimple_min_invariant (gimple_assign_rhs2 (stmt)));
-    case GIMPLE_TERNARY_RHS:
-      return (is_gimple_min_invariant (gimple_assign_rhs1 (stmt))
-	      || is_gimple_min_invariant (gimple_assign_rhs2 (stmt))
-	      || is_gimple_min_invariant (gimple_assign_rhs3 (stmt)));
+      tem = gimple_assign_rhs2 (stmt);
+      if (TREE_CODE (tem) == SSA_NAME)
+	tem = SSA_VAL (tem);
+      if (is_gimple_min_invariant (tem))
+	return true;
+      /* Fallthru.  */
+
     case GIMPLE_SINGLE_RHS:
       /* Constants inside reference ops are rarely interesting, but
 	 it can take a lot of looking to find them.  */
-      return is_gimple_min_invariant (gimple_assign_rhs1 (stmt));
+    case GIMPLE_UNARY_RHS:
+      tem = gimple_assign_rhs1 (stmt);
+      if (TREE_CODE (tem) == SSA_NAME)
+	tem = SSA_VAL (tem);
+      return is_gimple_min_invariant (tem);
+
     default:
       gcc_unreachable ();
     }
@@ -3498,8 +3506,13 @@ visit_use (tree use)
 		     We can value number 2 calls to the same function with the
 		     same vuse and the same operands which are not subsequent
 		     the same, because there is no code in the program that can
-		     compare the 2 values.  */
-		  || gimple_vdef (stmt)))
+		     compare the 2 values...  */
+		  || (gimple_vdef (stmt)
+		      /* ... unless the call returns a pointer which does
+		         not alias with anything else.  In which case the
+			 information that the values are distinct are encoded
+			 in the IL.  */
+		      && !(gimple_call_return_flags (stmt) & ERF_NOALIAS))))
 	    changed = visit_reference_op_call (lhs, stmt);
 	  else
 	    changed = defs_to_varying (stmt);
