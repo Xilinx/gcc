@@ -1,6 +1,11 @@
 
 2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (compile2obj_hook): More, but still
+	incomplete.
+
+2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Test
 	first for hooks.
 

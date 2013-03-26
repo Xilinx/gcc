@@ -37,7 +37,7 @@
 ;; compile2obj_procedure function.
 
 
-;;;; value like objects;; value here is meant in the sense of the C
+;;;; value like objects;; value here is meant in the sense of the C or C++
 ;;;; language so can be any thing.
 (defclass class_objvalue
   :super class_generated_c_code
@@ -49,6 +49,16 @@
 (defclass class_objpurevalue
   :super class_objvalue
   :fields ())
+
+
+;; formal arguments in C routines, notably in hooks
+(defclass class_objcformal
+  :super class_objpurevalue
+  :fields (oformal_name			;the verbatim name
+	   oformal_proc			;the containing proc
+	   oformal_bind			;the associated formal binding
+	   oformal_locv			;the associated stack location
+	   ))
 
 ;; object local variable
 ;;;; disposed local variables can be reused.
@@ -569,6 +579,15 @@
 	   oprout_filenum		;boxed C file number
 	   ))
 
+;; hook routine
+(defclass class_hookroutineobj
+  :super class_routineobj
+  :fields (
+	   ohookrout_datarg		;the argument for the data
+	   ohookrout_inargs
+	   ohookrout_outargs
+	   ))
+	   
 ;; initial routine common super-class
 (defclass class_initialroutineobj
   :super class_routineobj
@@ -595,14 +614,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; export the above classes
 (export_class				;alphabetical order
+ class_hookroutineobj
  class_initial_extension_routineobj
  class_initial_module_routineobj
  class_initialroutineobj
  class_objagain
- class_objapply
  class_objanyblock
+ class_objapply
+ class_objcformal
  class_objchecksignal
- class_objplainblock
  class_objciterblock
  class_objclear
  class_objcloccv
@@ -617,8 +637,8 @@
  class_objexit
  class_objexpandpureval
  class_objexpv
- class_objflag
  class_objfinalreturn
+ class_objflag
  class_objgetarg
  class_objgetargrest
  class_objgetnamedcommon
@@ -652,6 +672,7 @@
  class_objmultimsend
  class_objnewclosure
  class_objnil
+ class_objplainblock
  class_objpredef
  class_objpurevalue
  class_objputclosednotnullv
@@ -1031,13 +1052,155 @@ $SBUF.}#
   (variadic_idstr variadsym "_len"))
 
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a single hook
 (defun compile2obj_hook (nhook modctx compicache :long num)
   (debug "compile2obj_hook nhook=" nhook "\n.. modctx=" modctx
-	 "\n.. compicache=" compicache "\n.. num=" num)
-  (assert_msg "@$@unimplemented compile2obj_hook"))
+	 "\n.. compicache=" compicache "\n.. num=" num
+	 "\n.. class_hookroutineobj=" class_hookroutineobj)
+  (assert_msg "check nhook" (is_a nhook class_nrep_hookproc))
+  (assert_msg "check compicache" (is_mapobject compicache))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
+  (let (
+	(loc (get_field :nrep_loc nhook))
+	(nbody (get_field :nproc_body nhook))
+	(nhookname (get_field :nrhook_name nhook))
+	(hookroutname (let (
+			    (namsbuf (make_strbuf discr_strbuf)) 
+			    )
+			(add2sbuf_strconst namsbuf "melthook_")
+			(add2sbuf_cident namsbuf nhookname)
+			(strbuf2string discr_verbatim_string namsbuf)
+			))
+	(ninbinds (get_field :nrhook_inb nhook))
+	(noutbinds (get_field :nrhook_outb nhook))
+	(resctype (get_field :nrhook_ctype nhook))
+	(ndatahook (get_field :nrhook_datahook nhook))
+	(obodylist (make_list discr_list))
+	(oinargs (make_multiple discr_multiple (multiple_length ninbinds)))
+	(ooutargs (make_multiple discr_multiple (multiple_length noutbinds)))
+	(odatarg (instance class_objcformal
+			   :obv_type ctype_value
+			   :oformal_name '"melthookdata"
+			   :oformal_proc nhook
+			   :oformal_bind ()
+			   :oformal_locv ()
+			   ))
+	(hookrout (instance class_hookroutineobj
+			    :named_name hookroutname
+			    :obrout_proc nhook
+			    :obrout_body obodylist
+			    :obrout_nbval (make_integerbox discr_integer 0)
+			    :obrout_nblong (make_integerbox discr_integer 0)
+			    :obrout_others (make_list discr_list)
+			    :obrout_cntciter (make_integerbox discr_integer 0)
+			    :obrout_cntletrec (make_integerbox discr_integer 0)
+			    :ohookrout_datarg odatarg
+			    :ohookrout_inargs oinargs
+			    :ohookrout_outargs ooutargs
+			    ))
+	(locmap (make_mapobject discr_map_objects 
+				(+i 30 (*i 3 (+i (multiple_length ninbinds)
+						 (multiple_length noutbinds))))))
+	(gcx (instance class_c_generation_context
+		       :gncx_objrout hookrout
+		       :gncx_locmap locmap
+		       :gncx_freeptrlist (make_list discr_list)
+		       :gncx_freelonglist (make_list discr_list)
+		       :gncx_freeothermaps (make_mapobject discr_map_objects 20)
+		       :gncx_compicache compicache
+		       :gncx_modulcontext modctx
+		       :gncx_matchmap (make_mapobject discr_map_objects 40)
+		       ))
+	)
+    (debug "compile2obj_hook empty hookrout=" hookrout 
+	   "\n resctype=" resctype "\n gcx=" gcx)
+    (assert_msg "check resctype" (is_a resctype class_ctype))
+    (let ( (retloc (get_free_objloctyped gcx '_reshook_ resctype))
+	   (hdataloc (get_free_objloctyped gcx '_hookdata_ ctype_value))
+	   (ogetdata (make_objcompute loc ctype_value 
+				      ##{/*hookgetdata*/ $ODATARG}#))
+	   )
+      (put_fields gcx :gncx_retloc retloc)
+      (put_fields odatarg :oformal_locv hdataloc)
+      (put_objdest ogetdata hdataloc)
+      (list_append obodylist ogetdata)
+      ;; handle the input arguments
+      (debug "compile2obj_hook ninbinds=" ninbinds)
+      (foreach_in_multiple
+       (ninbinds)
+       (curinb :long inix)
+       (debug "compile2obj_hook curinb=" curinb "\n .. inix=" inix)
+       (assert_msg "check curinb" (is_a curinb class_formal_binding))
+       (let ( (syminb (get_field :binder curinb))
+	      (ctypinb (get_field :fbind_type curinb))
+	      (locinb (get_free_objloctyped gcx syminb ctypinb))
+	      (incname (let ( (sbuf (make_strbuf discr_strbuf))
+			      )
+			 (add2out sbuf "meltinp" inix "_")
+			 (add2sbuf_cident sbuf (get_field :named_name syminb))
+			 (if (is_a syminb class_cloned_symbol)
+			     (add2out sbuf "__" (get_field :csym_urank syminb)))
+			 (strbuf2string discr_verbatim_string sbuf)))
+	      (incformal (instance class_objcformal
+				   :obv_type ctypinb
+				   :oformal_name incname
+				   :oformal_proc nhook
+				   :oformal_bind curinb
+				   :oformal_locv locinb))
+	      (ogetfarg (make_objcompute loc ctypinb
+					 ##{/*gethookinput*/ $INCFORMAL}#))
+	      )
+	 (put_int incformal inix)
+	 (put_objdest ogetfarg locinb)
+	 (list_append obodylist ogetfarg)
+	 (debug "compile2obj_hook incformal=" incformal)
+	 (multiple_put_nth oinargs inix incformal)
+	 ))
+      (debug "compile2obj_hook oinargs=" oinargs)
+      ;; handle the output arguments
+      (debug "compile2obj_hook noutbinds=" noutbinds)
+      (foreach_in_multiple
+       (noutbinds)
+       (curoutb :long outix)
+       (debug "compile2obj_hook curoutb=" curoutb "\n .. outix=" outix)
+       (assert_msg "check curoutb" (is_a curoutb class_formal_binding))
+       (let ( (symoutb (get_field :binder curoutb))
+	      (ctypoutb (get_field :fbind_type curoutb))
+	      (locoutb (get_free_objloctyped gcx symoutb ctypoutb))
+	      (outcname (let ( (sbuf (make_strbuf discr_strbuf))
+			       )
+			  (add2out sbuf "meltoutp" outix "_")
+			  (add2sbuf_cident sbuf (get_field :named_name symoutb))
+			  (if (is_a symoutb class_cloned_symbol)
+			      (add2out sbuf "__" (get_field :csym_urank symoutb)))
+			  (strbuf2string discr_verbatim_string sbuf)))
+	      (outcformal (instance class_objcformal
+				    :obv_type ctypoutb
+				    :oformal_name outcname
+				    :oformal_proc nhook
+				    :oformal_bind curoutb
+				    :oformal_locv locoutb))
+	      )
+	 (put_int outcformal outix)
+	 (debug "compile2obj_hook outcformal=" outcformal)
+	 (multiple_put_nth ooutargs outix outcformal)
+	 )
+       (debug "compile2obj_hook ooutargs=" ooutargs "\n.. nbody=" nbody)
+       ;; compile the body
+       (let ( (obody (compile_obj nbody gcx))
+	      )
+	 (debug "compile2obj_hook obody=" obody)
+	 (list_append obodylist obody)
+	 ;;
+	 (debug "compile2obj_hook hookrout=" hookrout)
+	 ;;
+	 (assert_msg "@$@unimplemented compile2obj_hook"))))))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
