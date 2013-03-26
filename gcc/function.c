@@ -5093,6 +5093,7 @@ expand_function_end (void)
 	     amount.  BLKmode results are handled using the group load/store
 	     machinery.  */
 	  if (TYPE_MODE (TREE_TYPE (decl_result)) != BLKmode
+	      && REG_P (real_decl_rtl)
 	      && targetm.calls.return_in_msb (TREE_TYPE (decl_result)))
 	    {
 	      emit_move_insn (gen_rtx_REG (GET_MODE (decl_rtl),
@@ -5597,12 +5598,17 @@ prepare_shrink_wrap (basic_block entry_block)
 static void
 emit_use_return_register_into_block (basic_block bb)
 {
-  rtx seq;
+  rtx seq, insn;
   start_sequence ();
   use_return_register ();
   seq = get_insns ();
   end_sequence ();
-  emit_insn_before (seq, BB_END (bb));
+  insn = BB_END (bb);
+#ifdef HAVE_cc0
+  if (reg_mentioned_p (cc0_rtx, PATTERN (insn)))
+    insn = prev_cc0_setter (insn);
+#endif
+  emit_insn_before (seq, insn);
 }
 
 

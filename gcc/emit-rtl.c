@@ -2580,10 +2580,14 @@ verify_rtx_sharing (rtx orig, rtx insn)
     case RETURN:
     case SIMPLE_RETURN:
     case SCRATCH:
-      return;
       /* SCRATCH must be shared because they represent distinct values.  */
+      return;
     case CLOBBER:
-      if (REG_P (XEXP (x, 0)) && REGNO (XEXP (x, 0)) < FIRST_PSEUDO_REGISTER)
+      /* Share clobbers of hard registers (like cc0), but do not share pseudo reg
+         clobbers or clobbers of hard registers that originated as pseudos.
+         This is needed to allow safe register renaming.  */
+      if (REG_P (XEXP (x, 0)) && REGNO (XEXP (x, 0)) < FIRST_PSEUDO_REGISTER
+	  && ORIGINAL_REGNO (XEXP (x, 0)) == REGNO (XEXP (x, 0)))
 	return;
       break;
 
@@ -2797,7 +2801,11 @@ repeat:
       /* SCRATCH must be shared because they represent distinct values.  */
       return;
     case CLOBBER:
-      if (REG_P (XEXP (x, 0)) && REGNO (XEXP (x, 0)) < FIRST_PSEUDO_REGISTER)
+      /* Share clobbers of hard registers (like cc0), but do not share pseudo reg
+         clobbers or clobbers of hard registers that originated as pseudos.
+         This is needed to allow safe register renaming.  */
+      if (REG_P (XEXP (x, 0)) && REGNO (XEXP (x, 0)) < FIRST_PSEUDO_REGISTER
+	  && ORIGINAL_REGNO (XEXP (x, 0)) == REGNO (XEXP (x, 0)))
 	return;
       break;
 
@@ -3956,7 +3964,8 @@ add_insn_before (rtx insn, rtx before, basic_block bb)
 void
 set_insn_deleted (rtx insn)
 {
-  df_insn_delete (BLOCK_FOR_INSN (insn), INSN_UID (insn));
+  if (INSN_P (insn) && !JUMP_TABLE_DATA_P (insn))
+    df_insn_delete (insn);
   PUT_CODE (insn, NOTE);
   NOTE_KIND (insn) = NOTE_INSN_DELETED;
 }
@@ -3970,9 +3979,6 @@ remove_insn (rtx insn)
   rtx next = NEXT_INSN (insn);
   rtx prev = PREV_INSN (insn);
   basic_block bb;
-
-  /* Later in the code, the block will be marked dirty.  */
-  df_insn_delete (NULL, INSN_UID (insn));
 
   if (prev)
     {
@@ -4024,11 +4030,15 @@ remove_insn (rtx insn)
 
       gcc_assert (stack);
     }
+
+  /* Invalidate data flow information associated with INSN.  */
+  if (INSN_P (insn) && !JUMP_TABLE_DATA_P (insn))
+    df_insn_delete (insn);
+
+  /* Fix up basic block boundaries, if necessary.  */
   if (!BARRIER_P (insn)
       && (bb = BLOCK_FOR_INSN (insn)))
     {
-      if (NONDEBUG_INSN_P (insn))
-	df_set_bb_dirty (bb);
       if (BB_HEAD (bb) == insn)
 	{
 	  /* Never ever delete the basic block note without deleting whole
@@ -5303,7 +5313,11 @@ copy_insn_1 (rtx orig)
     case SIMPLE_RETURN:
       return orig;
     case CLOBBER:
-      if (REG_P (XEXP (orig, 0)) && REGNO (XEXP (orig, 0)) < FIRST_PSEUDO_REGISTER)
+      /* Share clobbers of hard registers (like cc0), but do not share pseudo reg
+         clobbers or clobbers of hard registers that originated as pseudos.
+         This is needed to allow safe register renaming.  */
+      if (REG_P (XEXP (orig, 0)) && REGNO (XEXP (orig, 0)) < FIRST_PSEUDO_REGISTER
+	  && ORIGINAL_REGNO (XEXP (orig, 0)) == REGNO (XEXP (orig, 0)))
 	return orig;
       break;
 

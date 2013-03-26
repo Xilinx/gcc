@@ -1416,7 +1416,7 @@ expand_member_init (tree name)
     }
   else
     {
-      if (TREE_CODE (name) == IDENTIFIER_NODE)
+      if (identifier_p (name))
 	field = lookup_field (current_class_type, name, 1, false);
       else
 	field = name;
@@ -2301,7 +2301,7 @@ build_new_1 (vec<tree, va_gc> **placement, tree type, tree nelts,
       return error_mark_node;
     }
 
-  if (abstract_virtuals_error_sfinae (NULL_TREE, elt_type, complain))
+  if (abstract_virtuals_error_sfinae (ACU_NEW, elt_type, complain))
     return error_mark_node;
 
   is_initialized = (type_build_ctor_call (elt_type) || *init != NULL);

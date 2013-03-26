@@ -536,7 +536,7 @@ simplify_loop_decl_cond (tree *cond_p, tree body)
 tree
 finish_goto_stmt (tree destination)
 {
-  if (TREE_CODE (destination) == IDENTIFIER_NODE)
+  if (identifier_p (destination))
     destination = lookup_label (destination);
 
   /* We warn about unused labels with -Wunused.  That means we have to
@@ -1574,9 +1574,7 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
       else
 	{
 	  /* Set the cv qualifiers.  */
-	  int quals = (current_class_ref
-		       ? cp_type_quals (TREE_TYPE (current_class_ref))
-		       : TYPE_UNQUALIFIED);
+	  int quals = cp_type_quals (TREE_TYPE (object));
 
 	  if (DECL_MUTABLE_P (decl))
 	    quals &= ~TYPE_QUAL_CONST;
@@ -2001,7 +1999,7 @@ perform_koenig_lookup (tree fn, vec<tree, va_gc> *args, bool include_std,
     }
 
   /* Find the name of the overloaded function.  */
-  if (TREE_CODE (fn) == IDENTIFIER_NODE)
+  if (identifier_p (fn))
     identifier = fn;
   else if (is_overloaded_fn (fn))
     {
@@ -2884,7 +2882,8 @@ outer_var_p (tree decl)
 {
   return ((TREE_CODE (decl) == VAR_DECL || TREE_CODE (decl) == PARM_DECL)
 	  && DECL_FUNCTION_SCOPE_P (decl)
-	  && DECL_CONTEXT (decl) != current_function_decl);
+	  && (DECL_CONTEXT (decl) != current_function_decl
+	      || parsing_nsdmi ()));
 }
 
 /* As above, but also checks that DECL is automatic.  */
@@ -2967,7 +2966,7 @@ finish_id_expression (tree id_expression,
 	  if (scope
 	      && (!TYPE_P (scope)
 		  || (!dependent_type_p (scope)
-		      && !(TREE_CODE (id_expression) == IDENTIFIER_NODE
+		      && !(identifier_p (id_expression)
 			   && IDENTIFIER_TYPENAME_P (id_expression)
 			   && dependent_type_p (TREE_TYPE (id_expression))))))
 	    {
@@ -2996,8 +2995,7 @@ finish_id_expression (tree id_expression,
 	 the current class so that we can check later to see if
 	 the meaning would have been different after the class
 	 was entirely defined.  */
-      if (!scope && decl != error_mark_node
-	  && TREE_CODE (id_expression) == IDENTIFIER_NODE)
+      if (!scope && decl != error_mark_node && identifier_p (id_expression))
 	maybe_note_name_used_in_class (id_expression, decl);
 
       /* Disallow uses of local variables from containing functions, except
@@ -3041,12 +3039,14 @@ finish_id_expression (tree id_expression,
 		return integral_constant_value (decl);
 	    }
 
+	  if (parsing_nsdmi ())
+	    containing_function = NULL_TREE;
 	  /* If we are in a lambda function, we can move out until we hit
 	     1. the context,
 	     2. a non-lambda function, or
 	     3. a non-default capturing lambda function.  */
-	  while (context != containing_function
-		 && LAMBDA_FUNCTION_P (containing_function))
+	  else while (context != containing_function
+		      && LAMBDA_FUNCTION_P (containing_function))
 	    {
 	      lambda_expr = CLASSTYPE_LAMBDA_EXPR
 		(DECL_CONTEXT (containing_function));
@@ -3168,8 +3168,7 @@ finish_id_expression (tree id_expression,
       /* A template-id where the name of the template was not resolved
 	 is definitely dependent.  */
       else if (TREE_CODE (decl) == TEMPLATE_ID_EXPR
-	       && (TREE_CODE (TREE_OPERAND (decl, 0))
-		   == IDENTIFIER_NODE))
+	       && (identifier_p (TREE_OPERAND (decl, 0))))
 	dependent_p = true;
       /* For anything except an overloaded function, just check its
 	 type.  */
@@ -5300,7 +5299,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p,
          [expr.ref]), decltype(e) is defined as the type of the entity
          named by e. If there is no such entity, or e names a set of
          overloaded functions, the program is ill-formed.  */
-      if (TREE_CODE (expr) == IDENTIFIER_NODE)
+      if (identifier_p (expr))
         expr = lookup_name (expr);
 
       if (TREE_CODE (expr) == INDIRECT_REF)
@@ -6837,6 +6836,9 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
 bool
 reduced_constant_expression_p (tree t)
 {
+  if (TREE_CODE (t) == PTRMEM_CST)
+    /* Even if we can't lower this yet, it's constant.  */
+    return true;
   /* FIXME are we calling this too much?  */
   return initializer_constant_valid_p (t, TREE_TYPE (t)) != NULL_TREE;
 }
@@ -7004,6 +7006,13 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
 
       if (!allow_non_constant)
 	error ("array subscript out of bound");
+      *non_constant_p = true;
+      return t;
+    }
+  else if (tree_int_cst_lt (index, integer_zero_node))
+    {
+      if (!allow_non_constant)
+	error ("negative array subscript");
       *non_constant_p = true;
       return t;
     }
@@ -8487,6 +8496,13 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
         STRIP_NOPS (x);
         if (is_this_parameter (x))
 	  {
+	    if (DECL_CONTEXT (x)
+		&& !DECL_DECLARED_CONSTEXPR_P (DECL_CONTEXT (x)))
+	      {
+		if (flags & tf_error)
+		  error ("use of %<this%> in a constant expression");
+		return false;
+	      }
 	    if (want_rval && DECL_CONTEXT (x)
 		&& DECL_CONSTRUCTOR_P (DECL_CONTEXT (x)))
 	      {
@@ -8967,7 +8983,7 @@ begin_lambda_type (tree lambda)
     /* Create the new RECORD_TYPE for this lambda.  */
     type = xref_tag (/*tag_code=*/record_type,
                      name,
-                     /*scope=*/ts_within_enclosing_non_class,
+                     /*scope=*/ts_lambda,
                      /*template_header_p=*/false);
   }
 
@@ -9039,7 +9055,7 @@ tree
 lambda_capture_field_type (tree expr)
 {
   tree type;
-  if (type_dependent_expression_p (expr))
+  if (!TREE_TYPE (expr) || WILDCARD_TYPE_P (TREE_TYPE (expr)))
     {
       type = cxx_make_type (DECLTYPE_TYPE);
       DECLTYPE_TYPE_EXPR (type) = expr;
@@ -9248,7 +9264,7 @@ lambda_proxy_type (tree ref)
   if (REFERENCE_REF_P (ref))
     ref = TREE_OPERAND (ref, 0);
   type = TREE_TYPE (ref);
-  if (!dependent_type_p (type))
+  if (type && !WILDCARD_TYPE_P (type))
     return type;
   type = cxx_make_type (DECLTYPE_TYPE);
   DECLTYPE_TYPE_EXPR (type) = ref;
@@ -9661,7 +9677,11 @@ maybe_add_lambda_conv_op (tree type)
   DECL_STATIC_FUNCTION_P (fn) = 1;
   DECL_ARGUMENTS (fn) = copy_list (DECL_CHAIN (DECL_ARGUMENTS (callop)));
   for (arg = DECL_ARGUMENTS (fn); arg; arg = DECL_CHAIN (arg))
-    DECL_CONTEXT (arg) = fn;
+    {
+      /* Avoid duplicate -Wshadow warnings.  */
+      DECL_NAME (arg) = NULL_TREE;
+      DECL_CONTEXT (arg) = fn;
+    }
   if (nested)
     DECL_INTERFACE_KNOWN (fn) = 1;
 

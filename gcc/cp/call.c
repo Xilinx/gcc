@@ -233,7 +233,7 @@ check_dtor_name (tree basetype, tree name)
     name = TREE_TYPE (name);
   else if (TYPE_P (name))
     /* OK */;
-  else if (TREE_CODE (name) == IDENTIFIER_NODE)
+  else if (identifier_p (name))
     {
       if ((MAYBE_CLASS_TYPE_P (basetype)
 	   && name == constructor_name (basetype))
@@ -3147,7 +3147,7 @@ print_z_candidate (location_t loc, const char *msgstr,
 		     : ACONCAT ((msgstr, " ", NULL)));
   location_t cloc = location_of (candidate->fn);
 
-  if (TREE_CODE (candidate->fn) == IDENTIFIER_NODE)
+  if (identifier_p (candidate->fn))
     {
       cloc = loc;
       if (candidate->num_convs == 3)
@@ -4437,9 +4437,9 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
 	}
 
       if (!COMPARISON_CLASS_P (arg1))
-	arg1 = build2 (NE_EXPR, signed_type_for (arg1_type), arg1,
+	arg1 = fold_build2 (NE_EXPR, signed_type_for (arg1_type), arg1,
 		       build_zero_cst (arg1_type));
-      return build3 (VEC_COND_EXPR, arg2_type, arg1, arg2, arg3);
+      return fold_build3 (VEC_COND_EXPR, arg2_type, arg1, arg2, arg3);
     }
 
   /* [expr.cond]
@@ -5709,12 +5709,12 @@ build_temp (tree expr, tree type, int flags,
   int savew, savee;
   vec<tree, va_gc> *args;
 
-  savew = warningcount, savee = errorcount;
+  savew = warningcount + werrorcount, savee = errorcount;
   args = make_tree_vector_single (expr);
   expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
 				    &args, type, flags, complain);
   release_tree_vector (args);
-  if (warningcount > savew)
+  if (warningcount + werrorcount > savew)
     *diagnostic_kind = DK_WARNING;
   else if (errorcount > savee)
     *diagnostic_kind = DK_ERROR;
@@ -5856,6 +5856,17 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	tree convfn = cand->fn;
 	unsigned i;
 
+	/* When converting from an init list we consider explicit
+	   constructors, but actually trying to call one is an error.  */
+	if (DECL_NONCONVERTING_P (convfn) && DECL_CONSTRUCTOR_P (convfn)
+	    /* Unless this is for direct-list-initialization.  */
+	    && !(BRACE_ENCLOSED_INITIALIZER_P (expr)
+		 && CONSTRUCTOR_IS_DIRECT_INIT (expr)))
+	  {
+	    error ("converting to %qT from initializer list would use "
+		   "explicit constructor %qD", totype, convfn);
+	  }
+
 	/* If we're initializing from {}, it's value-initialization.  */
 	if (BRACE_ENCLOSED_INITIALIZER_P (expr)
 	    && CONSTRUCTOR_NELTS (expr) == 0
@@ -5873,20 +5884,6 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  }
 
 	expr = mark_rvalue_use (expr);
-
-	/* When converting from an init list we consider explicit
-	   constructors, but actually trying to call one is an error.  */
-	if (DECL_NONCONVERTING_P (convfn) && DECL_CONSTRUCTOR_P (convfn)
-	    /* Unless this is for direct-list-initialization.  */
-	    && !(BRACE_ENCLOSED_INITIALIZER_P (expr)
-		 && CONSTRUCTOR_IS_DIRECT_INIT (expr))
-	    /* Unless we're calling it for value-initialization from an
-	       empty list, since that is handled separately in 8.5.4.  */
-	    && cand->num_convs > 0)
-	  {
-	    error ("converting to %qT from initializer list would use "
-		   "explicit constructor %qD", totype, convfn);
-	  }
 
 	/* Set user_conv_p on the argument conversions, so rvalue/base
 	   handling knows not to allow any more UDCs.  */
@@ -6696,6 +6693,10 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       /* else continue to get conversion error.  */
     }
 
+  /* N3276 magic doesn't apply to nested calls.  */
+  int decltype_flag = (complain & tf_decltype);
+  complain &= ~tf_decltype;
+
   /* Find maximum size of vector to hold converted arguments.  */
   parmlen = list_length (parm);
   nargs = vec_safe_length (args) + (first_arg != NULL_TREE ? 1 : 0);
@@ -7067,7 +7068,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	return error_mark_node;
     }
 
-  return build_cxx_call (fn, nargs, argarray, complain);
+  return build_cxx_call (fn, nargs, argarray, complain|decltype_flag);
 }
 
 /* Build and return a call to FN, using NARGS arguments in ARGARRAY.
@@ -7109,12 +7110,20 @@ build_cxx_call (tree fn, int nargs, tree *argarray,
   if (VOID_TYPE_P (TREE_TYPE (fn)))
     return fn;
 
-  fn = require_complete_type_sfinae (fn, complain);
-  if (fn == error_mark_node)
-    return error_mark_node;
+  /* 5.2.2/11: If a function call is a prvalue of object type: if the
+     function call is either the operand of a decltype-specifier or the
+     right operand of a comma operator that is the operand of a
+     decltype-specifier, a temporary object is not introduced for the
+     prvalue. The type of the prvalue may be incomplete.  */
+  if (!(complain & tf_decltype))
+    {
+      fn = require_complete_type_sfinae (fn, complain);
+      if (fn == error_mark_node)
+	return error_mark_node;
 
-  if (MAYBE_CLASS_TYPE_P (TREE_TYPE (fn)))
-    fn = build_cplus_new (TREE_TYPE (fn), fn, complain);
+      if (MAYBE_CLASS_TYPE_P (TREE_TYPE (fn)))
+	fn = build_cplus_new (TREE_TYPE (fn), fn, complain);
+    }
   return convert_from_reference (fn);
 }
 
@@ -8554,8 +8563,7 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn,
      - do not have the same parameter type list as any non-template
        non-member candidate.  */
 
-  if (TREE_CODE (cand1->fn) == IDENTIFIER_NODE
-      || TREE_CODE (cand2->fn) == IDENTIFIER_NODE)
+  if (identifier_p (cand1->fn) || identifier_p (cand2->fn))
     {
       for (i = 0; i < len; ++i)
 	if (!same_type_p (cand1->convs[i]->type,
@@ -8566,7 +8574,7 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn,
 	  if (cand1->fn == cand2->fn)
 	    /* Two built-in candidates; arbitrarily pick one.  */
 	    return 1;
-	  else if (TREE_CODE (cand1->fn) == IDENTIFIER_NODE)
+	  else if (identifier_p (cand1->fn))
 	    /* cand1 is built-in; prefer cand2.  */
 	    return -1;
 	  else

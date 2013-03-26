@@ -5468,7 +5468,7 @@ ia64_print_operand (FILE * file, rtx x, int code)
 	    else
 	      which = ".sptk";
 	  }
-	else if (GET_CODE (current_output_insn) == CALL_INSN)
+	else if (CALL_P (current_output_insn))
 	  which = ".sptk";
 	else
 	  which = ".dptk";
@@ -6809,8 +6809,7 @@ group_barrier_needed (rtx insn)
       memset (rws_insn, 0, sizeof (rws_insn));
 
       /* Don't bundle a call following another call.  */
-      if ((pat = prev_active_insn (insn))
-	  && GET_CODE (pat) == CALL_INSN)
+      if ((pat = prev_active_insn (insn)) && CALL_P (pat))
 	{
 	  need_barrier = 1;
 	  break;
@@ -6824,8 +6823,7 @@ group_barrier_needed (rtx insn)
 	flags.is_branch = 1;
 
       /* Don't bundle a jump following a call.  */
-      if ((pat = prev_active_insn (insn))
-	  && GET_CODE (pat) == CALL_INSN)
+      if ((pat = prev_active_insn (insn)) && CALL_P (pat))
 	{
 	  need_barrier = 1;
 	  break;
@@ -6927,20 +6925,20 @@ emit_insn_group_barriers (FILE *dump)
 
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     {
-      if (GET_CODE (insn) == CODE_LABEL)
+      if (LABEL_P (insn))
 	{
 	  if (insns_since_last_label)
 	    last_label = insn;
 	  insns_since_last_label = 0;
 	}
-      else if (GET_CODE (insn) == NOTE
+      else if (NOTE_P (insn)
 	       && NOTE_KIND (insn) == NOTE_INSN_BASIC_BLOCK)
 	{
 	  if (insns_since_last_label)
 	    last_label = insn;
 	  insns_since_last_label = 0;
 	}
-      else if (GET_CODE (insn) == INSN
+      else if (NONJUMP_INSN_P (insn)
 	       && GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE
 	       && XINT (PATTERN (insn), 1) == UNSPECV_INSN_GROUP_BARRIER)
 	{
@@ -6981,13 +6979,13 @@ emit_all_insn_group_barriers (FILE *dump ATTRIBUTE_UNUSED)
 
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     {
-      if (GET_CODE (insn) == BARRIER)
+      if (BARRIER_P (insn))
 	{
 	  rtx last = prev_active_insn (insn);
 
 	  if (! last)
 	    continue;
-	  if (GET_CODE (last) == JUMP_INSN
+	  if (JUMP_P (last)
 	      && GET_CODE (PATTERN (last)) == ADDR_DIFF_VEC)
 	    last = prev_active_insn (last);
 	  if (recog_memoized (last) != CODE_FOR_insn_group_barrier)
@@ -7485,7 +7483,7 @@ ia64_variable_issue (FILE *dump ATTRIBUTE_UNUSED,
       int needed = group_barrier_needed (insn);
       
       gcc_assert (!needed);
-      if (GET_CODE (insn) == CALL_INSN)
+      if (CALL_P (insn))
 	init_insn_group_barriers ();
       stops_p [INSN_UID (insn)] = stop_before_p;
       stop_before_p = 0;
@@ -7574,7 +7572,7 @@ ia64_dfa_new_cycle (FILE *dump, int verbose, rtx insn, int last_clock,
 	       && last_scheduled_insn
 	       && scheduled_good_insn (last_scheduled_insn))))
       || (last_scheduled_insn
-	  && (GET_CODE (last_scheduled_insn) == CALL_INSN
+	  && (CALL_P (last_scheduled_insn)
 	      || unknown_for_bundling_p (last_scheduled_insn))))
     {
       init_insn_group_barriers ();
@@ -7592,7 +7590,7 @@ ia64_dfa_new_cycle (FILE *dump, int verbose, rtx insn, int last_clock,
 	  state_transition (curr_state, dfa_stop_insn);
 	  if (TARGET_EARLY_STOP_BITS)
 	    *sort_p = (last_scheduled_insn == NULL_RTX
-		       || GET_CODE (last_scheduled_insn) != CALL_INSN);
+		       || ! CALL_P (last_scheduled_insn));
 	  else
 	    *sort_p = 0;
 	  return 1;
@@ -8933,9 +8931,9 @@ ia64_add_bundle_selector_before (int template0, rtx insn)
 	{
 	  do
 	    insn = next_active_insn (insn);
-	  while (GET_CODE (insn) == INSN
+	  while (NONJUMP_INSN_P (insn)
 		 && get_attr_empty (insn) == EMPTY_YES);
-	  if (GET_CODE (insn) == CALL_INSN)
+	  if (CALL_P (insn))
 	    note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
 	  else if (note)
 	    {
@@ -9369,13 +9367,13 @@ final_emit_insn_group_barriers (FILE *dump ATTRIBUTE_UNUSED)
        insn != current_sched_info->next_tail;
        insn = NEXT_INSN (insn))
     {
-      if (GET_CODE (insn) == BARRIER)
+      if (BARRIER_P (insn))
 	{
 	  rtx last = prev_active_insn (insn);
 
 	  if (! last)
 	    continue;
-	  if (GET_CODE (last) == JUMP_INSN
+	  if (JUMP_P (last)
 	      && GET_CODE (PATTERN (last)) == ADDR_DIFF_VEC)
 	    last = prev_active_insn (last);
 	  if (recog_memoized (last) != CODE_FOR_insn_group_barrier)
@@ -9442,8 +9440,7 @@ final_emit_insn_group_barriers (FILE *dump ATTRIBUTE_UNUSED)
 	  else if (recog_memoized (insn) >= 0
 		   && important_for_bundling_p (insn))
 	    seen_good_insn = 1;
-	  need_barrier_p = (GET_CODE (insn) == CALL_INSN
-			    || unknown_for_bundling_p (insn));
+	  need_barrier_p = (CALL_P (insn) || unknown_for_bundling_p (insn));
 	}
     }
 }
@@ -9587,7 +9584,7 @@ emit_predicate_relation_info (void)
       rtx head = BB_HEAD (bb);
 
       /* We only need such notes at code labels.  */
-      if (GET_CODE (head) != CODE_LABEL)
+      if (! LABEL_P (head))
 	continue;
       if (NOTE_INSN_BASIC_BLOCK_P (NEXT_INSN (head)))
 	head = NEXT_INSN (head);
@@ -9615,7 +9612,7 @@ emit_predicate_relation_info (void)
 
       while (1)
 	{
-	  if (GET_CODE (insn) == CALL_INSN
+	  if (CALL_P (insn)
 	      && GET_CODE (PATTERN (insn)) == COND_EXEC
 	      && find_reg_note (insn, REG_NORETURN, NULL_RTX))
 	    {
@@ -9763,7 +9760,7 @@ ia64_reorg (void)
       if (insn)
 	{
 	  /* Skip over insns that expand to nothing.  */
-	  while (GET_CODE (insn) == INSN
+	  while (NONJUMP_INSN_P (insn)
 		 && get_attr_empty (insn) == EMPTY_YES)
 	    {
 	      if (GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE
@@ -9771,7 +9768,7 @@ ia64_reorg (void)
 		saw_stop = 1;
 	      insn = prev_active_insn (insn);
 	    }
-	  if (GET_CODE (insn) == CALL_INSN)
+	  if (CALL_P (insn))
 	    {
 	      if (! saw_stop)
 		emit_insn (gen_insn_group_barrier (GEN_INT (3)));
@@ -10181,7 +10178,7 @@ ia64_asm_unwind_emit (FILE *asm_out_file, rtx insn)
 	}
     }
 
-  if (GET_CODE (insn) == NOTE || ! RTX_FRAME_RELATED_P (insn))
+  if (NOTE_P (insn) || ! RTX_FRAME_RELATED_P (insn))
     return;
 
   /* Look for the ALLOC insn.  */
