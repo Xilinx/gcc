@@ -1,6 +1,10 @@
 
 
 2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normbind_anybind): Better debug.
+	(normexp_symbol): Replace list_every with foreach_in_list.
+
+2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

@@ -1383,7 +1383,7 @@ source location.}#
 	 )
     (warning_strv psloc "bizarre?? constant reference to"
 		  (unsafe_get_field :named_name symb))
-    (debug "normbind_anybind dis" dis)
+    (debug "normbind_anybind bind=" bind "\n of dis=" dis)
     (warning_strv psloc "bizarre binding normalization of binding of " (get_field :named_name dis))
     (let ( (kocc
 	    (instance class_nrep_constocc
@@ -1637,22 +1637,24 @@ source location.}#
 		       )
 		  ;; cache the result
 		  (mapobject_put sycmap recv fxocc)
-		  (debug "normexp_symbol const value fxocc" fxocc " updated sycmap=" sycmap)
-		  ;; put the const occurrence if needed in the const list of each proc
-		  (list_every
-		   procs
-		   (lambda (pr)
-		     (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-		     (let ( (clcont
-			     (instance class_reference :referenced_value fxocc))
-			    (cnstproc (unsafe_get_field :nrpro_const pr)) )
-		       (list_every 
-			cnstproc
-			(lambda (cx) (if (== cx fxocc)
-					 (progn (put_fields clcont :referenced_value ()) ()))))
-		       (let ( (newcl (get_field :referenced_value clcont)) )
-			 (if newcl (list_append cnstproc newcl))) 
-		       )))
+		  (debug "normexp_symbol const value fxocc=" fxocc " updated sycmap=" sycmap)
+		  ;; put the const occurrence if needed in the const
+		  ;; list of each proc
+		  (foreach_in_list
+		   (procs)
+		   (curpairpro pr)
+		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
+		   (let ( (clcont
+			   (instance class_reference :referenced_value fxocc))
+			  (cnstproc (get_field :nrpro_const pr)) )
+		     (foreach_in_list
+		      (cnstproc)
+		      (curpaircx cx) 
+		      (when (== cx fxocc)
+			  (put_fields clcont :referenced_value ())))
+		     (let ( (newcl (get_field :referenced_value clcont)) )
+		       (if newcl (list_append cnstproc newcl))) 
+		     ))			;end foreach in procs
 		  (return fxocc ())
 		  )
 	      ;; otherwise symbol is the direct value
