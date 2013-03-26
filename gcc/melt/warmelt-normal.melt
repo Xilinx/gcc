@@ -1600,7 +1600,8 @@ source location.}#
 	  (let ( (bvar (mapobject_get valbindmap bind)) 
 		 (val (get_field :vbind_value bind))
 		 )
-	    (debug "normexp_symbol value bind=" bind " procs=" procs)
+	    (debug "normexp_symbol value bind=" bind 
+		   "\n.. procs=" procs "\n.. bvar=" bvar "\n.. val=" val)
 	    (if (null bvar)
 		(let ( (newbvar 
 			(cond ( (is_a modctx class_running_extension_module_context)
@@ -1624,7 +1625,9 @@ source location.}#
 		  (setq bvar newbvar)
 		  (list_append valuelist newbvar)
 		  ))
-	    ;; if procs ia non-empty list, symbol is a "closed" constant for the value
+	    
+	    ;; if procs is a non-empty list, symbol is a "closed"
+	    ;; constant for the value
 	    (if (and (is_list procs)
 		     (is_pair (list_first procs)))
 		(let ( (fxocc
@@ -1637,12 +1640,14 @@ source location.}#
 		       )
 		  ;; cache the result
 		  (mapobject_put sycmap recv fxocc)
-		  (debug "normexp_symbol const value fxocc=" fxocc " updated sycmap=" sycmap)
+		  (debug "normexp_symbol const value fxocc=" fxocc
+			 " updated sycmap=" sycmap "\n.. procs=" procs)
 		  ;; put the const occurrence if needed in the const
 		  ;; list of each proc
 		  (foreach_in_list
 		   (procs)
 		   (curpairpro pr)
+		   (debug "normexp_symbol pr=" pr)
 		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
 		   (let ( (clcont
 			   (instance class_reference :referenced_value fxocc))
@@ -1651,7 +1656,7 @@ source location.}#
 		      (cnstproc)
 		      (curpaircx cx) 
 		      (when (== cx fxocc)
-			  (put_fields clcont :referenced_value ())))
+			(put_fields clcont :referenced_value ())))
 		     (let ( (newcl (get_field :referenced_value clcont)) )
 		       (if newcl (list_append cnstproc newcl))) 
 		     ))			;end foreach in procs

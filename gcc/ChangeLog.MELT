@@ -1,6 +1,9 @@
 
 
 2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	(normexp_symbol): Better debug.
+
+2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normbind_anybind): Better debug.
 	(normexp_symbol): Replace list_every with foreach_in_list.
 
