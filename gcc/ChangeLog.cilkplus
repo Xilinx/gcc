@@ -10,3 +10,8 @@
 	c-family/array-notation-common.o.
 	* tree-pretty-print.c (dump_generic_node): Add case for
 	ARRAY_NOTATION_REF.
+	(BUILTINS_DEF): Depend on cilkplus.def.
+	* builtins.def: Include cilkplus.def.
+	Define DEF_CILKPLUS_BUILTIN.
+	* builtin-types.def: Define BT_FN_INT_PTR_PTR_PTR.
+	* cilkplus.def: New file.

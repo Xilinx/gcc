@@ -861,7 +861,7 @@ RTL_ERROR_H = rtl-error.h $(RTL_H) $(DIAGNOSTIC_CORE_H)
 READ_MD_H = $(OBSTACK_H) $(HASHTAB_H) read-md.h
 PARAMS_H = params.h params.def
 BUILTINS_DEF = builtins.def sync-builtins.def omp-builtins.def \
-	gtm-builtins.def sanitizer.def
+	gtm-builtins.def sanitizer.def cilkplus.def
 INTERNAL_FN_DEF = internal-fn.def
 INTERNAL_FN_H = internal-fn.h $(INTERNAL_FN_DEF)
 TREE_H = coretypes.h tree.h all-tree.def tree.def c-family/c-common.def \

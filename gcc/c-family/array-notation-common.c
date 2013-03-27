@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 
 int extract_sec_implicit_index_arg (location_t, tree);
 bool is_sec_implicit_index_fn (tree);
-void array_notation_init_builtins (void);
 
 /* Mark the FNDECL as cold, meaning that the function specified by FNDECL is
    not run as is.  */
@@ -43,124 +42,19 @@ mark_cold (tree fndecl)
 					DECL_ATTRIBUTES (fndecl));
 }
 
-/* This function inititializes array notation specific builtin information.  */
-
-
-void
-array_notation_init_builtins (void)
-{
-  tree func_type = NULL_TREE;
-  tree new_func = NULL_TREE;
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_add", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_mul", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_all_zero", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_any_zero", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_max", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-  
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_min", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_min_ind", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_max_ind", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-				       NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_any_nonzero", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_all_nonzero", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-  
-  func_type = build_function_type_list (integer_type_node, integer_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_implicit_index", func_type);
-  mark_cold (new_func);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (integer_type_node, ptr_type_node,
-					ptr_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce", func_type);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-
-  func_type = build_function_type_list (ptr_type_node, ptr_type_node,
-					ptr_type_node, ptr_type_node,
-					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_mutating", func_type);
-  new_func = lang_hooks.decls.pushdecl (new_func);
-  return;
-}
-
-/* Returns true if the function call specified in FUNC_NAME is
+/* Returns true if the function call in FNDECL is
    __sec_implicit_index.  */
 
 bool
-is_sec_implicit_index_fn (tree func_name)
+is_sec_implicit_index_fn (tree fndecl)
 {
-  const char *function_name = NULL;
+  if (TREE_CODE (fndecl) == ADDR_EXPR)
+    fndecl = TREE_OPERAND (fndecl, 0);
 
-  if (!func_name)
-    return false;
-
-  if (TREE_CODE (func_name) == FUNCTION_DECL)
-    func_name = DECL_NAME (func_name);
-  
-  if (TREE_CODE (func_name) == IDENTIFIER_NODE)
-    function_name = IDENTIFIER_POINTER (func_name);
-  else if (TREE_CODE (func_name) == ADDR_EXPR)
-    {
-      func_name = TREE_OPERAND (func_name, 0);
-      if (TREE_CODE (func_name) == FUNCTION_DECL)
-	if (DECL_NAME (func_name))
-	  function_name = IDENTIFIER_POINTER (DECL_NAME (func_name));
-    }
-
-  if (!function_name)
-    return false;
-  else if (!strcmp (function_name, "__sec_implicit_index"))
-    return true;
-  else
-    return false;
+  return
+    (TREE_CODE (fndecl) == FUNCTION_DECL
+     && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+     && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_CILKPLUS_SEC_IMPLICIT_INDEX);
 }
 
 /* Returns the first and only argument for FN, which should be a

@@ -38,7 +38,6 @@ void extract_array_notation_exprs (tree, bool, vec<tree, va_gc> **);
 tree fix_conditional_array_notations (tree);
 struct c_expr fix_array_notation_expr (location_t, enum tree_code,
 				       struct c_expr);
-bool is_builtin_array_notation_fn (tree func_name, an_reduce_type *type);
 static tree fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var);
 bool contains_array_notation_expr (tree expr);
 tree expand_array_notation_exprs (tree t);
@@ -50,6 +49,39 @@ struct inv_list
   vec<tree, va_gc> *replacement;
 };
 
+/* Given an FNDECL or an ADDR_EXPR, return the corresponding
+   BUILT_IN_CILKPLUS_SEC_REDUCE_* being called.  If none, return
+   BUILT_IN_NONE.  */
+
+enum built_in_function
+is_cilkplus_reduce_builtin (tree fndecl)
+{
+  if (TREE_CODE (fndecl) == ADDR_EXPR)
+    fndecl = TREE_OPERAND (fndecl, 0);
+
+  if (TREE_CODE (fndecl) == FUNCTION_DECL
+      && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (fndecl))
+      {
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_ADD:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_MUL:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_ALL_ZERO:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_ANY_ZERO:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_MAX:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_MIN:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_MIN_IND:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_MAX_IND:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_ANY_NONZERO:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_ALL_NONZERO:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE:
+      case BUILT_IN_CILKPLUS_SEC_REDUCE_MUTATING:
+	return DECL_FUNCTION_CODE (fndecl);
+      default:
+	break;
+      }
+
+  return BUILT_IN_NONE;
+}
 
 /* Returns the rank of ARRAY through the *RANK.  The user can specify whether
    (s)he wants to step into array_notation-specific builtin functions
@@ -63,7 +95,7 @@ find_rank (tree array, bool ignore_builtin_fn, size_t *rank)
 {
   tree ii_tree;
   size_t current_rank = 0, ii = 0;
-  an_reduce_type dummy_type = REDUCE_UNKNOWN;
+
   if (!array)
     return;
   else if (TREE_CODE (array) == ARRAY_NOTATION_REF)
@@ -89,7 +121,7 @@ find_rank (tree array, bool ignore_builtin_fn, size_t *rank)
 	  tree func_name = CALL_EXPR_FN (array);
 	  if (TREE_CODE (func_name) == ADDR_EXPR)
 	    if (!ignore_builtin_fn)
-	      if (is_builtin_array_notation_fn (func_name, &dummy_type))
+	      if (is_cilkplus_reduce_builtin (func_name))
 		/* If it is a builtin function, then we know it returns a 
 		   scalar.  */
 		return;
@@ -121,7 +153,6 @@ extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
 			      vec<tree, va_gc> **array_list)
 {
   size_t ii = 0;
-  an_reduce_type dummy_type = REDUCE_UNKNOWN;
   
   if (!node)
     return;
@@ -148,7 +179,7 @@ extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
     }
   else if (TREE_CODE (node) == CALL_EXPR)
     {
-      if (is_builtin_array_notation_fn (CALL_EXPR_FN (node), &dummy_type))
+      if (is_cilkplus_reduce_builtin (CALL_EXPR_FN (node)))
 	{
 	  if (ignore_builtin_fn)
 	    return;
@@ -173,7 +204,6 @@ extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
 	}
       else
 	gcc_unreachable (); /* We should not get here.  */
-	  
     } 
   else 
     for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (node)); ii++) 
@@ -198,7 +228,6 @@ replace_array_notations (tree *orig, bool ignore_builtin_fn,
 {
   size_t ii = 0;
   tree node = NULL_TREE, node_replacement = NULL_TREE;
-  an_reduce_type dummy_type = REDUCE_UNKNOWN;
   
   if (vec_safe_length (list) == 0 || !*orig)
     return;
@@ -221,7 +250,7 @@ replace_array_notations (tree *orig, bool ignore_builtin_fn,
     }
   else if (TREE_CODE (*orig) == CALL_EXPR)
     {
-      if (is_builtin_array_notation_fn (CALL_EXPR_FN (*orig), &dummy_type))
+      if (is_cilkplus_reduce_builtin (CALL_EXPR_FN (*orig)))
 	{
 	  if (!ignore_builtin_fn)
 	    {
@@ -1620,11 +1649,12 @@ fix_array_notation_expr (location_t location, enum tree_code code,
   return arg;
 }
 
-/* Replace array notation's built-in function passed in AN_BUILTIN_FN with
-   the appropriate loop and computation (all stored in variable LOOP of type
-   tree node).  The output of the function function is always a scalar and that
-   result is returned in *NEW_VAR.  *NEW_VAR is NULL_TREE if the function is
-   __sec_reduce_mutating.  */
+/* Given a CALL_EXPR to an array notation built-in function in
+   AN_BUILTIN_FN, replace the call with the appropriate loop and
+   computation.  Return the computation in *NEW_VAR.
+
+   The return value in *NEW_VAR will always be a scalar.  If the
+   builtin is __sec_reduce_mutating, *NEW_VAR is set to NULL_TREE.  */
 
 static tree
 fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
@@ -1633,7 +1663,6 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   tree array_ind_value = NULL_TREE, new_no_ind, new_yes_ind, new_no_list;
   tree new_yes_list, new_cond_expr, new_var_init = NULL_TREE;
   tree new_exp_init = NULL_TREE;
-  an_reduce_type an_type = REDUCE_UNKNOWN;
   vec<tree, va_gc> *array_list = NULL, *array_operand = NULL;
   size_t list_size = 0, rank = 0, ii = 0, jj = 0;
   int s_jj = 0;
@@ -1645,12 +1674,13 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   bool **count_down, **array_vector;
   location_t location = UNKNOWN_LOCATION;
   
-  if (!is_builtin_array_notation_fn (CALL_EXPR_FN (an_builtin_fn), &an_type))
+  enum built_in_function an_type =
+    is_cilkplus_reduce_builtin (CALL_EXPR_FN (an_builtin_fn));
+  if (an_type == BUILT_IN_NONE)
     return NULL_TREE;
 
-  if (an_type != REDUCE_CUSTOM && an_type != REDUCE_MUTATING)
-    func_parm = CALL_EXPR_ARG (an_builtin_fn, 0);
-  else
+  if (an_type == BUILT_IN_CILKPLUS_SEC_REDUCE
+      || an_type == BUILT_IN_CILKPLUS_SEC_REDUCE_MUTATING)
     {
       call_fn = CALL_EXPR_ARG (an_builtin_fn, 2);
       while (TREE_CODE (call_fn) == CONVERT_EXPR
@@ -1664,6 +1694,8 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	identity_value = TREE_OPERAND (identity_value, 0);
       func_parm = CALL_EXPR_ARG (an_builtin_fn, 1);
     }
+  else
+    func_parm = CALL_EXPR_ARG (an_builtin_fn, 0);
   
   while (TREE_CODE (func_parm) == CONVERT_EXPR
 	 || TREE_CODE (func_parm) == EXCESS_PRECISION_EXPR
@@ -1677,7 +1709,8 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   if (rank == 0)
     return an_builtin_fn;
   else if (rank > 1 
-	   && (an_type == REDUCE_MAX_INDEX  || an_type == REDUCE_MIN_INDEX))
+	   && (an_type == BUILT_IN_CILKPLUS_SEC_REDUCE_MAX_IND
+	       || an_type == BUILT_IN_CILKPLUS_SEC_REDUCE_MIN_IND))
     {
       error_at (location, "__sec_reduce_min_ind or __sec_reduce_max_ind cannot"
 		" have arrays with dimension greater than 1.");
@@ -1688,27 +1721,27 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   list_size = vec_safe_length (array_list);
   switch (an_type)
     {
-    case REDUCE_ADD:
-    case REDUCE_MUL:
-    case REDUCE_MAX:
-    case REDUCE_MIN:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ADD:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MUL:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MAX:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MIN:
       new_var_type = ARRAY_NOTATION_TYPE ((*array_list)[0]);
       break;
-    case REDUCE_ALL_ZEROS:
-    case REDUCE_ALL_NONZEROS:
-    case REDUCE_ANY_ZEROS:
-    case REDUCE_ANY_NONZEROS:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ALL_ZERO:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ALL_NONZERO:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ANY_ZERO:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ANY_NONZERO:
       new_var_type = integer_type_node;
       break;
-    case REDUCE_MAX_INDEX:
-    case REDUCE_MIN_INDEX:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MAX_IND:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MIN_IND:
       new_var_type = integer_type_node;
       break;
-    case REDUCE_CUSTOM:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE:
       if (call_fn && identity_value) 
 	new_var_type = ARRAY_NOTATION_TYPE ((*array_list)[0]);
       break;
-    case REDUCE_MUTATING:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MUTATING:
       new_var_type = NULL_TREE;
       break;
     default:
@@ -1902,7 +1935,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	}
     }
 
-  if (an_type != REDUCE_MUTATING)
+  if (an_type != BUILT_IN_CILKPLUS_SEC_REDUCE_MUTATING)
     {
       *new_var = build_decl (location, VAR_DECL, NULL_TREE, new_var_type);
       gcc_assert (*new_var && *new_var != error_mark_node);
@@ -1910,13 +1943,14 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   else
     *new_var = NULL_TREE;
   
-  if (an_type == REDUCE_MAX_INDEX || an_type == REDUCE_MIN_INDEX)
+  if (an_type == BUILT_IN_CILKPLUS_SEC_REDUCE_MAX_IND
+      || an_type == BUILT_IN_CILKPLUS_SEC_REDUCE_MIN_IND)
     array_ind_value = build_decl (location, VAR_DECL, NULL_TREE, 
 				  TREE_TYPE (func_parm));
   array_op0 = (*array_operand)[0];			      
   switch (an_type)
     {
-    case REDUCE_ADD:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ADD:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, build_zero_cst (new_var_type), new_var_type);
@@ -1924,7 +1958,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(location, *new_var, TREE_TYPE (*new_var), PLUS_EXPR,
 	 location, func_parm, TREE_TYPE (func_parm));
       break;
-    case REDUCE_MUL:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MUL:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, build_one_cst (new_var_type), new_var_type);
@@ -1932,7 +1966,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(location, *new_var, TREE_TYPE (*new_var), MULT_EXPR,
 	 location, func_parm, TREE_TYPE (func_parm));
       break;
-    case REDUCE_ALL_ZEROS:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ALL_ZERO:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, build_one_cst (new_var_type), new_var_type);
@@ -1952,7 +1986,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(location, new_cond_expr, false, new_yes_expr,
 	 TREE_TYPE (new_yes_expr), new_no_expr, TREE_TYPE (new_no_expr));
       break;
-    case REDUCE_ALL_NONZEROS:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ALL_NONZERO:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, build_one_cst (new_var_type), new_var_type);
@@ -1972,7 +2006,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(location, new_cond_expr, false, new_yes_expr,
 	 TREE_TYPE (new_yes_expr), new_no_expr, TREE_TYPE (new_no_expr));
       break;
-    case REDUCE_ANY_ZEROS:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ANY_ZERO:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, build_zero_cst (new_var_type), new_var_type);
@@ -1991,7 +2025,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(location, new_cond_expr, false, new_yes_expr,
 	 TREE_TYPE (new_yes_expr), new_no_expr, TREE_TYPE (new_no_expr));   
       break;
-    case REDUCE_ANY_NONZEROS:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_ANY_NONZERO:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, build_zero_cst (new_var_type), new_var_type);
@@ -2010,7 +2044,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(location, new_cond_expr, false, new_yes_expr,
 	 TREE_TYPE (new_yes_expr), new_no_expr, TREE_TYPE (new_no_expr));   
       break;
-    case REDUCE_MAX:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MAX:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, func_parm, new_var_type);
@@ -2025,7 +2059,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	 build2 (LT_EXPR, TREE_TYPE (*new_var), *new_var, func_parm), false,
 	 new_yes_expr, TREE_TYPE (*new_var), new_no_expr, TREE_TYPE (*new_var));
       break;
-    case REDUCE_MIN:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MIN:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, func_parm, new_var_type);
@@ -2040,7 +2074,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	 build2 (GT_EXPR, TREE_TYPE (*new_var), *new_var, func_parm), false,
 	 new_yes_expr, TREE_TYPE (*new_var), new_no_expr, TREE_TYPE (*new_var));
       break;
-    case REDUCE_MAX_INDEX:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MAX_IND:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, build_zero_cst (new_var_type), new_var_type);
@@ -2090,7 +2124,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	 false,
 	 new_yes_list, TREE_TYPE (*new_var), new_no_list, TREE_TYPE (*new_var));
       break;
-    case REDUCE_MIN_INDEX:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MIN_IND:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, build_zero_cst (new_var_type), new_var_type);
@@ -2140,7 +2174,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	 false,
 	 new_yes_list, TREE_TYPE (*new_var), new_no_list, TREE_TYPE (*new_var));
       break;
-    case REDUCE_CUSTOM:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE:
       new_var_init = build_modify_expr
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, identity_value, new_var_type);
@@ -2149,7 +2183,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(location, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 location, new_call_expr, TREE_TYPE (*new_var));
       break;
-    case REDUCE_MUTATING:
+    case BUILT_IN_CILKPLUS_SEC_REDUCE_MUTATING:
       new_expr = build_call_expr (call_fn, 2, identity_value, func_parm);
       break;
     default:
@@ -2160,9 +2194,10 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   for (ii = 0; ii < rank; ii++)
     append_to_statement_list (ind_init [ii], &loop);
 
-  if (an_type == REDUCE_MAX_INDEX || an_type == REDUCE_MIN_INDEX)
+  if (an_type == BUILT_IN_CILKPLUS_SEC_REDUCE_MAX_IND
+      || an_type == BUILT_IN_CILKPLUS_SEC_REDUCE_MIN_IND)
     append_to_statement_list (new_exp_init, &loop);
-  if (an_type != REDUCE_MUTATING)
+  if (an_type != BUILT_IN_CILKPLUS_SEC_REDUCE_MUTATING)
     append_to_statement_list (new_var_init, &loop);
   
   for (ii = 0; ii < rank; ii++)
@@ -2218,110 +2253,17 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   return loop;
 }
 
-/* Returns true of FUNC_NAME is a builtin array notation function.  The type of
-   function is returned in *TYPE.  */
-
-bool
-is_builtin_array_notation_fn (tree func_name, an_reduce_type *type)
-{
-  const char *function_name = NULL;
-
-  if (!func_name)
-    return false;
-
-  if (TREE_CODE (func_name) == IDENTIFIER_NODE)
-    function_name = IDENTIFIER_POINTER (func_name);
-  else if (TREE_CODE (func_name) == ADDR_EXPR)
-    {
-      func_name = TREE_OPERAND (func_name, 0);
-      if (TREE_CODE (func_name) == FUNCTION_DECL)
-	function_name = IDENTIFIER_POINTER (DECL_NAME (func_name));
-    }
-  
-  if (!function_name)
-    return false;
-
-  if (!strcmp (function_name, "__sec_reduce_add"))
-    {
-      *type = REDUCE_ADD;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_mul"))
-    {
-      *type = REDUCE_MUL;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_all_zero"))
-    {
-      *type = REDUCE_ALL_ZEROS;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_all_nonzero"))
-    {
-      *type = REDUCE_ALL_NONZEROS;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_any_zero"))
-    {
-      *type = REDUCE_ANY_ZEROS;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_any_nonzero"))
-    {
-      *type = REDUCE_ANY_NONZEROS;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_max"))
-    {
-      *type = REDUCE_MAX;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_min"))
-    {
-      *type = REDUCE_MIN;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_min_ind"))
-    {
-      *type = REDUCE_MIN_INDEX;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_max_ind"))
-    {
-      *type = REDUCE_MAX_INDEX;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce"))
-    {
-      *type = REDUCE_CUSTOM;
-      return true;
-    }
-  else if (!strcmp (function_name, "__sec_reduce_mutating"))
-    {
-      *type = REDUCE_MUTATING;
-      return true;
-    }
-  else
-    {
-      *type = REDUCE_UNKNOWN;
-      return false;
-    }
-  return false;
-}
-
-
 /* Returns true of EXPR (and its subtrees) contain ARRAY_NOTATION_EXPR node.  */
 
 bool
 contains_array_notation_expr (tree expr)
 {
   vec<tree, va_gc> *array_list = NULL;
-  an_reduce_type type = REDUCE_UNKNOWN;
 
   if (!expr)
     return false;
   if (TREE_CODE (expr) == FUNCTION_DECL)
-    if (is_builtin_array_notation_fn (DECL_NAME (expr), &type))
+    if (is_cilkplus_reduce_builtin (expr))
       return true;
   
   extract_array_notation_exprs (expr, false, &array_list);
@@ -2347,11 +2289,10 @@ fix_array_notation_call_expr (tree arg)
   tree *body_label, *body_label_expr, *exit_label, *exit_label_expr;
   tree *compare_expr, *if_stmt_label, *expr_incr, *ind_init;
   bool **count_down, **array_vector;
-  an_reduce_type an_type = REDUCE_UNKNOWN;
   location_t location = UNKNOWN_LOCATION;
 
   if (TREE_CODE (arg) == CALL_EXPR
-      && is_builtin_array_notation_fn (CALL_EXPR_FN (arg), &an_type))
+      && is_cilkplus_reduce_builtin (CALL_EXPR_FN (arg)))
     {
       loop = fix_builtin_array_notation_fn (arg, &new_var);
       /* We are ignoring the new var because either the user does not want to
@@ -2732,13 +2673,12 @@ tree
 find_correct_array_notation_type (tree op)
 {
   tree fn_arg, return_type = NULL_TREE;
-  an_reduce_type dummy = REDUCE_UNKNOWN;
 
   if (op)
     {
       return_type = TREE_TYPE (op); /* This is the default case.  */
       if (TREE_CODE (op) == CALL_EXPR) 
-	if (is_builtin_array_notation_fn (CALL_EXPR_FN (op), &dummy)) 
+	if (is_cilkplus_reduce_builtin (CALL_EXPR_FN (op))) 
 	  { 
 	    fn_arg = CALL_EXPR_ARG (op, 0); 
 	    if (fn_arg) 

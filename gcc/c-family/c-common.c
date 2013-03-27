@@ -5163,9 +5163,6 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
 #include "builtins.def"
 #undef DEF_BUILTIN
 
-  /* Initialize builtin functions for Cilk Plus.  */
-  if (flag_enable_cilkplus)
-    array_notation_init_builtins ();
   targetm.init_builtins ();
 
   build_common_builtin_nodes ();

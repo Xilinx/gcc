@@ -2734,8 +2734,9 @@ build_function_call_vec (location_t loc, tree function,
 	 often rewritten and don't match the original parameter list.  */
       if (name && !strncmp (IDENTIFIER_POINTER (name), "__atomic_", 9))
         origtypes = NULL;
-      if (flag_enable_cilkplus && name
-	  && !strncmp (IDENTIFIER_POINTER (name), "__sec_reduce", 12))
+
+      if (flag_enable_cilkplus
+	  && is_cilkplus_reduce_builtin (function))
 	origtypes = NULL;
     }
   if (TREE_CODE (TREE_TYPE (function)) == FUNCTION_TYPE)
@@ -2959,12 +2960,15 @@ convert_arguments (tree typelist, vec<tree, va_gc> *values,
       bool npc;
       tree parmval;
 
+      // FIXME: I assume this code is here to handle the overloaded
+      // behavior of the __sec_reduce* builtins, and avoid giving
+      // argument mismatch warnings/errors.  We should probably handle
+      // this with the resolve_overloaded_builtin infrastructure.
       /* If the function call is a builtin function call, then we do not
 	 worry about it since we break them up into its equivalent later and
 	 we do the appropriate checks there.  */
-      if (flag_enable_cilkplus && fundecl && DECL_NAME (fundecl)
-	  && !strncmp (IDENTIFIER_POINTER (DECL_NAME (fundecl)),
-		       "__sec_reduce", 12))
+      if (flag_enable_cilkplus
+	  && is_cilkplus_reduce_builtin (fundecl))
 	continue;
       
       if (type == void_type_node)
@@ -3206,11 +3210,8 @@ convert_arguments (tree typelist, vec<tree, va_gc> *values,
     {
       /* If array notation is used and Cilk Plus is enabled, then we do not
 	 worry about this error now.  We will handle them in a later place.  */
-      if (flag_enable_cilkplus && DECL_NAME (fundecl)
-	  && !strncmp (IDENTIFIER_POINTER (DECL_NAME (fundecl)), "__sec_reduce",
-		       12))
-	;
-      else
+      if (!flag_enable_cilkplus
+	  || !is_cilkplus_reduce_builtin (fundecl))
 	{
 	  error_at (input_location,
 		    "too few arguments to function %qE", function);

@@ -38,3 +38,4 @@
 	them.
 	(c_parser_array_notation): New function.
 	* c-array-notation.c: New file.
+	* c-tree.h (is_cilkplus_reduce_builtin): Protoize.

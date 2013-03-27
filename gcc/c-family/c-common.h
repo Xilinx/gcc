@@ -1152,26 +1152,7 @@ extern enum stv_conv scalar_to_vector (location_t loc, enum tree_code code,
 #define ARRAY_NOTATION_TYPE(NODE) \
   TREE_OPERAND (ARRAY_NOTATION_CHECK (NODE), 4)
 
-/* Holds to type of the reduction functions used in Array notations, that is
-   part of the Cilk Plus language extensions.  */
-typedef enum array_notation_reduce_type {
-  REDUCE_UNKNOWN = 0,
-  REDUCE_ADD,
-  REDUCE_MUL,
-  REDUCE_ALL_ZEROS,
-  REDUCE_ALL_NONZEROS,
-  REDUCE_ANY_ZEROS,
-  REDUCE_ANY_NONZEROS,
-  REDUCE_MAX,
-  REDUCE_MIN,
-  REDUCE_MAX_INDEX,
-  REDUCE_MIN_INDEX,
-  REDUCE_CUSTOM,
-  REDUCE_MUTATING
-} an_reduce_type;
-
 extern int extract_sec_implicit_index_arg (location_t, tree);
 extern bool is_sec_implicit_index_fn (tree);
-extern void array_notation_init_builtins (void);
 
 #endif /* ! GCC_C_COMMON_H */
