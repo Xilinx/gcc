@@ -1266,6 +1266,17 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       pp_string (buffer, ">");
       break;
 
+    case ARRAY_NOTATION_REF:
+      dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
+      pp_character (buffer, '[');
+      dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
+      pp_character (buffer, ':');
+      dump_generic_node (buffer, TREE_OPERAND (node, 2), spc, flags, false);
+      pp_character (buffer, ':');
+      dump_generic_node (buffer, TREE_OPERAND (node, 3), spc, flags, false);
+      pp_character (buffer, ']');
+      break;
+
     case ARRAY_REF:
     case ARRAY_RANGE_REF:
       op0 = TREE_OPERAND (node, 0);
