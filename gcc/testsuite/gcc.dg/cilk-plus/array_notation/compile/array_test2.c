@@ -26,7 +26,7 @@ int main(int argc, char **argv)
       array[ii] = 10;
       array2[ii] = 5000000;
     }
-  array2[0:10:2] = array[0:10:2];
+  array2[0:5:2] = array[0:5:2];
 
   printf("==============================================\n");
   for (ii = 0; ii<10; ii++)
