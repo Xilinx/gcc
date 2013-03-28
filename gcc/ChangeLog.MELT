@@ -2,6 +2,14 @@
 
 2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (class_objclohookv): New class.
+
+	* melt/warmelt-outobj.melt (outpucod_objclohookv): New method for
+	output_c_code of class_objclohookv.
+
+
+2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normal.melt (normexp_symbol): Handle constants in
 	hooks but not yet closed variables...
 

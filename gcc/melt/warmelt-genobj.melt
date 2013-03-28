@@ -85,6 +85,13 @@
   :fields (
 	   ))
 
+;; hook closed occurrence
+(defclass class_objclohookv
+  :super class_objcloccv
+  :fields (
+	   ))
+
+
 ;; predefined object
 (defclass class_objpredef
   :super class_objpurevalue
@@ -627,7 +634,8 @@
  class_objchecksignal
  class_objciterblock
  class_objclear
- class_objcloccv
+ class_objcloccv 
+ class_objclohookv
  class_objcommentedblock
  class_objcommentinstr
  class_objcompute
@@ -2405,7 +2413,7 @@ $SBUF.}#
 	(lastcproc (pair_head (list_last cprocs)))
 	(nloc (unsafe_get_field :nrep_loc ncnst))
 	)
-    (debug "compilobj_nrep_constocc cprocs=" cprocs "\n.. lastcproc=" lastcproc)
+    (debug "compilobj_nrep_constocc lastcproc=" lastcproc "\n..cprocs=" cprocs )
     (assert_msg "check lastcproc" (is_a lastcproc class_nrep_anyproc))
     (cond 
      ;; handle routine procedures

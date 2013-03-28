@@ -2576,6 +2576,24 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
     ))
 (install_method class_objcloccv output_c_code outpucod_objcloccv)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; output code for hook closed occurrence
+(defun outpucod_objclohookv (occv  declbuf implbuf :long depth)
+  (assert_msg "check occv" (is_a occv class_objclohookv))
+  (let ( (ooff (unsafe_get_field :obc_off occv))
+	 (onam (unsafe_get_field :obc_name occv)) )
+    (assert_msg "check valueness of closed occurrence" 
+		(== (unsafe_get_field :obv_type occv) ctype_value))
+    (add2sbuf_strconst implbuf "(/*~")
+    (add2sbuf_string implbuf onam)
+    (add2sbuf_strconst implbuf "*/ meltfhook->tabval[")
+    (add2sbuf_longdec implbuf (get_int ooff))
+    (add2sbuf_strconst implbuf "])")
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+    ))
+(install_method class_objclohookv output_c_code outpucod_objclohookv)
+
 
 ;;;;;;;;;;;;;;;;
 ;; output code for object const [closed] occurrence
