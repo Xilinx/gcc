@@ -1,4 +1,9 @@
 
+2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_let): Replace carefully
+	multiple_every with foreach_in_multiple.
+
 
 2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
 

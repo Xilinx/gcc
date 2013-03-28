@@ -2769,7 +2769,7 @@ $SBUF.}#
     ;; iterate on normal bindings
     (foreach_in_multiple
      (bnds)
-     (nlbnd :long ix)
+     (nlbnd :long bndix)
      (debug "compilobj_nrep_let current normbinding loc=" loc " nlbnd=" nlbnd " locmap=" locmap)
      (assert_msg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normal_let_binding))
      (let ( (bder (unsafe_get_field :binder nlbnd))
@@ -2812,27 +2812,32 @@ $SBUF.}#
 		    )
 	       (list_append oepil obcl)
 	       )))))
-    (debug "compilobj_nrep_let after iterate normbind loc=" loc " locmap=" locmap)
+    (debug "compilobj_nrep_let after iterate normbind loc=" loc 
+	   " locmap=" locmap)
     ;;
     ;; compile each body component
-    (multiple_every
-     bdy
-     (lambda (bdycomp :long ix)
-       (debug"compilobj_nrep_let body loc=" loc " bdycomp=" bdycomp " ix=" ix)
-       (let ( (objcomp  (compile_obj bdycomp gcx)) 
-	      )
-	 (debug "compilobj_nrep_let body objcomp=" objcomp)
-	 ;; objcomp is null when compiling a locvar of ctype_void;
-	 ;; this happens with primitive of :void type
-	 (if (null objcomp) (return objcomp)) ;return from the inner lambda
+    (assert_msg "check bdy" (is_multiple_or_null bdy))
+    (foreach_in_multiple
+     (bdy)
+     (bdycomp :long bdyix)
+     (debug "compilobj_nrep_let body loc=" loc 
+	    " bdycomp=" bdycomp " bdyix=" bdyix)
+     (let ( (objcomp  (compile_obj bdycomp gcx)) 
+	    )
+       (debug "compilobj_nrep_let body objcomp=" objcomp)
+       ;; objcomp is null when compiling a locvar of ctype_void;
+       ;; this happens with primitive of :void type
+       (if (null objcomp) 
+	   (void)
 	 (list_append obodl objcomp))))
     (debug "compilobj_nrep_let after iterate body loc=" loc)
+    ;;
     ;; dispose each binding
-    (multiple_every
-     bnds
-     (lambda (obnd :long ix)
-       (debug "compilobj_nrep_let dispose loc=" loc " obnd=" obnd " ix=" ix)
-       (dispose_bnd_obj obnd gcx)))
+    (foreach_in_multiple
+     (bnds)
+     (obnd :long ix)
+     (debug "compilobj_nrep_let dispose loc=" loc " obnd=" obnd " ix=" ix)
+     (dispose_bnd_obj obnd gcx))
     (debug "compilobj_nrep_let final loc=" loc " locmap=" locmap " oblock=" oblock)
     (return oblock)			;return it
     ))
