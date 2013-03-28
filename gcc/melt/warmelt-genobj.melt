@@ -2745,6 +2745,8 @@ $SBUF.}#
   )
 (install_method discr_any_receiver compile_obj compilobj_discrany)
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_let (rlet gcx)
   (assert_msg "check rlet" (is_a rlet class_nrep_let))
@@ -2765,52 +2767,53 @@ $SBUF.}#
     ;; add the binding and the setting in the body and the clear in the epilogue
     (assert_msg "compilobj_nrep_let check bnds multiple" (is_multiple_or_null bnds))
     ;; iterate on normal bindings
-    (multiple_every
-     bnds
-     (lambda (nlbnd :long ix)
-       (debug "compilobj_nrep_let current normbinding loc=" loc " nlbnd=" nlbnd " locmap=" locmap)
-       (assert_msg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normal_let_binding))
-       (let ( (bder (unsafe_get_field :binder nlbnd))
-	      (cty (unsafe_get_field :letbind_type nlbnd))
-	      (nexp (unsafe_get_field :letbind_expr nlbnd))
-	      (obva (get_free_objloctyped gcx bder cty))
-	      )
-	 (debug "compilobj_nrep_let current normbinding obva=" obva "\n nexp=" nexp)
-	 (let ( (obnx (compile_obj nexp gcx)) )
-	   (debug "compilobj_nrep_let current normbinding obnx=" obnx
-		  "\n for nexp=" nexp "n with obva=" obva)
-	   (if (is_a nexp class_sexpr) 
-	       (if (not (is_object obnx))
-		   (progn 
-		     (debug "compilobj_nrep_let current normbinding faulty nexp=" nexp " obnx=" obnx)
-		     (assert_msg "compilobj_nrep_let check obnx" (is_object obnx)))))
-	   (if obva
-	       ;; non void cty
-	       (progn
-		 (mapobject_put locmap nlbnd obva)
-		 (debug "compilobj_nrep_let obnx=" obnx 
-			"\n nlbnd=" nlbnd 
-			"\n obva=" obva)
-		 (let ( (obpd (put_objdest obnx obva)) 
-			(obmy (or obpd obnx))
-			)
-		   (debug "compilobj_nrep_let current obpd=" obpd " obmy=" obmy)
-		   (list_append obodl obmy)
-		   ))
+    (foreach_in_multiple
+     (bnds)
+     (nlbnd :long ix)
+     (debug "compilobj_nrep_let current normbinding loc=" loc " nlbnd=" nlbnd " locmap=" locmap)
+     (assert_msg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normal_let_binding))
+     (let ( (bder (unsafe_get_field :binder nlbnd))
+	    (cty (unsafe_get_field :letbind_type nlbnd))
+	    (nexp (unsafe_get_field :letbind_expr nlbnd))
+	    (obva (get_free_objloctyped gcx bder cty))
+	    )
+       (debug "compilobj_nrep_let current normbinding obva=" obva "\n nexp=" nexp)
+       (let ( (obnx (compile_obj nexp gcx)) )
+	 (debug "compilobj_nrep_let current normbinding obnx=" obnx
+		"\n for nexp=" nexp "n with obva=" obva)
+	 (if (is_a nexp class_sexpr) 
+	     (if (not (is_object obnx))
+		 (progn 
+		   (debug "compilobj_nrep_let current normbinding faulty nexp=" nexp " obnx=" obnx)
+		   (assert_msg "compilobj_nrep_let check obnx" (is_object obnx)))))
+	 (if obva
+	     ;; non void cty
 	     (progn
-	       ;; obva is nil when cty is void type 
-	       (debug "compilobj_nrep_let append obnx=" obnx)
-	       (list_append obodl obnx)
-	       ))
-	   ;; add clearing of obva to epilogue part of oblock
-	   (if obva 
-	       (let ( (obcl (instance class_objclear
-				      :obi_loc loc
-				      :oclr_vloc obva)) 
+	       (mapobject_put locmap nlbnd obva)
+	       (debug "compilobj_nrep_let obnx=" obnx 
+		      "\n nlbnd=" nlbnd 
+		      "\n obva=" obva)
+	       (let ( (obpd (put_objdest obnx obva)) 
+		      (obmy (or obpd obnx))
 		      )
-		 (list_append oepil obcl)
-		 ))))))
+		 (debug "compilobj_nrep_let current obpd=" obpd " obmy=" obmy)
+		 (list_append obodl obmy)
+		 ))
+	   (progn
+	     ;; obva is nil when cty is void type 
+	     (debug "compilobj_nrep_let append obnx=" obnx)
+	     (list_append obodl obnx)
+	     ))
+	 ;; add clearing of obva to epilogue part of oblock
+	 (if obva 
+	     (let ( (obcl (instance class_objclear
+				    :obi_loc loc
+				    :oclr_vloc obva)) 
+		    )
+	       (list_append oepil obcl)
+	       )))))
     (debug "compilobj_nrep_let after iterate normbind loc=" loc " locmap=" locmap)
+    ;;
     ;; compile each body component
     (multiple_every
      bdy

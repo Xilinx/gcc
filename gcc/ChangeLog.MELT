@@ -2,6 +2,11 @@
 
 2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (compilobj_nrep_let): Replace some but
+	not all multiple_every by foreach_in_multiple.
+
+2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-genobj.melt (compilobj_nrep_constocc): Handle both
 	hooks and routines..
 
