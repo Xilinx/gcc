@@ -1,7 +1,19 @@
 
 
+2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (class_nrep_hookproc): Add field
+	nrhook_closedbindlist.
+	(normbind_constructbind): Use when instead of if.
+	(normexp_symbol): Improve the comment.  Better debugs. Incomplete
+	handling of hook procedure for closed constants. Also replace some
+	every_list by foreach_in_list.
+	(normexp_defhook): Initialize the :nrhook_clsedbindlist to an
+	empty list.
+
+	* testsuite/melt/thook-1.melt (anotherhook): Add.
+
 2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
-	(normexp_symbol): Better debug.
+	* melt/warmelt-normal.melt (normexp_symbol): Better debug.
 
 2013-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normbind_anybind): Better debug.

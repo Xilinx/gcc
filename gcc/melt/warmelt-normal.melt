@@ -504,7 +504,7 @@ procedure in a module, defined with $DEFHOOK. }#
            nrhook_outb			;output arguments binding tuple
 	   nrhook_ctype			;ctype of result
 	   nrhook_datahook		;hook data object
-	   
+	   nrhook_closedbindlist	;list of closed bindings
 	   ))
 
 ;;; static normalized predef
@@ -1542,10 +1542,9 @@ source location.}#
 	    (foreach_in_multiple
 	     (nlocsyms)
 	     (curlocsym :long syix)
-	     (if (== (get_field :nocc_bind curlocsym) bind)
-		 (progn
-		   (setq syix -99)	;to exit the loop [-1 don't work!]
-		   (setq ourlocsym curlocsym)))
+	     (when (== (get_field :nocc_bind curlocsym) bind)
+		   (setq syix -9999)	;to exit the loop [-1 don't work!]
+		   (setq ourlocsym curlocsym))
 	     )
 	    (debug "normbind_constructbind ourlocsym" ourlocsym)
 	    (assert_msg "normbind_constructbind should have ourlocsym"
@@ -1557,12 +1556,13 @@ source location.}#
 )))
 (install_method class_normal_constructor_binding normalize_binding normbind_constructbind)
 
-;; for symbols which are imported from a previous environment (this
-;; only happens when compiling stuff which is not this warmelt-*) we
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; For symbols which are imported from a previous environment we
 ;; should detect them and generate some special data to fetch them, in
 ;; the start routine, from the given environment (which is the only
-;; argument to the start routine). Detecting such symbols is easy : their
-;; binding is a class_value_binding
+;; argument to the start routine). Detecting such symbols is easy:
+;; their binding is a class_value_binding
 
 ;;;; normalize a symbol occurrence
 (defun normexp_symbol (recv env ncx psloc)
@@ -1571,7 +1571,7 @@ source location.}#
   (multicall
    (bind procs)
    (find_enclosing_env env recv)
-   (debug "normexp_symbol after find_enclosing_env bind=" bind " procs=" procs)
+   (debug "normexp_symbol after find_enclosing_env bind=" bind "\n.. procs=" procs)
    (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
    (let ( (modctx  (unsafe_get_field :nctx_modulcontext ncx))
 	  (valbindmap (unsafe_get_field :nctx_valbindmap ncx))
@@ -1584,12 +1584,12 @@ source location.}#
 	 (progn
 	   (error_strv psloc "unknown name; symbol is not bound"
 		       (unsafe_get_field :named_name recv))
-	   (shortbacktrace_dbg "normex_symbol null bind" 15)
+	   (shortbacktrace_dbg "normexp_symbol null bind" 15)
 	   (return () ())))
      (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	    (syca (mapobject_get sycmap recv)) )
        (assert_msg "check sycmap" (is_mapobject sycmap))
-       (debug "normex_symbol syca=" syca " for recv=" recv " bind=" bind)
+       (debug "normexp_symbol syca=" syca "\n.. for recv=" recv "\n.. bind=" bind)
        (cond 
 	;; check if in the cache
 	(syca 
@@ -1624,10 +1624,11 @@ source location.}#
 		  (mapobject_put valbindmap bind newbvar)
 		  (setq bvar newbvar)
 		  (list_append valuelist newbvar)
+		  (debug "normexp_symbol newbvar=" newbvar "\n.. valuelist=" valuelist)
 		  ))
-	    
 	    ;; if procs is a non-empty list, symbol is a "closed"
 	    ;; constant for the value
+	    (debug "normexp_symbol recv=" recv "\n.. procs=" procs)
 	    (if (and (is_list procs)
 		     (is_pair (list_first procs)))
 		(let ( (fxocc
@@ -1649,17 +1650,40 @@ source location.}#
 		   (curpairpro pr)
 		   (debug "normexp_symbol pr=" pr)
 		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-		   (let ( (clcont
-			   (instance class_reference :referenced_value fxocc))
-			  (cnstproc (get_field :nrpro_const pr)) )
-		     (foreach_in_list
-		      (cnstproc)
-		      (curpaircx cx) 
-		      (when (== cx fxocc)
-			(put_fields clcont :referenced_value ())))
-		     (let ( (newcl (get_field :referenced_value clcont)) )
-		       (if newcl (list_append cnstproc newcl))) 
-		     ))			;end foreach in procs
+		   (cond ( (is_a pr class_nrep_routproc)
+			   (let ( (clcont
+				   (instance class_reference :referenced_value fxocc))
+				  (cnstproc (get_field :nrpro_const pr)) )
+			     (debug "normexp_symbol cnstproc=" cnstproc "\n.. pr=" pr "\n.. recv=" recv)
+			     (foreach_in_list
+			      (cnstproc)
+			      (curpaircx cx) 
+			      (when (== cx fxocc)
+				(put_fields clcont :referenced_value ())))
+			     (let ( (newcl (get_field :referenced_value clcont)) )
+			       (if newcl (list_append cnstproc newcl))) 
+			     ))
+			 ( (is_a pr class_nrep_hookproc)
+			   (let ( (hkclobindlist (get_field :nrhook_closedbindlist pr))
+				  )
+			     (debug "normexp_symbol hkclobindlist=" hkclobindlist)
+			     (assert_msg "check hkclobindlist" (is_list hkclobindlist))
+			     ;; ensure that the hkclobindlist don't already contain the bind
+			     (foreach_in_list 
+			      (hkclobindlist)
+			      (curpairbndhc curbnd)
+			      (assert_msg "check curbnd" (is_a curbnd class_any_binding))
+			      (assert_msg "check curbnd != bind" (!= curbnd bind)))
+			     ;; append the new binding
+			     (list_append hkclobindlist bind)
+			     (assert_msg "$@$unimplemented normexp_symbol constant for hookproc")
+			   ))
+			 (:else
+			  (debug "normexp_symbol unexpected pr=" pr "\n... of discrim: " (discrim pr))
+			  (assert_msg "normexp_symbol unexpected closing procedure")
+			  )
+			 )
+		   )			;end foreach in procs
 		  (return fxocc ())
 		  )
 	      ;; otherwise symbol is the direct value
@@ -1674,7 +1698,7 @@ source location.}#
 	;; the procs is a non-empty list, so the symbol is closed
 	( (and (is_list procs)
 	       (is_pair (list_first procs)))
-	  (debug "normexp_symbol closed procs=" procs " bind=" bind)
+	  (debug "normexp_symbol closed procs=" procs "\n.. bind=" bind)
 	  ;; check that a closed symbol is always a value
 	  (let ( (bty
 		  (cond ( (is_a bind class_formal_binding)
@@ -1731,21 +1755,22 @@ source location.}#
 		(mapobject_put sycmap recv clocc)
 		(debug "normexp_symbol updated sycmap=" sycmap " clocc=" clocc)
 		;; put the closed occurrence if needed in the closed list of each proc
-		(list_every 
-		 procs
-		 (lambda (pr)
-		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-		   (let ( (clcont (instance class_reference :referenced_value clocc))
-			  (clobindl (unsafe_get_field :nrpro_closedb pr)) )
-		     (list_every 
-		      clobindl
-		      (lambda (clbnd) (if (== clbnd bind)
-					  (progn (put_fields clcont :referenced_value ()) ()))))
-		     (let ( (newcl (get_field :referenced_value clcont)) )
-		       (if newcl (list_append clobindl bind))) 
-		     )))
+		(foreach_in_list  
+		 (procs)
+		 (curpair pr)
+		 (assert_msg "check pr" (is_a pr class_nrep_anyproc))
+		 (let ( (clcont (instance class_reference :referenced_value clocc))
+			(clobindl (get_field :nrpro_closedb pr)) )
+		   (foreach_in_list 
+		    (clobindl)
+		    (curbndpair clbnd) 
+		    (when (== clbnd bind)
+		      (put_fields clcont :referenced_value ())))
+		   (let ( (newcl (get_field :referenced_value clcont)) )
+		     (if newcl (list_append clobindl bind))) 
+		   ))
 		(return clocc ())
-		) ) ) ) 
+		)))) 
 	;;
 	;; dispatch the binding
 	(:else 
@@ -4325,6 +4350,7 @@ source location.}#
 	 (newenv (fresh_env env))
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
 	 (oldsymbcache (unsafe_get_field :nctx_symbcachemap ncx))
+	 (closbindlist (make_list discr_list))
 	 (nproc (instance class_nrep_hookproc
 			  :nrep_loc sloc
 			  :nproc_body ()
@@ -4332,7 +4358,8 @@ source location.}#
 			  :nrhook_inb ()
 			  :nrhook_outb ()
 			  :nrhook_ctype sctype
-			  :nrhook_datahook ()))
+			  :nrhook_datahook ()
+			  :nrhook_closedbindlist closbindlist))
 	 (ndatahook (instance class_nrep_datahook
 			      :ndata_name symbname
 			      :ndata_discrx (normal_predef discr_hook ncx sloc "discr_hook")))

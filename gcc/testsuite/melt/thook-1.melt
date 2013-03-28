@@ -22,4 +22,9 @@
   (return (+i inp 1))
   )
 
+;; also test that lambda is closing hook input values as needed
+(defhook anotherhook (:long i :value v) (:value outv) :void
+  (debug "anotherhook i=" i " v=" v)
+  (setq outv (lambda (x) (tuple x v (const_box i))))
+)
 ;; eof thook-1.melt
