@@ -1,6 +1,19 @@
 
 
 2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt (normexp_symbol): Handle constants in
+	hooks but not yet closed variables...
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_constocc): Don't handle
+	yet hooks.
+
+	* testsuite/melt/thook-1.melt: Better indentations, with more
+	lines...
+
+
+2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normal.melt (class_nrep_hookproc): Add field
 	nrhook_closedbindlist.
 	(normbind_constructbind): Use when instead of if.

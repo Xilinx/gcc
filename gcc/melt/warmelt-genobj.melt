@@ -2405,39 +2405,50 @@ $SBUF.}#
 	(lastcproc (pair_head (list_last cprocs)))
 	(nloc (unsafe_get_field :nrep_loc ncnst))
 	)
-    (assert_msg "check lastcproc" (is_a lastcproc class_nrep_routproc))
-    (let ( (cnstlis (unsafe_get_field :nrpro_const lastcproc)) 
-	   (:long cnstrank -1)
-	   )
-      (assert_msg "check cnstlis" (is_list cnstlis))
-      (let ( (curpair (list_first cnstlis)) 
-	     (:long curank 0)
-	     )
-	(forever 
-	 looplis
-	 (if (not (is_pair curpair)) (exit looplis))
-	 (let ( (curelem (pair_head curpair)) )
-	   (if (== curelem ncnst)
-	       (progn
-		 (setq cnstrank curank)
-		 (exit looplis)))
-	   (setq curpair (pair_tail curpair))
-	   (setq curank (+i curank 1))
-	   ))
-	(assert_msg "check good const rank" (>=i cnstrank 0))
-	(let ( 
-	      (cnstyp (unsafe_get_field :nocc_ctyp ncnst))
-	      (oconstv 
-	       (instance class_objconstv
-			 :obv_type cnstyp
-			 :obc_off (make_integerbox discr_integer
-						   cnstrank)
-			 :obc_proc lastcproc
-			 :obc_name (unsafe_get_field :named_name osym))) )
-	  (assert_msg "check cnstyp" (is_a cnstyp class_ctype))
-	  (debug "compilobj constocc result oconstv=" oconstv)
-	  oconstv
-	  )))))
+    (debug "compilobj_nrep_constocc cprocs=" cprocs "\n.. lastcproc=" lastcproc)
+    (assert_msg "check lastcproc" (is_a lastcproc class_nrep_anyproc))
+    (cond 
+     ;; handle routine procedures
+     ( (is_a lastcproc class_nrep_routproc)
+       (let ( (cnstlis (unsafe_get_field :nrpro_const lastcproc)) 
+	      (:long cnstrank -1)
+	      )
+	 (assert_msg "check cnstlis" (is_list cnstlis))
+	 (let ( (curpair (list_first cnstlis)) 
+		(:long curank 0)
+		)
+	   (forever 
+	    looplis
+	    (if (not (is_pair curpair)) (exit looplis))
+	    (let ( (curelem (pair_head curpair)) )
+	      (if (== curelem ncnst)
+		  (progn
+		    (setq cnstrank curank)
+		    (exit looplis)))
+	      (setq curpair (pair_tail curpair))
+	      (setq curank (+i curank 1))
+	      ))
+	   (assert_msg "check good const rank" (>=i cnstrank 0))
+	   (let ( 
+		 (cnstyp (unsafe_get_field :nocc_ctyp ncnst))
+		 (oconstv 
+		  (instance class_objconstv
+			    :obv_type cnstyp
+			    :obc_off (constant_box cnstrank)
+			    :obc_proc lastcproc
+			    :obc_name (unsafe_get_field :named_name osym))) )
+	     (assert_msg "check cnstyp" (is_a cnstyp class_ctype))
+	     (debug "compilobj constocc result oconstv=" oconstv)
+	     oconstv
+	     ))))
+     ;; handle hook routines
+     ( (is_a lastcproc class_nrep_hookproc)
+       (assert_msg "@$@compilobj_nrep_constocc unimplemented for class_nrep_hookproc")
+       )
+     (:else
+      (debug "compilobj_nrep_constocc invalid lastcproc=" lastcproc "\n.. for ncnst=" ncnst)
+      (assert_msg "compilobj_nrep_constocc unexpected lastcproc")
+      ))))
 
 (install_method class_nrep_constocc compile_obj compilobj_nrep_constocc)
 
