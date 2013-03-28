@@ -2,6 +2,12 @@
 
 2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (compilobj_nrep_constocc): Handle both
+	hooks and routines..
+
+
+2013-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-genobj.melt (class_objclohookv): New class.
 
 	* melt/warmelt-outobj.melt (outpucod_objclohookv): New method for

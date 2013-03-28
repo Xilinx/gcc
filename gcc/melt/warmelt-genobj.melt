@@ -2412,9 +2412,11 @@ $SBUF.}#
 	(cprocs (unsafe_get_field :ncloc_procs ncnst))
 	(lastcproc (pair_head (list_last cprocs)))
 	(nloc (unsafe_get_field :nrep_loc ncnst))
+	(cnstyp (unsafe_get_field :nocc_ctyp ncnst))
 	)
     (debug "compilobj_nrep_constocc lastcproc=" lastcproc "\n..cprocs=" cprocs )
     (assert_msg "check lastcproc" (is_a lastcproc class_nrep_anyproc))
+    (assert_msg "check cnstyp" (== cnstyp ctype_value))
     (cond 
      ;; handle routine procedures
      ( (is_a lastcproc class_nrep_routproc)
@@ -2438,27 +2440,52 @@ $SBUF.}#
 	      ))
 	   (assert_msg "check good const rank" (>=i cnstrank 0))
 	   (let ( 
-		 (cnstyp (unsafe_get_field :nocc_ctyp ncnst))
 		 (oconstv 
 		  (instance class_objconstv
 			    :obv_type cnstyp
 			    :obc_off (constant_box cnstrank)
 			    :obc_proc lastcproc
 			    :obc_name (unsafe_get_field :named_name osym))) )
-	     (assert_msg "check cnstyp" (is_a cnstyp class_ctype))
-	     (debug "compilobj constocc result oconstv=" oconstv)
-	     oconstv
+	     (debug "compilobj_nrep_constocc result oconstv=" oconstv)
+	     (return oconstv)
 	     ))))
      ;; handle hook routines
      ( (is_a lastcproc class_nrep_hookproc)
-       (assert_msg "@$@compilobj_nrep_constocc unimplemented for class_nrep_hookproc")
-       )
+       (let ( (:long offhk -1)
+	      (:long count 0)
+	      (hclobindlist (get_field :nrhook_closedbindlist lastcproc))
+	      )
+	 (debug "compilobj_nrep_constocc hook hclobindlist=" hclobindlist)
+	 (foreach_in_list
+	  (hclobindlist)
+	  (curpair curbind)
+	  (assert_msg "check curbind" (is_a curbind class_any_binding))
+	  (let ( (cursym (get_field :binder curbind))
+		 )
+	    (when (== cursym osym)
+	      (setq curpair ())
+	      (setq offhk count))
+	    (setq count (+i count 1))
+	    ))
+	 (debug "compilobj_nrep_constocc offhk=" offhk)
+	 (assert_msg "check offhk" (>=i offhk 0))
+	 (let ( (ohkconstv (instance class_objclohookv
+				     :obv_type cnstyp
+				     :obc_off (constant_box offhk)
+				     :obc_proc lastcproc
+				     :obc_name (unsafe_get_field :named_name osym))) 
+		)
+	   (debug "compilobj_nrep_constocc result ohkconstv=" ohkconstv)
+	   (return ohkconstv)
+	   )))
      (:else
       (debug "compilobj_nrep_constocc invalid lastcproc=" lastcproc "\n.. for ncnst=" ncnst)
       (assert_msg "compilobj_nrep_constocc unexpected lastcproc")
       ))))
 
 (install_method class_nrep_constocc compile_obj compilobj_nrep_constocc)
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_importedval (nsva gcx)
