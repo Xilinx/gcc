@@ -158,7 +158,14 @@
 (defclass class_objinitroutine
   :super class_objinitelem
   :fields (
-	   oir_procroutine		;the procroutine associated
+	   oir_procroutine		;the associated procroutine
+	   ))
+
+
+;;; initial hook - see MELT_HOOK_STRUCT 
+(defclass class_objinithook 
+  :super class_objinitelem
+  :fields (oihk_prochook		;the associated prochook
 	   ))
 
 ;;; initial string - see MELT_STRING_STRUCT in melt-runtime.h
@@ -659,6 +666,7 @@
  class_objinitboxinteger
  class_objinitclosure
  class_objinitelem
+ class_objinithook
  class_objinitlist
  class_objinitmultiple
  class_objinitobject
@@ -5709,7 +5717,47 @@ $SBUF.}#
   (debug "compilobj_datahook ndhook=" ndhook "\n gcx=" gcx)
   (assert_msg "check ndhook" (is_a ndhook class_nrep_datahook))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
-  (assert_msg "@$@unimplemented compilobj_datahook"))
+  (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
+	 (inirout (unsafe_get_field :gncx_objrout gcx))
+	 (chobj (mapobject_get compicache ndhook))
+	 )
+    (assert_msg "check compicache" (is_mapobject compicache))
+    (when chobj
+      (debug "compilobj_datahook return chobj=" chobj)
+      (return chobj))
+    (let ( (nclotup (get_field :ndhook_closv ndhook))
+	   (:long nbclo (multiple_length nclotup))
+	   (nhpro (get_field :ndhook_proc ndhook))
+	   (hname (get_field :ndata_name ndhook)) ;a string
+	   (nrank (get_field :ndata_rank ndhook)) ;a boxed int
+	   (nlocbind (get_field :ndata_locbind ndhook))
+	   (ndisx (get_field :ndata_discrx ndhook))
+	   (odiscr (let ( (odi (compile_obj ndisx gcx)) )
+		     (debug "compile_obj odiscr=" odi)
+		     odi))
+	   (onam (string4out discr_verbatim_string
+			     ##{dhook__$HNAME#__$NRANK}#))
+	   (oihook (instance class_objinithook
+			    :obv_type ctype_value
+			    :oie_cname onam
+			    :oie_data ndhook
+			    :oie_discr odiscr
+			    :oihk_prochook nhpro
+			    ))
+	   (oclo
+	    (multiple_map 
+	     nclotup
+	     (lambda (nclosv :long cix)
+	       (debug "compilobj_datahook/lambda nclosv=" nclosv " #" cix)
+	       (let ( (ocurclov (compile_obj nclosv gcx)) )
+		 (debug "compilobj_datahook/lambda ocurclov=" ocurclov)
+		 ocurclov))))
+	   )
+      (mapobject_put compicache ndhook oihook)
+      (put_int oihook nbclo)
+      (debug "compilobj_datahook nclotup=" nclotup "\n nhpro=" nhpro
+	     "\n oihook=" oihook "\n oclo=" oclo)
+      (assert_msg "@$@unimplemented compilobj_datahook"))))
 
 (install_method class_nrep_datahook compile_obj compilobj_datahook)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

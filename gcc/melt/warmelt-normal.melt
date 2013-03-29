@@ -1749,8 +1749,23 @@ source location.}#
 			  (if newcl (list_append cnstprocl newcl))) 
 			))
 		    ( (is_a pr class_nrep_hookproc)
-		      (assert_msg "@$@unimplemented normexp_symbol for class_nrep_hookproc")
-		      )
+		      (debug "normexp_symbol pr=" pr "\n recv=" recv "\n bind=" bind 
+			     "\n fxocc=" fxocc)
+		      (let ( (hkclobindlist (get_field :nrhook_closedbindlist pr))
+			     (foundbind ())
+			     )
+			(debug "normexp_symbol hkclobindlist=" hkclobindlist)
+			(assert_msg "check hkclobindlist" (is_list hkclobindlist))
+			(foreach_in_list 
+			 (hkclobindlist)
+			 (curpairbndhc curbnd)
+			 (assert_msg "check curbnd" (is_a curbnd class_any_binding))
+			 (if (== curbnd bind) (setq foundbind curbnd)))
+			(when (null foundbind)
+			  (list_append hkclobindlist bind)
+			  (debug "normexp_symbol updated hkclobindlist=" hkclobindlist))
+			))
+		    ;;
 		    (:else
 		     (assert_msg "normexp_symbol unexpected pr")
 		     ))
@@ -4381,7 +4396,10 @@ source location.}#
 			  :nrhook_closedbindlist closbindlist))
 	 (ndatahook (instance class_nrep_datahook
 			      :ndata_name symbname
-			      :ndata_discrx (normal_predef discr_hook ncx sloc "discr_hook")))
+			      :ndata_discrx (normal_predef discr_hook ncx sloc "discr_hook")
+			      :ndhook_proc nproc
+			      :ndhook_closv ()
+			      ))
 	 )
     (assert_msg "check symbname" (is_string symbname))
     (assert_msg "check sinformals" (and (is_multiple_or_null sinformals)
@@ -4430,9 +4448,27 @@ source location.}#
       (put_env newenv nbi))
      (debug "normexp_defhook updated newenv=" newenv)
      (let ( (nseq (wrap_normal_letseq nbody nbindings sloc))
+	    (:long nbclosbind (list_length closbindlist))
+	    (closvtup
+	     (list_to_multiple 
+	      closbindlist
+	      discr_multiple
+	      (lambda (bnd)
+		(debug "normexp_defhook/lambda bnd=" bnd)
+		(assert_msg "normexp_defhook/lambda check bnd" (is_a bnd class_any_binding))
+		(let ( (sy (unsafe_get_field :binder bnd)) 
+		       ;; normalize in the old environment
+		       (nsy (normal_exp sy env ncx sloc))
+		       )
+		  (debug "normexp_defhook/lambda sy=" sy " nsy=" nsy)
+		  nsy
+		))))
 	   )
-       (debug "normexp_defhook nseq=" nseq)
+       (debug "normexp_defhook nseq=" nseq "\n .. closvtup=" closvtup)
        (put_fields nproc :nproc_body nseq)
+       (put_fields ndatahook :ndhook_closv closvtup)
+       (debug "normexp_defhook nproc=" nproc "\n.. ndatahook=" ndatahook)
+       ;;
        ;; restore the previous symbol cache map & the old proc 
        (put_fields ncx 
 		   :nctx_symbcachemap oldsymbcache
@@ -4510,8 +4546,8 @@ source location.}#
      (debug "normalize_lambda nbody=" nbody "\n.. nbindings=" nbindings)
      (foreach_in_multiple
       (nbindings)
-       (nbi :long ix)
-	(put_env newenv nbi))
+      (nbi :long ix)
+      (put_env newenv nbi))
      (unsafe_put_fields 
       nproc
       :nproc_body (wrap_normal_letseq (replace_last_by_return nbody newenv sloc) nbindings sloc)
@@ -4532,16 +4568,17 @@ source location.}#
 				:nconst_data ndatarout
 				:nconst_proc oldproc)))
 	   (clovtup 
-	    (list_to_multiple closedblist
-			      discr_multiple
-			      (lambda (bnd)
-				(assert_msg "normalize_lambda check bnd" (is_a bnd class_any_binding))
-				(let ( (sy (unsafe_get_field :binder bnd)) 
-				       ;; since sy is a symbol, its normalized form does not add any binding
-				       ;; we normalize it in the *old* environment, not the new one
-				       (nsy (normal_exp sy env ncx sloc))
-				       )
-				  nsy))))
+	    (list_to_multiple 
+	     closedblist
+	     discr_multiple
+	     (lambda (bnd)
+	       (assert_msg "normalize_lambda check bnd" (is_a bnd class_any_binding))
+	       (let ( (sy (unsafe_get_field :binder bnd)) 
+		      ;; since sy is a symbol, its normalized form does not add any binding
+		      ;; we normalize it in the *old* environment, not the new one
+		      (nsy (normal_exp sy env ncx sloc))
+		      )
+		 nsy))))
 	   (constrout  (if insideflag krout ndatarout))
 	   )
        (return nproc csym clocc constrout clovtup sloc oldproc ndatarout insideflag)

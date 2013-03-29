@@ -1,6 +1,18 @@
 
 2013-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normal.melt (normexp_defhook): Probably complete.
+	(normalize_lambda): Reindent.
+
+	* melt/warmelt-genobj.melt (class_objinithook): New class with
+	field oihk_prochook.
+	(compilobj_datahook): Still incomplete.
+
+	* testsuite/melt/thook-1.melt (myref): New definstance, to have a
+	closed value in the hook.
+
+2013-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

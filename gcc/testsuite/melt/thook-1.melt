@@ -16,8 +16,10 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
+(definstance myref class_reference)
+
 (defhook justahook (:long inp) (:long out) :long
-  (debug "justahook inp=" inp " out=" out " class_reference=" class_reference)
+  (debug "justahook inp=" inp " out=" out " class_reference=" class_reference " myref=" myref)
   (setq out inp)
   (return (+i inp 1))
   )
