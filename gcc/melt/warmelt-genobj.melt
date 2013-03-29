@@ -1208,6 +1208,7 @@ $SBUF.}#
 	      "\n.. nbody=" nbody "\n..locmap=" locmap)
        ;;
        ;; compile the body
+       (debug "compile2obj_hook gcx=" gcx "\n.. nbody=" nbody)
        (let ( (obody (compile_obj nbody gcx))
 	      )
 	 (debug "compile2obj_hook obody=" obody)
@@ -4909,12 +4910,13 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_lambda (nlam gcx)
+  (debug "compilobj_nrep_lambda nlam=" nlam "\n.. gcx=" gcx)
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check nlam" (is_a nlam class_nrep_lambda))
-  (debug "compilobj_nrep_lambda nlam=" nlam)
   (let ( (nloc (unsafe_get_field :nrep_loc nlam))
 	 (npro (let 
 		   ( (checkpro (unsafe_get_field :nlambda_proc nlam)) )
+		 (debug "compilobj_nrep_lambda npro=" checkpro)
 		 (assert_msg "check checkpro" (is_a checkpro class_nrep_routproc))
 		 checkpro))
 	 (nam (unsafe_get_field :nrpro_name npro))
@@ -4938,20 +4940,21 @@ $SBUF.}#
 		  :obnclo_rout 
 		  (progn 
 		    (let ( (crou (compile_obj nrou gcx)) )
+		      (debug "compilobj_nrep_lambda crou=" crou)
 		      crou)
 		    )
 		  :obnclo_len (make_integerbox discr_integer nbclosed)
 		  :obdi_destlist destlist))
-    (multiple_every
-     nclovtup
-     (lambda (clov :long ix)
-       (list_append 
-	olis
-	(instance class_objputclosedv
-		  :obi_loc nloc
-		  :opclov_clos locv
-		  :opclov_off (make_integerbox discr_integer ix)
-		  :opclov_cval (compile_obj clov gcx)))))
+    (foreach_in_multiple
+     (nclovtup)
+     (clov :long ix)
+     (list_append 
+      olis
+      (instance class_objputclosedv
+		:obi_loc nloc
+		:opclov_clos locv
+		:opclov_off (make_integerbox discr_integer ix)
+		:opclov_cval (compile_obj clov gcx))))
     ;; we don't need to add any objtouch because the nlam was normalized!
     (list_append olis locv) ;;; last instruction is just the value, which can be set to some dest
     (debug "compilobj_nrep_lambda result oblock=" oblock)
@@ -5581,19 +5584,19 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compile a data routine
 (defun compilobj_dataroutine (ndrou gcx)
-  (debug "compilobj_dataroutine ndrou=" ndrou)
+  (debug "compilobj_dataroutine ndrou=" ndrou "\n gcx=" gcx)
   (assert_msg "check ndrou" (is_a ndrou class_nrep_dataroutine))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 (chobj (mapobject_get compicache ndrou))
-	 (unused_stuff ())	  ;to circumvent a bug in cold-melt
 	 )
     ;; dataroutine compiled only in initial routines
+    (debug "compilobj_dataroutine inirout=" inirout)
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
-    (if chobj
-	(progn
-	  (return chobj)))
+    (when chobj
+      (debug "compilobj_dataroutine return chobj=" chobj)
+      (return chobj))
     (let ( (nam (unsafe_get_field :ndata_name ndrou))
 	   (disx (unsafe_get_field :ndata_discrx ndrou))
 	   (nloc (unsafe_get_field :nrep_loc ndrou))
@@ -5614,9 +5617,9 @@ $SBUF.}#
 	    )
 	(add2sbuf_strconst nambuf "drout_")
 	(add2sbuf_longdec nambuf drk)
-	(if nam (progn
-		  (add2sbuf_strconst nambuf "__")
-		  (add2sbuf_cident nambuf (unsafe_get_field :named_name nam))))
+	(when nam
+	  (add2sbuf_strconst nambuf "__")
+	  (add2sbuf_cident nambuf (unsafe_get_field :named_name nam)))
 	(let (
 	      (oirout 
 	       (instance class_objinitroutine
@@ -5635,56 +5638,58 @@ $SBUF.}#
 		     (bxoff (make_integerbox discr_integer 0))
 		     (comm (unsafe_get_field :named_name '_iroutval_))
 		     )
+		(debug "compilobj_dataroutine pconstl=" pconstl)
 		(put_int oirout nbconst)
-		(list_every
-		 pconstl
-		 (lambda (constx)
-		   (cond
-		    ( (is_a constx class_nrep_constocc)
-		      (let ( (cnstbind (unsafe_get_field :nocc_bind constx)) )
-			(assert_msg "compilobj_dataroutine check cnstbind" (is_a cnstbind class_any_binding))
-			(let ( 
-			      (oconstx (compile_obj cnstbind gcx)) 
-			      (:long off (get_int bxoff))
-			      ) 
-			  (if oconstx 
-			      (let (
-				    (iput
-				     (if (is_a cnstbind class_fixed_binding)
-					 (instance class_objputroutconstnotnull
-						   :obi_loc nloc
-						   :oprconst_rout oirout
-						   :oprconst_off (make_integerbox discr_integer off)
-						   :oprconst_cval oconstx)
-				       (instance class_objputroutconst
+		(foreach_in_list
+		 (pconstl)
+		 (constpair constx)
+		 (debug "compilobj_dataroutine constx=" constx)
+		 (cond
+		  ( (is_a constx class_nrep_constocc)
+		    (let ( (cnstbind (unsafe_get_field :nocc_bind constx)) )
+		      (assert_msg "compilobj_dataroutine check cnstbind" (is_a cnstbind class_any_binding))
+		      (let ( 
+			    (oconstx (compile_obj cnstbind gcx)) 
+			    (:long off (get_int bxoff))
+			    ) 
+			(debug "compilobj_dataroutine oconstx=" oconstx "\n.. off=" off)
+			(if oconstx 
+			    (let (
+				  (iput
+				   (if (is_a cnstbind class_fixed_binding)
+				       (instance class_objputroutconstnotnull
 						 :obi_loc nloc
 						 :oprconst_rout oirout
 						 :oprconst_off (make_integerbox discr_integer off)
 						 :oprconst_cval oconstx)
-				       )) 
-				    ) 
-				(list_append inibody iput)
-				(put_int bxoff (+i off 1))))))
-		      )
-		    ( (is_a constx class_nrep_quasidata)
-		      (let ( 
-			    (oconstx (compile_obj constx gcx)) 
-			    (:long off (get_int bxoff))
-			    ) 
-			(if oconstx 
-			    (let ( (iput (instance class_objputroutconst
-						   :obi_loc nloc
-						   :oprconst_rout oirout
-						   :oprconst_off (make_integerbox discr_integer off)
-						   :oprconst_cval oconstx)) ) 
+				     (instance class_objputroutconst
+					       :obi_loc nloc
+					       :oprconst_rout oirout
+					       :oprconst_off (make_integerbox discr_integer off)
+					       :oprconst_cval oconstx)
+				     )) 
+				  ) 
 			      (list_append inibody iput)
 			      (put_int bxoff (+i off 1))))))
-		    (:else
-		     (assert_msg "compilobj_dataroutine unexepected constx" ())
-		     )
 		    )
+		  ( (is_a constx class_nrep_quasidata)
+		    (let ( 
+			  (oconstx (compile_obj constx gcx)) 
+			  (:long off (get_int bxoff))
+			  ) 
+		      (if oconstx 
+			  (let ( (iput (instance class_objputroutconst
+						 :obi_loc nloc
+						 :oprconst_rout oirout
+						 :oprconst_off (make_integerbox discr_integer off)
+						 :oprconst_cval oconstx)) ) 
+			    (list_append inibody iput)
+			    (put_int bxoff (+i off 1))))))
+		  (:else
+		   (assert_msg "compilobj_dataroutine uneppected constx")
 		   )
-		 )
+		  )
+		 ) 			;end foreach_in_list pconstl
 		(if (>i (get_int bxoff) 0)
 		    (list_append inibody (instance class_objtouch
 						   :obi_loc nloc

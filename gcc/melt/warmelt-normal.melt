@@ -4288,14 +4288,17 @@ source location.}#
     (unsafe_put_fields ncx 
 		       :nctx_curproc nproc
 		       :nctx_symbcachemap (make_mapobject discr_map_objects 40))
+    (debug "normexp_defun ndatarout=" ndatarout "\n ndataclos=" ndataclos)
     (add_nctx_data ncx ndatarout)
     (add_nctx_data ncx ndataclos)
+    (debug "normexp_defun updated ncx=" ncx)
     (when (is_not_a sfubind class_function_binding)
       (error_strv sloc
 		  "bad DEFUN-ed function [nested definitions are prohibited; consider using LETREC]"
 		  (get_field :named_name snam))
       (return))
     (unsafe_put_fields nproc :nrpro_datarout ndatarout :nrpro_dataclos ndataclos)
+    (debug "normexp_defun updated nproc=" nproc)
     (foreach_in_multiple 
      (sformals)
      (fbi :long ix)
@@ -4319,9 +4322,10 @@ source location.}#
 	    (npbody (wrap_normal_letseq nrbody nbindings sloc))
 	    )
        (unsafe_put_fields nproc  :nproc_body npbody)
-       (debug "normexp_defun npbody after replace_last_by_return" npbody)
+       (debug "normexp_defun after replace_last_by_return npbody=" npbody "\n.. nproc=" nproc)
        )
      (unsafe_put_fields ncx :nctx_curproc oldproc :nctx_symbcachemap oldsymbcache)
+     (debug "normexp_defun restored ncx=" ncx)
      (let ( (clovtup 
 	     (list_to_multiple 
 	      closblis
@@ -4338,7 +4342,7 @@ source location.}#
        (unsafe_put_fields ndataclos :ndclo_closv clovtup)
        )
      (put_fields sfubind :fixbind_data ndataclos)
-     (debug "normexp_defun return nproc" nproc)
+     (debug "normexp_defun return nproc=" nproc)
      (return nproc ())
      )
     ))
@@ -4480,12 +4484,14 @@ source location.}#
 			      :ndrou_proc nproc
 			      ))
 	 )
+    (debug "normalize_lambda nproc=" nproc "\n.. ndatarout=" ndatarout)
     (add_nctx_data ncx ndatarout)
     ;; update the context for the new proc & a fresh symbol cache map
     (unsafe_put_fields ncx 
 		       :nctx_curproc nproc
 		       :nctx_symbcachemap (make_mapobject discr_map_objects 40))
     (unsafe_put_fields nproc :nrpro_datarout ndatarout)
+    (debug "normalize_lambda updated ncx=" ncx "\n.. nproc=" nproc)
     (foreach_in_multiple
      (sformalargs)
      (fbi :long ix)
@@ -4494,13 +4500,14 @@ source location.}#
     (if (is_a sformalargs discr_variadic_formal_sequence)
 	(put_fields nproc :nrpro_variadic csym))
     (unsafe_put_fields newenv :env_proc nproc)
-    (debug "normalize_lambda updated :env_proc of newenv" newenv)
+    (debug "normalize_lambda updated newenv=" newenv)
     (shortbacktrace_dbg "normalize_lambda" 15)
     ;; add nproc into ncx
     (list_append (unsafe_get_field :nctx_proclist ncx) nproc)
     (multicall
      (nbody nbindings)
      (normalize_tuple sbody newenv ncx sloc)
+     (debug "normalize_lambda nbody=" nbody "\n.. nbindings=" nbindings)
      (foreach_in_multiple
       (nbindings)
        (nbi :long ix)
@@ -4514,6 +4521,7 @@ source location.}#
 			:nctx_symbcachemap savedcachemap
 			:nctx_curproc oldproc
 			)
+     (debug "normalize_lambda restored ncx=" ncx "\n.. updated nproc=" nproc)
      (let ( 
 	   ;; we make an anonymous constant for the routine unless in toplevel
 	   (:long insideflag (is_a oldproc class_nrep_routproc))
@@ -4541,13 +4549,14 @@ source location.}#
 
 ;;;;
 (defun normexp_lambda (recv env ncx psloc)
+  (debug "normexp_lambda recv=" recv "\n..env=" env "\n.. ncx=" ncx)
   (assert_msg "check lambda recv" (is_a recv class_source_lambda))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_lambda recv" recv)
   (let (
 	(newenv (fresh_env env))
 	)
+    (debug "normexp_lambda newenv=" newenv)
     (multicall 
      (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
      (normalize_lambda recv env newenv ncx psloc)
