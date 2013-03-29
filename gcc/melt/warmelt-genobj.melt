@@ -1144,11 +1144,11 @@ $SBUF.}#
       (debug "compile2obj_hook ninbinds=" ninbinds)
       (foreach_in_multiple
        (ninbinds)
-       (curinb :long inix)
-       (debug "compile2obj_hook curinb=" curinb "\n .. inix=" inix)
-       (assert_msg "check curinb" (is_a curinb class_formal_binding))
-       (let ( (syminb (get_field :binder curinb))
-	      (ctypinb (get_field :fbind_type curinb))
+       (curinbnd :long inix)
+       (debug "compile2obj_hook curinbnd=" curinbnd "\n .. inix=" inix)
+       (assert_msg "check curinbnd" (is_a curinbnd class_formal_binding))
+       (let ( (syminb (get_field :binder curinbnd))
+	      (ctypinb (get_field :fbind_type curinbnd))
 	      (locinb (get_free_objloctyped gcx syminb ctypinb))
 	      (incname (let ( (sbuf (make_strbuf discr_strbuf))
 			      )
@@ -1161,7 +1161,7 @@ $SBUF.}#
 				   :obv_type ctypinb
 				   :oformal_name incname
 				   :oformal_proc nhook
-				   :oformal_bind curinb
+				   :oformal_bind curinbnd
 				   :oformal_locv locinb))
 	      (ogetfarg (make_objcompute loc ctypinb
 					 ##{/*gethookinput*/ $INCFORMAL}#))
@@ -1171,17 +1171,19 @@ $SBUF.}#
 	 (list_append obodylist ogetfarg)
 	 (debug "compile2obj_hook incformal=" incformal)
 	 (multiple_put_nth oinargs inix incformal)
+	 (mapobject_put locmap curinbnd locinb)
 	 ))
-      (debug "compile2obj_hook oinargs=" oinargs)
+      (debug "compile2obj_hook oinargs=" oinargs "\n.. locmap=" locmap)
+      ;;
       ;; handle the output arguments
       (debug "compile2obj_hook noutbinds=" noutbinds)
       (foreach_in_multiple
        (noutbinds)
-       (curoutb :long outix)
-       (debug "compile2obj_hook curoutb=" curoutb "\n .. outix=" outix)
-       (assert_msg "check curoutb" (is_a curoutb class_formal_binding))
-       (let ( (symoutb (get_field :binder curoutb))
-	      (ctypoutb (get_field :fbind_type curoutb))
+       (curoutbnd :long outix)
+       (debug "compile2obj_hook curoutbnd=" curoutbnd "\n .. outix=" outix)
+       (assert_msg "check curoutbnd" (is_a curoutbnd class_formal_binding))
+       (let ( (symoutb (get_field :binder curoutbnd))
+	      (ctypoutb (get_field :fbind_type curoutbnd))
 	      (locoutb (get_free_objloctyped gcx symoutb ctypoutb))
 	      (outcname (let ( (sbuf (make_strbuf discr_strbuf))
 			       )
@@ -1194,14 +1196,17 @@ $SBUF.}#
 				    :obv_type ctypoutb
 				    :oformal_name outcname
 				    :oformal_proc nhook
-				    :oformal_bind curoutb
+				    :oformal_bind curoutbnd
 				    :oformal_locv locoutb))
 	      )
 	 (put_int outcformal outix)
 	 (debug "compile2obj_hook outcformal=" outcformal)
 	 (multiple_put_nth ooutargs outix outcformal)
+	 (mapobject_put locmap curoutbnd locoutb)
 	 )
-       (debug "compile2obj_hook ooutargs=" ooutargs "\n.. nbody=" nbody)
+       (debug "compile2obj_hook ooutargs=" ooutargs 
+	      "\n.. nbody=" nbody "\n..locmap=" locmap)
+       ;;
        ;; compile the body
        (let ( (obody (compile_obj nbody gcx))
 	      )
@@ -1254,18 +1259,16 @@ $SBUF.}#
 	(let ( (pronam (unsafe_get_field :nrpro_name pro)) 
 	       (nvariadic (unsafe_get_field :nrpro_variadic pro))
 	       )
-	  (if (is_a pronam class_named)
-	      (progn
+	  (when (is_a pronam class_named)
 		(setq routfunam (unsafe_get_field :named_name pronam))
 		(add2sbuf_strconst namsbuf "_")
 		(add2sbuf_cident namsbuf (unsafe_get_field :named_name pronam))
-		(if (is_a pronam class_cloned_symbol)
-		    (progn
+		(when (is_a pronam class_cloned_symbol)
 		      (add2sbuf_strconst namsbuf "__")
 		      (add2sbuf_longdec namsbuf (get_int (get_field :csym_urank pronam)))
 		      (add2sbuf_strconst namsbuf "__")
-		      ))
-		))
+		      )
+		)
 	  (if nvariadic 
 	      (setq restnam nvariadic))
 	  ))
@@ -5578,6 +5581,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compile a data routine
 (defun compilobj_dataroutine (ndrou gcx)
+  (debug "compilobj_dataroutine ndrou=" ndrou)
   (assert_msg "check ndrou" (is_a ndrou class_nrep_dataroutine))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
