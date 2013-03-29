@@ -3734,20 +3734,22 @@ returns the list (LIST (F E_1) ...(F E_n)) if $LIS is the (LIST E_1
   (if (null disc) (setq disc discr_multiple))
   (if (is_list lis)
       (let ( (:long ln (list_length lis))
+	     (:long count 0)
 	     (tup (make_multiple disc ln))
-	     (ixb (make_integerbox discr_integer 0))
-	     (curpair (list_first lis)) )
-	(list_every 
-	 lis
-	 (lambda (c) 
-	   (let ( (:long ix (get_int ixb)) 
-		  (tc (if (is_closure f) (f c) c))
-		  )
-	     (put_int ixb (+i ix 1))
-	     (multiple_put_nth tup ix tc))
-	   ))
-	tup
-	)))
+	     )
+	(if (is_closure f)
+	    (foreach_in_list
+	     (lis)
+	     (curpair curcomp)
+	     (multiple_put_nth tup count (f curcomp))
+	     (setq count (+i count 1)))
+	  (foreach_in_list
+	   (lis)
+	   (curpair curcomp)
+	   (multiple_put_nth tup count curcomp)
+	   (setq count (+i count 1)))
+	  )
+	(return tup))))
 
 ;;; translate a pairlist to a tuple - with each element transformed by a function f (default the identity)
 (defun pairlist_to_multiple (pair disc f)

@@ -2,10 +2,22 @@
 
 2013-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (list_to_multiple): Improve and use
+	foreach_in_list instead of list_every.
+
+	* melt/warmelt-genobj.melt (compilobj_catchall_nrep): More debug.
+	(compilobj_datahook): New stub method for compile_obj on
+	class_nrep_datahook.
+
+	* testsuite/melt/thook-1.melt (anotherhook): Comment it
+	temporarily.
+
+2013-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normal.melt (normexp_defun, normalize_lambda)
 	(normexp_lambda): More debug.
 
-	* melt/warmelt-genobj.melt (compile2obj_hook): More debug. 
+	* melt/warmelt-genobj.melt (compile2obj_hook): More debug.
 	(compilobj_nrep_lambda): More debug, use a foreach_in_multiple
 	instead of multiple_every.
 	(compilobj_dataroutine): More debug. Use foreach_in_list instead

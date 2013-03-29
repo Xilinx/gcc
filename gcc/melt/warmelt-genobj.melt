@@ -916,10 +916,11 @@ $SBUF.}#
 ;; be separately compiled with its own method so this should never be
 ;; called
 (defun compilobj_catchall_nrep (recv gcx)
-  (debug "class_nrep compile_obj recv=" recv " gcx=" gcx)
+  (debug "compilobj_catchall_nrep recv=" recv " gcx=" gcx)
   (let ( (discr (discrim recv)) 
 	 (discrname  (unsafe_get_field :named_name discr))
 	 )
+    (debug "compilobj_catchall_nrep discr=" discr)
     (errormsg_strv "{Internal Error} COMPILE_OBJ sent to unexpected object of class" discrname)
     (assert_msg "@@compile_obj should be implemented in nrep-s subclasses" ())
 ))
@@ -5703,6 +5704,14 @@ $SBUF.}#
   )
 (install_method class_nrep_dataroutine compile_obj compilobj_dataroutine)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_datahook (ndhook gcx)
+  (debug "compilobj_datahook ndhook=" ndhook "\n gcx=" gcx)
+  (assert_msg "check ndhook" (is_a ndhook class_nrep_datahook))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (assert_msg "@$@unimplemented compilobj_datahook"))
+
+(install_method class_nrep_datahook compile_obj compilobj_datahook)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_quasidata_current_module_environment_container (qdcm gcx)
   (assert_msg "check qdcm" (is_a qdcm class_nrep_quasidata_current_module_environment_container))
