@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -30,6 +30,7 @@ with Casing;   use Casing;
 with Checks;   use Checks;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
+with Elists;   use Elists;
 with Errout;   use Errout;
 with Eval_Fat;
 with Exp_Dist; use Exp_Dist;
@@ -375,6 +376,10 @@ package body Sem_Attr is
       pragma No_Return (Error_Attr);
       --  Like Error_Attr, but error is posted at the start of the prefix
 
+      procedure S14_Attribute;
+      --  Called for all attributes defined for formal verification to check
+      --  that the S14_Extensions flag is set.
+
       procedure Standard_Attribute (Val : Int);
       --  Used to process attributes whose prefix is package Standard which
       --  yield values of type Universal_Integer. The attribute reference
@@ -646,8 +651,8 @@ package body Sem_Attr is
                Kill_Current_Values;
             end if;
 
-            --  Treat as call for elaboration purposes and we are all
-            --  done. Suppress this treatment under debug flag.
+            --  Treat as call for elaboration purposes and we are all done.
+            --  Suppress this treatment under debug flag.
 
             if not Debug_Flag_Dot_UU then
                Check_Elab_Call (N);
@@ -734,7 +739,7 @@ package body Sem_Attr is
 
                   if Is_CPP_Class (Root_Type (Typ)) then
                      Error_Msg_N
-                       ("?current instance unsupported for derivations of "
+                       ("??current instance unsupported for derivations of "
                         & "'C'P'P types", N);
                   end if;
 
@@ -870,7 +875,7 @@ package body Sem_Attr is
       procedure Bad_Attribute_For_Predicate is
       begin
          if Is_Scalar_Type (P_Type)
-           and then  Comes_From_Source (N)
+           and then Comes_From_Source (N)
          then
             Error_Msg_Name_1 := Aname;
             Bad_Predicated_Subtype_Use
@@ -1008,6 +1013,16 @@ package body Sem_Attr is
                Error_Msg_Name_1 := Aname;
                Error_Msg_F
                  ("prefix for % attribute must be constrained array", P);
+            end if;
+
+            --  The attribute reference freezes the type, and thus the
+            --  component type, even if the attribute may not depend on the
+            --  component. Diagnose arrays with incomplete components now.
+            --  If the prefix is an access to array, this does not freeze
+            --  the designated type.
+
+            if Nkind (P) /= N_Explicit_Dereference then
+               Check_Fully_Declared (Component_Type (P_Type), P);
             end if;
 
             D := Number_Dimensions (P_Type);
@@ -1950,6 +1965,18 @@ package body Sem_Attr is
          Set_Etype (N, Standard_Boolean);
       end Legal_Formal_Attribute;
 
+      -------------------
+      -- S14_Attribute --
+      -------------------
+
+      procedure S14_Attribute is
+      begin
+         if not Formal_Extensions then
+            Error_Attr
+              ("attribute % requires the use of debug switch -gnatd.V", N);
+         end if;
+      end S14_Attribute;
+
       ------------------------
       -- Standard_Attribute --
       ------------------------
@@ -2002,7 +2029,7 @@ package body Sem_Attr is
          if not Attribute_83 (Attr_Id) then
             if Ada_Version = Ada_83 and then Comes_From_Source (N) then
                Error_Msg_Name_1 := Aname;
-               Error_Msg_N ("(Ada 83) attribute% is not standard?", N);
+               Error_Msg_N ("(Ada 83) attribute% is not standard??", N);
             end if;
 
             if Attribute_Impl_Def (Attr_Id) then
@@ -2102,6 +2129,20 @@ package body Sem_Attr is
       if No (Exprs) then
          E1 := Empty;
          E2 := Empty;
+
+      --  Do not analyze the expressions of attribute Loop_Entry. Depending on
+      --  the number of arguments and/or the nature of the first argument, the
+      --  whole attribute reference may be rewritten into an indexed component.
+      --  In the case of two or more arguments, the expressions are analyzed
+      --  when the indexed component is analyzed, otherwise the sole argument
+      --  is preanalyzed to determine whether it is a loop name.
+
+      elsif Aname = Name_Loop_Entry then
+         E1 := First (Exprs);
+
+         if Present (E1) then
+            E2 := Next (E1);
+         end if;
 
       else
          E1 := First (Exprs);
@@ -2573,6 +2614,15 @@ package body Sem_Attr is
          Set_Etype (N, RTE (RE_AST_Handler));
       end AST_Entry;
 
+      -----------------------------
+      -- Atomic_Always_Lock_Free --
+      -----------------------------
+
+      when Attribute_Atomic_Always_Lock_Free =>
+         Check_E0;
+         Check_Type;
+         Set_Etype (N, Standard_Boolean);
+
       ----------
       -- Base --
       ----------
@@ -2600,7 +2650,7 @@ package body Sem_Attr is
            and then Warn_On_Redundant_Constructs
          then
             Error_Msg_NE -- CODEFIX
-              ("?redundant attribute, & is its own base type", N, Typ);
+              ("?r?redundant attribute, & is its own base type", N, Typ);
          end if;
 
          if Nkind (Parent (N)) /= N_Attribute_Reference then
@@ -2856,7 +2906,7 @@ package body Sem_Attr is
             if Warn_On_Obsolescent_Feature then
                Error_Msg_N
                  ("constrained for private type is an " &
-                  "obsolescent feature (RM J.4)?", N);
+                  "obsolescent feature (RM J.4)?j?", N);
             end if;
 
             --  If we are within an instance, the attribute must be legal
@@ -3575,6 +3625,293 @@ package body Sem_Attr is
               ("prefix of % attribute must be a protected object");
          end if;
 
+      ----------------
+      -- Loop_Entry --
+      ----------------
+
+      when Attribute_Loop_Entry => Loop_Entry : declare
+         procedure Check_References_In_Prefix (Loop_Id : Entity_Id);
+         --  Inspect the prefix for any uses of entities declared within the
+         --  related loop. Loop_Id denotes the loop identifier.
+
+         procedure Convert_To_Indexed_Component;
+         --  Transform the attribute reference into an indexed component where
+         --  the prefix is Prefix'Loop_Entry and the expressions are associated
+         --  with the indexed component.
+
+         --------------------------------
+         -- Check_References_In_Prefix --
+         --------------------------------
+
+         procedure Check_References_In_Prefix (Loop_Id : Entity_Id) is
+            Loop_Decl : constant Node_Id := Label_Construct (Parent (Loop_Id));
+
+            function Check_Reference (Nod : Node_Id) return Traverse_Result;
+            --  Determine whether a reference mentions an entity declared
+            --  within the related loop.
+
+            function Declared_Within (Nod : Node_Id) return Boolean;
+            --  Determine whether Nod appears in the subtree of Loop_Decl
+
+            ---------------------
+            -- Check_Reference --
+            ---------------------
+
+            function Check_Reference (Nod : Node_Id) return Traverse_Result is
+            begin
+               if Nkind (Nod) = N_Identifier
+                 and then Present (Entity (Nod))
+                 and then Declared_Within (Declaration_Node (Entity (Nod)))
+               then
+                  Error_Attr
+                    ("prefix of attribute % cannot reference local entities",
+                     Nod);
+                  return Abandon;
+               else
+                  return OK;
+               end if;
+            end Check_Reference;
+
+            procedure Check_References is new Traverse_Proc (Check_Reference);
+
+            ---------------------
+            -- Declared_Within --
+            ---------------------
+
+            function Declared_Within (Nod : Node_Id) return Boolean is
+               Stmt : Node_Id;
+
+            begin
+               Stmt := Nod;
+               while Present (Stmt) loop
+                  if Stmt = Loop_Decl then
+                     return True;
+
+                  --  Prevent the search from going too far
+
+                  elsif Nkind_In (Stmt, N_Entry_Body,
+                                        N_Package_Body,
+                                        N_Package_Declaration,
+                                        N_Protected_Body,
+                                        N_Subprogram_Body,
+                                        N_Task_Body)
+                  then
+                     exit;
+                  end if;
+
+                  Stmt := Parent (Stmt);
+               end loop;
+
+               return False;
+            end Declared_Within;
+
+         --  Start of processing for Check_Prefix_For_Local_References
+
+         begin
+            Check_References (P);
+         end Check_References_In_Prefix;
+
+         ----------------------------------
+         -- Convert_To_Indexed_Component --
+         ----------------------------------
+
+         procedure Convert_To_Indexed_Component is
+            New_Loop_Entry : constant Node_Id := Relocate_Node (N);
+
+         begin
+            --  The new Loop_Entry loses its arguments. They will be converted
+            --  into the expressions of the indexed component.
+
+            Set_Expressions (New_Loop_Entry, No_List);
+
+            Rewrite (N,
+              Make_Indexed_Component (Loc,
+                Prefix      => New_Loop_Entry,
+                Expressions => Exprs));
+         end Convert_To_Indexed_Component;
+
+         --  Local variables
+
+         Enclosing_Loop    : Node_Id;
+         In_Loop_Assertion : Boolean   := False;
+         Loop_Id           : Entity_Id := Empty;
+         Scop              : Entity_Id;
+         Stmt              : Node_Id;
+
+      --  Start of processing for Loop_Entry
+
+      begin
+         S14_Attribute;
+
+         --  The attribute reference appears as
+         --    Prefix'Loop_Entry (Expr1, Expr2, ... ExprN)
+
+         --  In this case, the loop name is omitted and the arguments are part
+         --  of an indexed component. Transform the whole attribute reference
+         --  to reflect this scenario.
+
+         if Present (E2) then
+            Convert_To_Indexed_Component;
+            Analyze (N);
+            return;
+
+         --  The attribute reference appears as
+         --    Prefix'Loop_Entry (Loop_Name)
+         --      or
+         --    Prefix'Loop_Entry (Expr1)
+
+         --  Depending on what Expr1 resolves to, either rewrite the reference
+         --  into an indexed component or continue with the analysis.
+
+         elsif Present (E1) then
+
+            --  Do not expand the argument as it may have side effects. Simply
+            --  preanalyze to determine whether it is a loop or something else.
+
+            Preanalyze_And_Resolve (E1);
+
+            if Is_Entity_Name (E1)
+              and then Present (Entity (E1))
+              and then Ekind (Entity (E1)) = E_Loop
+            then
+               Loop_Id := Entity (E1);
+
+            --  The argument is not a loop name
+
+            else
+               Convert_To_Indexed_Component;
+               Analyze (N);
+               return;
+            end if;
+         end if;
+
+         --  The prefix must denote an object
+
+         if not Is_Object_Reference (P) then
+            Error_Attr_P ("prefix of attribute % must denote an object");
+         end if;
+
+         --  The prefix cannot be of a limited type because the expansion of
+         --  Loop_Entry must create a constant initialized by the evaluated
+         --  prefix.
+
+         if Is_Immutably_Limited_Type (Etype (P)) then
+            Error_Attr_P ("prefix of attribute % cannot be limited");
+         end if;
+
+         --  Climb the parent chain to verify the location of the attribute and
+         --  find the enclosing loop.
+
+         Stmt := N;
+         while Present (Stmt) loop
+
+            --  Locate the enclosing Loop_Invariant / Loop_Variant pragma (if
+            --  any). Note that when these two are expanded, we must look for
+            --  an Assertion pragma.
+
+            if Nkind (Original_Node (Stmt)) = N_Pragma
+              and then
+                (Pragma_Name (Original_Node (Stmt)) = Name_Assert
+                   or else
+                 Pragma_Name (Original_Node (Stmt)) = Name_Loop_Invariant
+                   or else
+                 Pragma_Name (Original_Node (Stmt)) = Name_Loop_Variant)
+            then
+               In_Loop_Assertion := True;
+
+            --  Locate the enclosing loop (if any). Note that Ada 2012 array
+            --  iteration may be expanded into several nested loops, we are
+            --  interested in the outermost one which has the loop identifier.
+
+            elsif Nkind (Stmt) = N_Loop_Statement
+              and then Present (Identifier (Stmt))
+            then
+               Enclosing_Loop := Stmt;
+
+               --  The original attribute reference may lack a loop name. Use
+               --  the name of the enclosing loop because it is the related
+               --  loop.
+
+               if No (Loop_Id) then
+                  Loop_Id := Entity (Identifier (Enclosing_Loop));
+               end if;
+
+               exit;
+
+            --  Prevent the search from going too far
+
+            elsif Nkind_In (Stmt, N_Entry_Body,
+                                  N_Package_Body,
+                                  N_Package_Declaration,
+                                  N_Protected_Body,
+                                  N_Subprogram_Body,
+                                  N_Task_Body)
+            then
+               exit;
+            end if;
+
+            Stmt := Parent (Stmt);
+         end loop;
+
+         --  Loop_Entry must appear within a Loop_Assertion pragma
+
+         if not In_Loop_Assertion then
+            Error_Attr
+              ("attribute % must appear within pragma Loop_Variant or " &
+               "Loop_Invariant", N);
+         end if;
+
+         --  A Loop_Entry that applies to a given loop statement shall not
+         --  appear within a body of accept statement, if this construct is
+         --  itself enclosed by the given loop statement.
+
+         for J in reverse 0 .. Scope_Stack.Last loop
+            Scop := Scope_Stack.Table (J).Entity;
+
+            if Ekind (Scop) = E_Loop and then Scop = Loop_Id then
+               exit;
+
+            elsif Ekind_In (Scop, E_Block, E_Loop, E_Return_Statement) then
+               null;
+
+            else
+               Error_Attr
+                 ("attribute % cannot appear in body or accept statement", N);
+               exit;
+            end if;
+         end loop;
+
+         --  The prefix cannot mention entities declared within the related
+         --  loop because they will not be visible once the prefix is moved
+         --  outside the loop.
+
+         Check_References_In_Prefix (Loop_Id);
+
+         --  The prefix must denote a static entity if the pragma does not
+         --  apply to the innermost enclosing loop statement.
+
+         if Present (Enclosing_Loop)
+           and then Entity (Identifier (Enclosing_Loop)) /= Loop_Id
+           and then not Is_Entity_Name (P)
+         then
+            Error_Attr_P ("prefix of attribute % must denote an entity");
+         end if;
+
+         Set_Etype (N, Etype (P));
+
+         --  Associate the attribute with its related loop
+
+         if No (Loop_Entry_Attributes (Loop_Id)) then
+            Set_Loop_Entry_Attributes (Loop_Id, New_Elmt_List);
+         end if;
+
+         --  A Loop_Entry may be [pre]analyzed several times, depending on the
+         --  context. Ensure that it appears only once in the attributes list
+         --  of the related loop.
+
+         Append_Unique_Elmt (N, Loop_Entry_Attributes (Loop_Id));
+      end Loop_Entry;
+
       -------------
       -- Machine --
       -------------
@@ -3924,9 +4261,9 @@ package body Sem_Attr is
 
             Prag := N;
             while not Nkind_In (Prag, N_Pragma,
-                                N_Function_Specification,
-                                N_Procedure_Specification,
-                                N_Subprogram_Body)
+                                      N_Function_Specification,
+                                      N_Procedure_Specification,
+                                      N_Subprogram_Body)
             loop
                Prag := Parent (Prag);
             end loop;
@@ -4019,24 +4356,32 @@ package body Sem_Attr is
            and then Is_Constant_Object (Entity (P))
          then
             Error_Msg_N
-              ("?attribute Old applied to constant has no effect", P);
+              ("??attribute Old applied to constant has no effect", P);
          end if;
 
          --  The attribute appears within a pre/postcondition, but refers to
          --  an entity in the enclosing subprogram. If it is a component of
          --  a formal its expansion might generate actual subtypes that may
          --  be referenced in an inner context, and which must be elaborated
-         --  within the subprogram itself. As a result we create a
-         --  declaration for it and insert it at the start of the enclosing
-         --  subprogram. This is properly an expansion activity but it has
-         --  to be performed now to prevent out-of-order issues.
+         --  within the subprogram itself. If the prefix includes a function
+         --  call it may involve finalization actions that should only be
+         --  inserted when the attribute has been rewritten as a declarations.
+         --  As a result, if the prefix is not a simple name we create
+         --  a declaration for it now, and insert it at the start of the
+         --  enclosing subprogram. This is properly an expansion activity
+         --  but it has to be performed now to prevent out-of-order issues.
 
-         if Nkind (P) = N_Selected_Component
-           and then Has_Discriminants (Etype (Prefix (P)))
-         then
+         --  This expansion is both harmful and not needed in Alfa mode, since
+         --  the formal verification backend relies on the types of nodes
+         --  (hence is not robust w.r.t. a change to base type here), and does
+         --  not suffer from the out-of-order issue described above. Thus, this
+         --  expansion is skipped in Alfa mode.
+
+         if not Is_Entity_Name (P) and then not Alfa_Mode then
             P_Type := Base_Type (P_Type);
             Set_Etype (N, P_Type);
             Set_Etype (P, P_Type);
+            Analyze_Dimension (N);
             Expand (N);
          end if;
       end Old;
@@ -4046,7 +4391,6 @@ package body Sem_Attr is
       ----------------------
 
       when Attribute_Overlaps_Storage =>
-         Check_Ada_2012_Attribute;
          Check_E1;
 
          --  Both arguments must be objects of any type
@@ -4252,11 +4596,26 @@ package body Sem_Attr is
          --  During pre-analysis, Prag is the enclosing pragma node if any
 
       begin
-         --  Find enclosing scopes, excluding loops
+         --  Find the proper enclosing scope
 
          CS := Current_Scope;
-         while Ekind (CS) = E_Loop loop
-            CS := Scope (CS);
+         while Present (CS) loop
+
+            --  Skip generated loops
+
+            if Ekind (CS) = E_Loop then
+               CS := Scope (CS);
+
+            --  Skip the special _Parent scope generated to capture references
+            --  to formals during the process of subprogram inlining.
+
+            elsif Ekind (CS) = E_Function
+              and then Chars (CS) = Name_uParent
+            then
+               CS := Scope (CS);
+            else
+               exit;
+            end if;
          end loop;
 
          PS := Scope (CS);
@@ -4269,7 +4628,7 @@ package body Sem_Attr is
            and then Warn_On_Redundant_Constructs
          then
             Error_Msg_N
-              ("postconditions on inlined functions not enforced?", N);
+              ("postconditions on inlined functions not enforced?r?", N);
          end if;
 
          --  If we are in the scope of a function and in Spec_Expression mode,
@@ -4473,9 +4832,9 @@ package body Sem_Attr is
          Check_Decimal_Fixed_Point_Type;
          Set_Etype (N, P_Base_Type);
 
-         --  Because the context is universal_real (3.5.10(12)) it is a legal
-         --  context for a universal fixed expression. This is the only
-         --  attribute whose functional description involves U_R.
+         --  Because the context is universal_real (3.5.10(12)) it is a
+         --  legal context for a universal fixed expression. This is the
+         --  only attribute whose functional description involves U_R.
 
          if Etype (E1) = Universal_Fixed then
             declare
@@ -4698,10 +5057,10 @@ package body Sem_Attr is
                                            Name_Simple_Storage_Pool_Type))
                then
                   Error_Msg_Name_1 := Aname;
-                  Error_Msg_N ("cannot use % attribute for type with simple " &
-                               "storage pool?", N);
+                  Error_Msg_N ("cannot use % attribute for type with simple "
+                               & "storage pool??", N);
                   Error_Msg_N
-                     ("\Program_Error will be raised at run time?", N);
+                     ("\Program_Error will be raised at run time??", N);
 
                   Rewrite
                     (N, Make_Raise_Program_Error
@@ -4770,8 +5129,8 @@ package body Sem_Attr is
 
                Validate_Remote_Access_To_Class_Wide_Type (N);
 
-            --  The prefix is allowed to be an implicit dereference
-            --  of an access value designating a task.
+            --  The prefix is allowed to be an implicit dereference of an
+            --  access value designating a task.
 
             else
                Check_Task_Prefix;
@@ -4894,8 +5253,8 @@ package body Sem_Attr is
          if not Is_Tagged_Type (P_Type) then
             Error_Attr_P ("prefix of % attribute must be tagged");
 
-         --  Next test does not apply to generated code
-         --  why not, and what does the illegal reference mean???
+         --  Next test does not apply to generated code why not, and what does
+         --  the illegal reference mean???
 
          elsif Is_Object_Reference (P)
            and then not Is_Class_Wide_Type (P_Type)
@@ -4906,9 +5265,9 @@ package body Sem_Attr is
                "of class - wide type");
          end if;
 
-         --  The prefix cannot be an incomplete type. However, references
-         --  to 'Tag can be generated when expanding interface conversions,
-         --  and this is legal.
+         --  The prefix cannot be an incomplete type. However, references to
+         --  'Tag can be generated when expanding interface conversions, and
+         --  this is legal.
 
          if Comes_From_Source (N) then
             Check_Not_Incomplete_Type;
@@ -5183,6 +5542,164 @@ package body Sem_Attr is
 
          Analyze_Access_Attribute;
 
+      ------------
+      -- Update --
+      ------------
+
+      when Attribute_Update => Update : declare
+         Comps : Elist_Id := No_Elist;
+
+         procedure Check_Component_Reference
+           (Comp : Entity_Id;
+            Typ  : Entity_Id);
+         --  Comp is a record component (possibly a discriminant) and Typ is a
+         --  record type. Determine whether Comp is a legal component of Typ.
+         --  Emit an error if Comp mentions a discriminant or is not a unique
+         --  component reference in the update aggregate.
+
+         -------------------------------
+         -- Check_Component_Reference --
+         -------------------------------
+
+         procedure Check_Component_Reference
+           (Comp : Entity_Id;
+            Typ  : Entity_Id)
+         is
+            Comp_Name : constant Name_Id := Chars (Comp);
+
+            function Is_Duplicate_Component return Boolean;
+            --  Determine whether component Comp already appears in list Comps
+
+            ----------------------------
+            -- Is_Duplicate_Component --
+            ----------------------------
+
+            function Is_Duplicate_Component return Boolean is
+               Comp_Elmt : Elmt_Id;
+
+            begin
+               if Present (Comps) then
+                  Comp_Elmt := First_Elmt (Comps);
+                  while Present (Comp_Elmt) loop
+                     if Chars (Node (Comp_Elmt)) = Comp_Name then
+                        return True;
+                     end if;
+
+                     Next_Elmt (Comp_Elmt);
+                  end loop;
+               end if;
+
+               return False;
+            end Is_Duplicate_Component;
+
+            --  Local variables
+
+            Comp_Or_Discr : Entity_Id;
+
+         --  Start of processing for Check_Component_Reference
+
+         begin
+            --  Find the discriminant or component whose name corresponds to
+            --  Comp. A simple character comparison is sufficient because all
+            --  visible names within a record type are unique.
+
+            Comp_Or_Discr := First_Entity (Typ);
+            while Present (Comp_Or_Discr) loop
+               if Chars (Comp_Or_Discr) = Comp_Name then
+                  exit;
+               end if;
+
+               Comp_Or_Discr := Next_Entity (Comp_Or_Discr);
+            end loop;
+
+            --  Diagnose possible erroneous references
+
+            if Present (Comp_Or_Discr) then
+               if Ekind (Comp_Or_Discr) = E_Discriminant then
+                  Error_Attr
+                    ("attribute % may not modify record discriminants", Comp);
+
+               else pragma Assert (Ekind (Comp_Or_Discr) = E_Component);
+                  if Is_Duplicate_Component then
+                     Error_Msg_NE ("component & already updated", Comp, Comp);
+
+                  --  Mark this component as processed
+
+                  else
+                     if No (Comps) then
+                        Comps := New_Elmt_List;
+                     end if;
+
+                     Append_Elmt (Comp, Comps);
+                  end if;
+               end if;
+
+            --  The update aggregate mentions an entity that does not belong to
+            --  the record type.
+
+            else
+               Error_Msg_NE
+                 ("& is not a component of aggregate subtype", Comp, Comp);
+            end if;
+         end Check_Component_Reference;
+
+         --  Local variables
+
+         Assoc : Node_Id;
+         Comp  : Node_Id;
+
+      --  Start of processing for Update
+
+      begin
+         S14_Attribute;
+         Check_E1;
+
+         if not Is_Object_Reference (P) then
+            Error_Attr_P ("prefix of attribute % must denote an object");
+
+         elsif not Is_Array_Type (P_Type)
+           and then not Is_Record_Type (P_Type)
+         then
+            Error_Attr_P ("prefix of attribute % must be a record or array");
+
+         elsif Is_Immutably_Limited_Type (P_Type) then
+            Error_Attr ("prefix of attribute % cannot be limited", N);
+
+         elsif Nkind (E1) /= N_Aggregate then
+            Error_Attr ("attribute % requires component association list", N);
+         end if;
+
+         --  Inspect the update aggregate, looking at all the associations and
+         --  choices. Perform the following checks:
+
+         --    1) Legality of "others" in all cases
+         --    2) Component legality for records
+
+         --  The remaining checks are performed on the expanded attribute
+
+         Assoc := First (Component_Associations (E1));
+         while Present (Assoc) loop
+            Comp := First (Choices (Assoc));
+            while Present (Comp) loop
+               if Nkind (Comp) = N_Others_Choice then
+                  Error_Attr
+                    ("others choice not allowed in attribute %", Comp);
+
+               elsif Is_Record_Type (P_Type) then
+                  Check_Component_Reference (Comp, P_Type);
+               end if;
+
+               Next (Comp);
+            end loop;
+
+            Next (Assoc);
+         end loop;
+
+         --  The type of attribute Update is that of the prefix
+
+         Set_Etype (N, P_Type);
+      end Update;
+
       ---------
       -- Val --
       ---------
@@ -5226,6 +5743,21 @@ package body Sem_Attr is
             Error_Attr_P ("object for % attribute must be of scalar type");
          end if;
 
+         --  If the attribute appears within the subtype's own predicate
+         --  function, then issue a warning that this will cause infinite
+         --  recursion.
+
+         declare
+            Pred_Func : constant Entity_Id := Predicate_Function (P_Type);
+
+         begin
+            if Present (Pred_Func) and then Current_Scope = Pred_Func then
+               Error_Msg_N
+                 ("attribute Valid requires a predicate check??", N);
+               Error_Msg_N ("\and will result in infinite recursion??", N);
+            end if;
+         end;
+
          Set_Etype (N, Standard_Boolean);
 
       -------------------
@@ -5237,7 +5769,7 @@ package body Sem_Attr is
          Check_Object_Reference (P);
 
          if No_Scalar_Parts (P_Type) then
-            Error_Attr_P ("?attribute % always True, no scalars to check");
+            Error_Attr_P ("??attribute % always True, no scalars to check");
          end if;
 
          Set_Etype (N, Standard_Boolean);
@@ -5588,7 +6120,7 @@ package body Sem_Attr is
 
          elsif Is_Out_Of_Range (N, T) then
             Apply_Compile_Time_Constraint_Error
-              (N, "value not in range of}?", CE_Range_Check_Failed);
+              (N, "value not in range of}??", CE_Range_Check_Failed);
 
          elsif not Range_Checks_Suppressed (T) then
             Enable_Range_Check (N);
@@ -5652,8 +6184,7 @@ package body Sem_Attr is
          return
            Is_Floating_Point_Type (Typ)
              and then
-               (Float_Format = 'V'
-                  or else Float_Rep (Typ) = VAX_Native);
+               (Float_Format = 'V' or else Float_Rep (Typ) = VAX_Native);
       end Is_VAX_Float;
 
       --------------
@@ -5864,7 +6395,7 @@ package body Sem_Attr is
             begin
                if No (E1) then
                   if C in Predefined_Check_Id then
-                     R := Scope_Suppress (C);
+                     R := Scope_Suppress.Suppress (C);
                   else
                      R := Is_Check_Suppressed (Empty, C);
                   end if;
@@ -5949,6 +6480,13 @@ package body Sem_Attr is
                return;
             end if;
 
+         --  For Lock_Free, we apply the attribute to the type of the object.
+         --  This is allowed since we have already verified that the type is a
+         --  protected type.
+
+         elsif Id = Attribute_Lock_Free then
+            P_Entity := Etype (P);
+
          --  No other attributes for objects are folded
 
          else
@@ -6014,16 +6552,21 @@ package body Sem_Attr is
 
       --  Definite must be folded if the prefix is not a generic type,
       --  that is to say if we are within an instantiation. Same processing
-      --  applies to the GNAT attributes Has_Discriminants, Type_Class,
-      --  Has_Tagged_Value, and Unconstrained_Array.
+      --  applies to the GNAT attributes Atomic_Always_Lock_Free,
+      --  Has_Discriminants, Lock_Free, Type_Class, Has_Tagged_Value, and
+      --  Unconstrained_Array.
 
-      elsif (Id = Attribute_Definite
+      elsif (Id = Attribute_Atomic_Always_Lock_Free
+               or else
+             Id = Attribute_Definite
                or else
              Id = Attribute_Has_Access_Values
                or else
              Id = Attribute_Has_Discriminants
                or else
              Id = Attribute_Has_Tagged_Values
+               or else
+             Id = Attribute_Lock_Free
                or else
              Id = Attribute_Type_Class
                or else
@@ -6129,22 +6672,27 @@ package body Sem_Attr is
       --  since we can't do anything with unconstrained arrays. In addition,
       --  only the First, Last and Length attributes are possibly static.
 
-      --  Definite, Has_Access_Values, Has_Discriminants, Has_Tagged_Values,
-      --  Type_Class, and Unconstrained_Array are again exceptions, because
-      --  they apply as well to unconstrained types.
+      --  Atomic_Always_Lock_Free, Definite, Has_Access_Values,
+      --  Has_Discriminants, Has_Tagged_Values, Lock_Free, Type_Class, and
+      --  Unconstrained_Array are again exceptions, because they apply as well
+      --  to unconstrained types.
 
       --  In addition Component_Size is an exception since it is possibly
       --  foldable, even though it is never static, and it does apply to
       --  unconstrained arrays. Furthermore, it is essential to fold this
       --  in the packed case, since otherwise the value will be incorrect.
 
-      elsif Id = Attribute_Definite
+      elsif Id = Attribute_Atomic_Always_Lock_Free
+              or else
+            Id = Attribute_Definite
               or else
             Id = Attribute_Has_Access_Values
               or else
             Id = Attribute_Has_Discriminants
               or else
             Id = Attribute_Has_Tagged_Values
+              or else
+            Id = Attribute_Lock_Free
               or else
             Id = Attribute_Type_Class
               or else
@@ -6312,6 +6860,9 @@ package body Sem_Attr is
       --  non-static subtypes, even though such references are not static
       --  expressions.
 
+      --  For VAX float, the root type is an IEEE type. So make sure to use the
+      --  base type instead of the root-type for floating point attributes.
+
       case Id is
 
          --  Attributes related to Ada 2012 iterators (placeholder ???)
@@ -6334,9 +6885,11 @@ package body Sem_Attr is
       --------------
 
       when Attribute_Adjacent =>
-         Fold_Ureal (N,
-           Eval_Fat.Adjacent
-             (P_Root_Type, Expr_Value_R (E1), Expr_Value_R (E2)), Static);
+         Fold_Ureal
+           (N,
+            Eval_Fat.Adjacent
+              (P_Base_Type, Expr_Value_R (E1), Expr_Value_R (E2)),
+            Static);
 
       ---------
       -- Aft --
@@ -6374,6 +6927,30 @@ package body Sem_Attr is
             null;
          end if;
 
+      -----------------------------
+      -- Atomic_Always_Lock_Free --
+      -----------------------------
+
+      --  Atomic_Always_Lock_Free attribute is a Boolean, thus no need to fold
+      --  here.
+
+      when Attribute_Atomic_Always_Lock_Free => Atomic_Always_Lock_Free :
+      declare
+         V : constant Entity_Id :=
+               Boolean_Literals
+                 (Support_Atomic_Primitives_On_Target
+                   and then Support_Atomic_Primitives (P_Type));
+
+      begin
+         Rewrite (N, New_Occurrence_Of (V, Loc));
+
+         --  Analyze and resolve as boolean. Note that this attribute is a
+         --  static attribute in GNAT.
+
+         Analyze_And_Resolve (N, Standard_Boolean);
+         Static := True;
+      end Atomic_Always_Lock_Free;
+
       ---------
       -- Bit --
       ---------
@@ -6397,8 +6974,8 @@ package body Sem_Attr is
       -------------
 
       when Attribute_Ceiling =>
-         Fold_Ureal (N,
-           Eval_Fat.Ceiling (P_Root_Type, Expr_Value_R (E1)), Static);
+         Fold_Ureal
+           (N, Eval_Fat.Ceiling (P_Base_Type, Expr_Value_R (E1)), Static);
 
       --------------------
       -- Component_Size --
@@ -6414,10 +6991,10 @@ package body Sem_Attr is
       -------------
 
       when Attribute_Compose =>
-         Fold_Ureal (N,
-           Eval_Fat.Compose
-             (P_Root_Type, Expr_Value_R (E1), Expr_Value (E2)),
-              Static);
+         Fold_Ureal
+           (N,
+            Eval_Fat.Compose (P_Base_Type, Expr_Value_R (E1), Expr_Value (E2)),
+            Static);
 
       -----------------
       -- Constrained --
@@ -6434,9 +7011,11 @@ package body Sem_Attr is
       ---------------
 
       when Attribute_Copy_Sign =>
-         Fold_Ureal (N,
-           Eval_Fat.Copy_Sign
-             (P_Root_Type, Expr_Value_R (E1), Expr_Value_R (E2)), Static);
+         Fold_Ureal
+           (N,
+            Eval_Fat.Copy_Sign
+              (P_Base_Type, Expr_Value_R (E1), Expr_Value_R (E2)),
+            Static);
 
       --------------
       -- Definite --
@@ -6460,7 +7039,7 @@ package body Sem_Attr is
 
       when Attribute_Denorm =>
          Fold_Uint
-           (N, UI_From_Int (Boolean'Pos (Denorm_On_Target)), True);
+           (N, UI_From_Int (Boolean'Pos (Has_Denormals (P_Type))), True);
 
       ---------------------
       -- Descriptor_Size --
@@ -6562,7 +7141,7 @@ package body Sem_Attr is
 
       when Attribute_Exponent =>
          Fold_Uint (N,
-           Eval_Fat.Exponent (P_Root_Type, Expr_Value_R (E1)), Static);
+           Eval_Fat.Exponent (P_Base_Type, Expr_Value_R (E1)), Static);
 
       -----------
       -- First --
@@ -6631,8 +7210,8 @@ package body Sem_Attr is
       -----------
 
       when Attribute_Floor =>
-         Fold_Ureal (N,
-           Eval_Fat.Floor (P_Root_Type, Expr_Value_R (E1)), Static);
+         Fold_Ureal
+           (N, Eval_Fat.Floor (P_Base_Type, Expr_Value_R (E1)), Static);
 
       ----------
       -- Fore --
@@ -6648,8 +7227,8 @@ package body Sem_Attr is
       --------------
 
       when Attribute_Fraction =>
-         Fold_Ureal (N,
-           Eval_Fat.Fraction (P_Root_Type, Expr_Value_R (E1)), Static);
+         Fold_Ureal
+           (N, Eval_Fat.Fraction (P_Base_Type, Expr_Value_R (E1)), Static);
 
       -----------------------
       -- Has_Access_Values --
@@ -6785,19 +7364,28 @@ package body Sem_Attr is
 
             --    T'Emax = 4 * T'Mantissa
 
-            Fold_Ureal (N,
-              Ureal_2 ** (4 * Mantissa) * (Ureal_1 - Ureal_2 ** (-Mantissa)),
-              True);
+            Fold_Ureal
+              (N,
+               Ureal_2 ** (4 * Mantissa) * (Ureal_1 - Ureal_2 ** (-Mantissa)),
+               True);
          end if;
 
       ---------------
       -- Lock_Free --
       ---------------
 
-      --  Lock_Free attribute is a Boolean, thus no need to fold here.
+      when Attribute_Lock_Free => Lock_Free : declare
+         V : constant Entity_Id := Boolean_Literals (Uses_Lock_Free (P_Type));
 
-      when Attribute_Lock_Free =>
-         null;
+      begin
+         Rewrite (N, New_Occurrence_Of (V, Loc));
+
+         --  Analyze and resolve as boolean. Note that this attribute is a
+         --  static attribute in GNAT.
+
+         Analyze_And_Resolve (N, Standard_Boolean);
+         Static := True;
+      end Lock_Free;
 
       ----------
       -- Last --
@@ -6859,9 +7447,11 @@ package body Sem_Attr is
       ------------------
 
       when Attribute_Leading_Part =>
-         Fold_Ureal (N,
-           Eval_Fat.Leading_Part
-             (P_Root_Type, Expr_Value_R (E1), Expr_Value (E2)), Static);
+         Fold_Ureal
+           (N,
+            Eval_Fat.Leading_Part
+              (P_Base_Type, Expr_Value_R (E1), Expr_Value (E2)),
+            Static);
 
       ------------
       -- Length --
@@ -6924,15 +7514,28 @@ package body Sem_Attr is
          end;
       end Length;
 
+      ----------------
+      -- Loop_Entry --
+      ----------------
+
+      --  Loop_Entry acts as an alias of a constant initialized to the prefix
+      --  of the said attribute at the point of entry into the related loop. As
+      --  such, the attribute reference does not need to be evaluated because
+      --  the prefix is the one that is evaluted.
+
+      when Attribute_Loop_Entry =>
+         null;
+
       -------------
       -- Machine --
       -------------
 
       when Attribute_Machine =>
-         Fold_Ureal (N,
-           Eval_Fat.Machine
-             (P_Root_Type, Expr_Value_R (E1), Eval_Fat.Round, N),
-           Static);
+         Fold_Ureal
+           (N,
+            Eval_Fat.Machine
+              (P_Base_Type, Expr_Value_R (E1), Eval_Fat.Round, N),
+            Static);
 
       ------------------
       -- Machine_Emax --
@@ -7005,8 +7608,8 @@ package body Sem_Attr is
       --  though the non-determinism is certainly permitted.
 
       when Attribute_Machine_Rounding =>
-         Fold_Ureal (N,
-           Eval_Fat.Rounding (P_Root_Type, Expr_Value_R (E1)), Static);
+         Fold_Ureal
+           (N, Eval_Fat.Rounding (P_Base_Type, Expr_Value_R (E1)), Static);
 
       --------------------
       -- Machine_Rounds --
@@ -7236,8 +7839,8 @@ package body Sem_Attr is
       -----------
 
       when Attribute_Model =>
-         Fold_Ureal (N,
-           Eval_Fat.Model (P_Root_Type, Expr_Value_R (E1)), Static);
+         Fold_Ureal
+           (N, Eval_Fat.Model (P_Base_Type, Expr_Value_R (E1)), Static);
 
       ----------------
       -- Model_Emin --
@@ -7333,14 +7936,14 @@ package body Sem_Attr is
          --  Floating-point case
 
          if Is_Floating_Point_Type (P_Type) then
-            Fold_Ureal (N,
-              Eval_Fat.Pred (P_Root_Type, Expr_Value_R (E1)), Static);
+            Fold_Ureal
+              (N, Eval_Fat.Pred (P_Base_Type, Expr_Value_R (E1)), Static);
 
          --  Fixed-point case
 
          elsif Is_Fixed_Point_Type (P_Type) then
-            Fold_Ureal (N,
-              Expr_Value_R (E1) - Small_Value (P_Type), True);
+            Fold_Ureal
+              (N, Expr_Value_R (E1) - Small_Value (P_Type), True);
 
          --  Modular integer case (wraps)
 
@@ -7451,7 +8054,7 @@ package body Sem_Attr is
             return;
          end if;
 
-         Fold_Ureal (N, Eval_Fat.Remainder (P_Root_Type, X, Y), Static);
+         Fold_Ureal (N, Eval_Fat.Remainder (P_Base_Type, X, Y), Static);
       end Remainder;
 
       -----------
@@ -7482,8 +8085,8 @@ package body Sem_Attr is
       --------------
 
       when Attribute_Rounding =>
-         Fold_Ureal (N,
-           Eval_Fat.Rounding (P_Root_Type, Expr_Value_R (E1)), Static);
+         Fold_Ureal
+           (N, Eval_Fat.Rounding (P_Base_Type, Expr_Value_R (E1)), Static);
 
       ---------------
       -- Safe_Emax --
@@ -7556,9 +8159,11 @@ package body Sem_Attr is
       -------------
 
       when Attribute_Scaling =>
-         Fold_Ureal (N,
-           Eval_Fat.Scaling
-             (P_Root_Type, Expr_Value_R (E1), Expr_Value (E2)), Static);
+         Fold_Ureal
+           (N,
+            Eval_Fat.Scaling
+              (P_Base_Type, Expr_Value_R (E1), Expr_Value (E2)),
+            Static);
 
       ------------------
       -- Signed_Zeros --
@@ -7566,7 +8171,7 @@ package body Sem_Attr is
 
       when Attribute_Signed_Zeros =>
          Fold_Uint
-           (N, UI_From_Int (Boolean'Pos (Signed_Zeros_On_Target)), Static);
+           (N, UI_From_Int (Boolean'Pos (Has_Signed_Zeros (P_Type))), Static);
 
       ----------
       -- Size --
@@ -7671,14 +8276,13 @@ package body Sem_Attr is
          --  Floating-point case
 
          if Is_Floating_Point_Type (P_Type) then
-            Fold_Ureal (N,
-              Eval_Fat.Succ (P_Root_Type, Expr_Value_R (E1)), Static);
+            Fold_Ureal
+              (N, Eval_Fat.Succ (P_Base_Type, Expr_Value_R (E1)), Static);
 
          --  Fixed-point case
 
          elsif Is_Fixed_Point_Type (P_Type) then
-            Fold_Ureal (N,
-              Expr_Value_R (E1) + Small_Value (P_Type), Static);
+            Fold_Ureal (N, Expr_Value_R (E1) + Small_Value (P_Type), Static);
 
          --  Modular integer case (wraps)
 
@@ -7713,8 +8317,10 @@ package body Sem_Attr is
       ----------------
 
       when Attribute_Truncation =>
-         Fold_Ureal (N,
-           Eval_Fat.Truncation (P_Root_Type, Expr_Value_R (E1)), Static);
+         Fold_Ureal
+           (N,
+            Eval_Fat.Truncation (P_Base_Type, Expr_Value_R (E1)),
+            Static);
 
       ----------------
       -- Type_Class --
@@ -7778,9 +8384,10 @@ package body Sem_Attr is
       -----------------------
 
       when Attribute_Unbiased_Rounding =>
-         Fold_Ureal (N,
-           Eval_Fat.Unbiased_Rounding (P_Root_Type, Expr_Value_R (E1)),
-           Static);
+         Fold_Ureal
+           (N,
+            Eval_Fat.Unbiased_Rounding (P_Base_Type, Expr_Value_R (E1)),
+            Static);
 
       -------------------------
       -- Unconstrained_Array --
@@ -7801,6 +8408,15 @@ package body Sem_Attr is
          Analyze_And_Resolve (N, Standard_Boolean);
          Static := True;
       end Unconstrained_Array;
+
+      --  Attribute Update is never static
+
+      ------------
+      -- Update --
+      ------------
+
+      when Attribute_Update =>
+         null;
 
       ---------------
       -- VADS_Size --
@@ -8303,9 +8919,10 @@ package body Sem_Attr is
          --  know will fail, so generate an appropriate warning.
 
          if In_Instance_Body then
-            Error_Msg_F ("?non-local pointer cannot point to local object", P);
             Error_Msg_F
-              ("\?Program_Error will be raised at run time", P);
+              ("??non-local pointer cannot point to local object", P);
+            Error_Msg_F
+              ("\??Program_Error will be raised at run time", P);
             Rewrite (N,
               Make_Raise_Program_Error (Loc,
                 Reason => PE_Accessibility_Check_Failed));
@@ -8777,9 +9394,9 @@ package body Sem_Attr is
 
                   if In_Instance_Body then
                      Error_Msg_F
-                       ("?non-local pointer cannot point to local object", P);
+                       ("??non-local pointer cannot point to local object", P);
                      Error_Msg_F
-                       ("\?Program_Error will be raised at run time", P);
+                       ("\??Program_Error will be raised at run time", P);
                      Rewrite (N,
                        Make_Raise_Program_Error (Loc,
                          Reason => PE_Accessibility_Check_Failed));
@@ -8893,11 +9510,13 @@ package body Sem_Attr is
                      declare
                         D : constant Node_Id := Declaration_Node (Entity (P));
                      begin
-                        Error_Msg_N ("aliased object has explicit bounds?",
-                          D);
-                        Error_Msg_N ("\declare without bounds"
-                          & " (and with explicit initialization)?", D);
-                        Error_Msg_N ("\for use with unconstrained access?", D);
+                        Error_Msg_N
+                          ("aliased object has explicit bounds??", D);
+                        Error_Msg_N
+                          ("\declare without bounds (and with explicit "
+                           & "initialization)??", D);
+                        Error_Msg_N
+                          ("\for use with unconstrained access??", D);
                      end;
                   end if;
                end if;
@@ -8938,6 +9557,21 @@ package body Sem_Attr is
                then
                   Accessibility_Message;
                   return;
+
+               --  AI05-0225: If the context is not an access to protected
+               --  function, the prefix must be a variable, given that it may
+               --  be used subsequently in a protected call.
+
+               elsif Nkind (P) = N_Selected_Component
+                 and then not Is_Variable (Prefix (P))
+                 and then Ekind (Entity (Selector_Name (P))) /= E_Function
+               then
+                  Error_Msg_N
+                    ("target object of access to protected procedure "
+                      & "must be variable", N);
+
+               elsif Is_Entity_Name (P) then
+                  Check_Internal_Protected_Use (N, Entity (P));
                end if;
 
             elsif Ekind_In (Btyp, E_Access_Subprogram_Type,
@@ -9185,6 +9819,18 @@ package body Sem_Attr is
          --  specially and not touched by Resolve.
 
          when Attribute_Enabled =>
+            null;
+
+         ----------------
+         -- Loop_Entry --
+         ----------------
+
+         --  Do not resolve the prefix of Loop_Entry, instead wait until the
+         --  attribute has been expanded (see Expand_Loop_Entry_Attributes).
+         --  The delay ensures that any generated checks or temporaries are
+         --  inserted before the relocated prefix.
+
+         when Attribute_Loop_Entry =>
             null;
 
          --------------------

@@ -1,5 +1,5 @@
 /* Statement simplification on GIMPLE.
-   Copyright (C) 2010, 2011, 2012 Free Software Foundation, Inc.
+   Copyright (C) 2010-2013 Free Software Foundation, Inc.
    Split out from tree-ssa-ccp.c.
 
 This file is part of GCC.
@@ -139,7 +139,8 @@ can_refer_decl_in_current_unit_p (tree decl, tree from_decl)
 tree
 canonicalize_constructor_val (tree cval, tree from_decl)
 {
-  STRIP_USELESS_TYPE_CONVERSION (cval);
+  tree orig_cval = cval;
+  STRIP_NOPS (cval);
   if (TREE_CODE (cval) == POINTER_PLUS_EXPR
       && TREE_CODE (TREE_OPERAND (cval, 1)) == INTEGER_CST)
     {
@@ -154,13 +155,15 @@ canonicalize_constructor_val (tree cval, tree from_decl)
     }
   if (TREE_CODE (cval) == ADDR_EXPR)
     {
-      tree base = get_base_address (TREE_OPERAND (cval, 0));
-      if (!base && TREE_CODE (TREE_OPERAND (cval, 0)) == COMPOUND_LITERAL_EXPR)
+      tree base = NULL_TREE;
+      if (TREE_CODE (TREE_OPERAND (cval, 0)) == COMPOUND_LITERAL_EXPR)
 	{
 	  base = COMPOUND_LITERAL_EXPR_DECL (TREE_OPERAND (cval, 0));
 	  if (base)
 	    TREE_OPERAND (cval, 0) = base;
 	}
+      else
+	base = get_base_address (TREE_OPERAND (cval, 0));
       if (!base)
 	return NULL_TREE;
 
@@ -169,12 +172,7 @@ canonicalize_constructor_val (tree cval, tree from_decl)
 	  && !can_refer_decl_in_current_unit_p (base, from_decl))
 	return NULL_TREE;
       if (TREE_CODE (base) == VAR_DECL)
-	{
-	  TREE_ADDRESSABLE (base) = 1;
-	  if (cfun && gimple_referenced_vars (cfun)
-	      && !is_global_var (base))
-	    add_referenced_var (base);
-	}
+	TREE_ADDRESSABLE (base) = 1;
       else if (TREE_CODE (base) == FUNCTION_DECL)
 	{
 	  /* Make sure we create a cgraph node for functions we'll reference.
@@ -185,8 +183,12 @@ canonicalize_constructor_val (tree cval, tree from_decl)
       /* Fixup types in global initializers.  */
       if (TREE_TYPE (TREE_TYPE (cval)) != TREE_TYPE (TREE_OPERAND (cval, 0)))
 	cval = build_fold_addr_expr (TREE_OPERAND (cval, 0));
+
+      if (!useless_type_conversion_p (TREE_TYPE (orig_cval), TREE_TYPE (cval)))
+	cval = fold_convert (TREE_TYPE (orig_cval), cval);
+      return cval;
     }
-  return cval;
+  return orig_cval;
 }
 
 /* If SYM is a constant variable with known value, return the value.
@@ -200,7 +202,7 @@ get_symbol_constant_value (tree sym)
       tree val = DECL_INITIAL (sym);
       if (val)
 	{
-	  val = canonicalize_constructor_val (val, sym);
+	  val = canonicalize_constructor_val (unshare_expr (val), sym);
 	  if (val && is_gimple_min_invariant (val))
 	    return val;
 	  else
@@ -376,7 +378,7 @@ fold_gimple_assign (gimple_stmt_iterator *si)
 	  }
 
 	else if (DECL_P (rhs))
-	  return unshare_expr (get_symbol_constant_value (rhs));
+	  return get_symbol_constant_value (rhs);
 
         /* If we couldn't fold the RHS, hand over to the generic
            fold routines.  */
@@ -605,7 +607,7 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 	      unlink_stmt_vdef (stmt);
 	      release_defs (stmt);
 	    }
-	  gsi_remove (si_p, true);
+	  gsi_replace (si_p, gimple_build_nop (), true);
 	  return;
 	}
     }
@@ -653,9 +655,6 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
   for (i = gsi_start (stmts); !gsi_end_p (i); gsi_next (&i))
     {
       new_stmt = gsi_stmt (i);
-      /* The replacement can expose previously unreferenced variables.  */
-      if (gimple_in_ssa_p (cfun))
-	find_referenced_vars_in (new_stmt);
       /* If the new statement possibly has a VUSE, update it with exact SSA
 	 name we know will reach this one.  */
       if (gimple_has_mem_ops (new_stmt))
@@ -743,6 +742,11 @@ get_maxval_strlen (tree arg, tree *length, bitmap visited, int type)
       *length = val;
       return true;
     }
+
+  /* If ARG is registered for SSA update we cannot look at its defining
+     statement.  */
+  if (name_registered_for_update_p (arg))
+    return false;
 
   /* If we were already here, break the infinite cycle.  */
   if (!bitmap_set_bit (visited, SSA_NAME_VERSION (arg)))
@@ -1153,11 +1157,6 @@ fold_stmt_1 (gimple_stmt_iterator *gsi, bool inplace)
   bool changed = false;
   gimple stmt = gsi_stmt (*gsi);
   unsigned i;
-  gimple_stmt_iterator gsinext = *gsi;
-  gimple next_stmt;
-
-  gsi_next (&gsinext);
-  next_stmt = gsi_end_p (gsinext) ? NULL : gsi_stmt (gsinext);
 
   /* Fold the main computation performed by the statement.  */
   switch (gimple_code (stmt))
@@ -1278,19 +1277,10 @@ fold_stmt_1 (gimple_stmt_iterator *gsi, bool inplace)
     default:;
     }
 
-  /* If stmt folds into nothing and it was the last stmt in a bb,
-     don't call gsi_stmt.  */
-  if (gsi_end_p (*gsi))
-    {
-      gcc_assert (next_stmt == NULL);
-      return changed;
-    }
-
   stmt = gsi_stmt (*gsi);
 
-  /* Fold *& on the lhs.  Don't do this if stmt folded into nothing,
-     as we'd changing the next stmt.  */
-  if (gimple_has_lhs (stmt) && stmt != next_stmt)
+  /* Fold *& on the lhs.  */
+  if (gimple_has_lhs (stmt))
     {
       tree lhs = gimple_get_lhs (stmt);
       if (lhs && REFERENCE_CLASS_P (lhs))
@@ -1693,6 +1683,8 @@ static tree
 and_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
 		   enum tree_code code2, tree op2a, tree op2b)
 {
+  tree truth_type = truth_type_for (TREE_TYPE (op1a));
+
   /* First check for ((x CODE1 y) AND (x CODE2 y)).  */
   if (operand_equal_p (op1a, op2a, 0)
       && operand_equal_p (op1b, op2b, 0))
@@ -1700,7 +1692,7 @@ and_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
       /* Result will be either NULL_TREE, or a combined comparison.  */
       tree t = combine_comparisons (UNKNOWN_LOCATION,
 				    TRUTH_ANDIF_EXPR, code1, code2,
-				    boolean_type_node, op1a, op1b);
+				    truth_type, op1a, op1b);
       if (t)
 	return t;
     }
@@ -1713,7 +1705,7 @@ and_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
       tree t = combine_comparisons (UNKNOWN_LOCATION,
 				    TRUTH_ANDIF_EXPR, code1,
 				    swap_tree_comparison (code2),
-				    boolean_type_node, op1a, op1b);
+				    truth_type, op1a, op1b);
       if (t)
 	return t;
     }
@@ -2155,6 +2147,8 @@ static tree
 or_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
 		  enum tree_code code2, tree op2a, tree op2b)
 {
+  tree truth_type = truth_type_for (TREE_TYPE (op1a));
+
   /* First check for ((x CODE1 y) OR (x CODE2 y)).  */
   if (operand_equal_p (op1a, op2a, 0)
       && operand_equal_p (op1b, op2b, 0))
@@ -2162,7 +2156,7 @@ or_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
       /* Result will be either NULL_TREE, or a combined comparison.  */
       tree t = combine_comparisons (UNKNOWN_LOCATION,
 				    TRUTH_ORIF_EXPR, code1, code2,
-				    boolean_type_node, op1a, op1b);
+				    truth_type, op1a, op1b);
       if (t)
 	return t;
     }
@@ -2175,7 +2169,7 @@ or_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
       tree t = combine_comparisons (UNKNOWN_LOCATION,
 				    TRUTH_ORIF_EXPR, code1,
 				    swap_tree_comparison (code2),
-				    boolean_type_node, op1a, op1b);
+				    truth_type, op1a, op1b);
       if (t)
 	return t;
     }
@@ -2810,32 +2804,28 @@ fold_array_ctor_reference (tree type, tree ctor,
      be larger than size of array element.  */
   if (!TYPE_SIZE_UNIT (type)
       || TREE_CODE (TYPE_SIZE_UNIT (type)) != INTEGER_CST
-      || double_int_cmp (elt_size,
-			 tree_to_double_int (TYPE_SIZE_UNIT (type)), 0) < 0)
+      || elt_size.slt (tree_to_double_int (TYPE_SIZE_UNIT (type))))
     return NULL_TREE;
 
   /* Compute the array index we look for.  */
-  access_index = double_int_udiv (uhwi_to_double_int (offset / BITS_PER_UNIT),
-				  elt_size, TRUNC_DIV_EXPR);
-  access_index = double_int_add (access_index, low_bound);
+  access_index = double_int::from_uhwi (offset / BITS_PER_UNIT)
+		 .udiv (elt_size, TRUNC_DIV_EXPR);
+  access_index += low_bound;
   if (index_type)
-    access_index = double_int_ext (access_index,
-				   TYPE_PRECISION (index_type),
-				   TYPE_UNSIGNED (index_type));
+    access_index = access_index.ext (TYPE_PRECISION (index_type),
+				     TYPE_UNSIGNED (index_type));
 
   /* And offset within the access.  */
-  inner_offset = offset % (double_int_to_uhwi (elt_size) * BITS_PER_UNIT);
+  inner_offset = offset % (elt_size.to_uhwi () * BITS_PER_UNIT);
 
   /* See if the array field is large enough to span whole access.  We do not
      care to fold accesses spanning multiple array indexes.  */
-  if (inner_offset + size > double_int_to_uhwi (elt_size) * BITS_PER_UNIT)
+  if (inner_offset + size > elt_size.to_uhwi () * BITS_PER_UNIT)
     return NULL_TREE;
 
-  index = double_int_sub (low_bound, double_int_one);
+  index = low_bound - double_int_one;
   if (index_type)
-    index = double_int_ext (index,
-			    TYPE_PRECISION (index_type),
-			    TYPE_UNSIGNED (index_type));
+    index = index.ext (TYPE_PRECISION (index_type), TYPE_UNSIGNED (index_type));
 
   FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (ctor), cnt, cfield, cval)
     {
@@ -2855,17 +2845,16 @@ fold_array_ctor_reference (tree type, tree ctor,
 	}
       else
 	{
-	  index = double_int_add (index, double_int_one);
+	  index += double_int_one;
 	  if (index_type)
-	    index = double_int_ext (index,
-				    TYPE_PRECISION (index_type),
-				    TYPE_UNSIGNED (index_type));
+	    index = index.ext (TYPE_PRECISION (index_type),
+			       TYPE_UNSIGNED (index_type));
 	  max_index = index;
 	}
 
       /* Do we have match?  */
-      if (double_int_cmp (access_index, index, 1) >= 0
-	  && double_int_cmp (access_index, max_index, 1) <= 0)
+      if (access_index.cmp (index, 1) >= 0
+	  && access_index.cmp (max_index, 1) <= 0)
 	return fold_ctor_reference (type, cval, inner_offset, size,
 				    from_decl);
     }
@@ -2894,7 +2883,7 @@ fold_nonarray_ctor_reference (tree type, tree ctor,
       tree field_size = DECL_SIZE (cfield);
       double_int bitoffset;
       double_int byte_offset_cst = tree_to_double_int (byte_offset);
-      double_int bits_per_unit_cst = uhwi_to_double_int (BITS_PER_UNIT);
+      double_int bits_per_unit_cst = double_int::from_uhwi (BITS_PER_UNIT);
       double_int bitoffset_end, access_end;
 
       /* Variable sized objects in static constructors makes no sense,
@@ -2906,37 +2895,33 @@ fold_nonarray_ctor_reference (tree type, tree ctor,
 		      : TREE_CODE (TREE_TYPE (cfield)) == ARRAY_TYPE));
 
       /* Compute bit offset of the field.  */
-      bitoffset = double_int_add (tree_to_double_int (field_offset),
-				  double_int_mul (byte_offset_cst,
-						  bits_per_unit_cst));
+      bitoffset = tree_to_double_int (field_offset)
+		  + byte_offset_cst * bits_per_unit_cst;
       /* Compute bit offset where the field ends.  */
       if (field_size != NULL_TREE)
-	bitoffset_end = double_int_add (bitoffset,
-					tree_to_double_int (field_size));
+	bitoffset_end = bitoffset + tree_to_double_int (field_size);
       else
 	bitoffset_end = double_int_zero;
 
-      access_end = double_int_add (uhwi_to_double_int (offset),
-				   uhwi_to_double_int (size));
+      access_end = double_int::from_uhwi (offset)
+		   + double_int::from_uhwi (size);
 
       /* Is there any overlap between [OFFSET, OFFSET+SIZE) and
 	 [BITOFFSET, BITOFFSET_END)?  */
-      if (double_int_cmp (access_end, bitoffset, 0) > 0
+      if (access_end.cmp (bitoffset, 0) > 0
 	  && (field_size == NULL_TREE
-	      || double_int_cmp (uhwi_to_double_int (offset),
-				 bitoffset_end, 0) < 0))
+	      || double_int::from_uhwi (offset).slt (bitoffset_end)))
 	{
-	  double_int inner_offset = double_int_sub (uhwi_to_double_int (offset),
-						    bitoffset);
+	  double_int inner_offset = double_int::from_uhwi (offset) - bitoffset;
 	  /* We do have overlap.  Now see if field is large enough to
 	     cover the access.  Give up for accesses spanning multiple
 	     fields.  */
-	  if (double_int_cmp (access_end, bitoffset_end, 0) > 0)
+	  if (access_end.cmp (bitoffset_end, 0) > 0)
 	    return NULL_TREE;
-	  if (double_int_cmp (uhwi_to_double_int (offset), bitoffset, 0) < 0)
+	  if (double_int::from_uhwi (offset).slt (bitoffset))
 	    return NULL_TREE;
 	  return fold_ctor_reference (type, cval,
-				      double_int_to_uhwi (inner_offset), size,
+				      inner_offset.to_uhwi (), size,
 				      from_decl);
 	}
     }
@@ -2956,7 +2941,7 @@ fold_ctor_reference (tree type, tree ctor, unsigned HOST_WIDE_INT offset,
   /* We found the field with exact match.  */
   if (useless_type_conversion_p (type, TREE_TYPE (ctor))
       && !offset)
-    return canonicalize_constructor_val (ctor, from_decl);
+    return canonicalize_constructor_val (unshare_expr (ctor), from_decl);
 
   /* We are at the end of walk, see if we can view convert the
      result.  */
@@ -2965,7 +2950,7 @@ fold_ctor_reference (tree type, tree ctor, unsigned HOST_WIDE_INT offset,
       && operand_equal_p (TYPE_SIZE (type),
 			  TYPE_SIZE (TREE_TYPE (ctor)), 0))
     {
-      ret = canonicalize_constructor_val (ctor, from_decl);
+      ret = canonicalize_constructor_val (unshare_expr (ctor), from_decl);
       ret = fold_unary (VIEW_CONVERT_EXPR, type, ret);
       if (ret)
 	STRIP_NOPS (ret);
@@ -3031,13 +3016,11 @@ fold_const_aggregate_ref_1 (tree t, tree (*valueize) (tree))
 	       TREE_CODE (low_bound) == INTEGER_CST)
 	      && (unit_size = array_ref_element_size (t),
 		  host_integerp (unit_size, 1))
-	      && (doffset = double_int_sext
-			    (double_int_sub (TREE_INT_CST (idx),
-					     TREE_INT_CST (low_bound)),
-			     TYPE_PRECISION (TREE_TYPE (idx))),
-		  double_int_fits_in_shwi_p (doffset)))
+	      && (doffset = (TREE_INT_CST (idx) - TREE_INT_CST (low_bound))
+			    .sext (TYPE_PRECISION (TREE_TYPE (idx))),
+		  doffset.fits_shwi ()))
 	    {
-	      offset = double_int_to_shwi (doffset);
+	      offset = doffset.to_shwi ();
 	      offset *= TREE_INT_CST_LOW (unit_size);
 	      offset *= BITS_PER_UNIT;
 

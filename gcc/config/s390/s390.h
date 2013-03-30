@@ -1,6 +1,5 @@
 /* Definitions of target machine for GNU compiler, for IBM S/390
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 1999-2013 Free Software Foundation, Inc.
    Contributed by Hartmut Penner (hpenner@de.ibm.com) and
                   Ulrich Weigand (uweigand@de.ibm.com).
                   Andreas Krebbel (Andreas.Krebbel@de.ibm.com)
@@ -34,7 +33,8 @@ enum processor_flags
   PF_EXTIMM = 8,
   PF_DFP = 16,
   PF_Z10 = 32,
-  PF_Z196 = 64
+  PF_Z196 = 64,
+  PF_ZEC12 = 128
 };
 
 /* This is necessary to avoid a warning about comparing different enum
@@ -59,6 +59,8 @@ enum processor_flags
  	(s390_arch_flags & PF_Z10)
 #define TARGET_CPU_Z196 \
  	(s390_arch_flags & PF_Z196)
+#define TARGET_CPU_ZEC12 \
+ 	(s390_arch_flags & PF_ZEC12)
 
 /* These flags indicate that the generated code should run on a cpu
    providing the respective hardware facility when run in
@@ -74,6 +76,8 @@ enum processor_flags
        (TARGET_ZARCH && TARGET_CPU_Z10)
 #define TARGET_Z196 \
        (TARGET_ZARCH && TARGET_CPU_Z196)
+#define TARGET_ZEC12 \
+       (TARGET_ZARCH && TARGET_CPU_ZEC12)
 
 
 #define TARGET_AVOID_CMP_AND_BRANCH (s390_tune == PROCESSOR_2817_Z196)
@@ -159,6 +163,11 @@ enum processor_flags
 
 #define S390_TDC_INFINITY (S390_TDC_POSITIVE_INFINITY \
 			  | S390_TDC_NEGATIVE_INFINITY )
+
+/* This is used by float.h to define the float_t and double_t data
+   types.  For historical reasons both are double on s390 what cannot
+   be changed anymore.  */
+#define TARGET_FLT_EVAL_METHOD 1
 
 /* Target machine storage layout.  */
 
@@ -587,6 +596,9 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
 /* Register save slot alignment.  */
 #define DWARF_CIE_DATA_ALIGNMENT (-UNITS_PER_LONG)
 
+/* Let the assembler generate debug line info.  */
+#define DWARF2_ASM_LINE_DEBUG_INFO 1
+
 
 /* Frame registers.  */
 
@@ -714,10 +726,6 @@ do {									\
 /* Given a comparison code (EQ, NE, etc.) and the first operand of a COMPARE,
    return the mode to be used for the comparison.  */
 #define SELECT_CC_MODE(OP, X, Y) s390_select_ccmode ((OP), (X), (Y))
-
-/* Canonicalize a comparison from one we don't have to one we do have.  */
-#define CANONICALIZE_COMPARISON(CODE, OP0, OP1) \
-  s390_canonicalize_comparison (&(CODE), &(OP0), &(OP1))
 
 /* Relative costs of operations.  */
 

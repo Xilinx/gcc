@@ -129,7 +129,7 @@ package body Debug is
    --  d.I  SCIL generation mode
    --  d.J  Disable parallel SCIL generation mode
    --  d.K  Alfa detection only mode for gnat2why
-   --  d.L  Depend on back end for limited types in conditional expressions
+   --  d.L  Depend on back end for limited types in if and case expressions
    --  d.M
    --  d.N  Add node to all entities
    --  d.O  Dump internal SCO tables
@@ -139,7 +139,7 @@ package body Debug is
    --  d.S  Force Optimize_Alignment (Space)
    --  d.T  Force Optimize_Alignment (Time)
    --  d.U  Ignore indirect calls for static elaboration
-   --  d.V
+   --  d.V  Extensions for formal verification
    --  d.W  Print out debugging information for Walk_Library_Items
    --  d.X  Use Expression_With_Actions
    --  d.Y  Do not use Expression_With_Actions
@@ -657,6 +657,10 @@ package body Debug is
    --       Proc. This can cause elaboration cycles at bind time. This flag
    --       reverts to the behavior of earlier compilers, which ignored
    --       indirect calls.
+
+   --  d.V  Extensions for formal verification. New attributes/aspects/pragmas
+   --       defined in GNAT for formal verification with the tool GNATprove are
+   --       only accepted under this switch.
 
    --  d.W  Print out debugging information for Walk_Library_Items, including
    --       the order in which units are walked. This is primarily for use in

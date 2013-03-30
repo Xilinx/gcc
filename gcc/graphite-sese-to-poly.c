@@ -1,5 +1,5 @@
 /* Conversion of SESE regions to Polyhedra.
-   Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 2009-2013 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>.
 
 This file is part of GCC.
@@ -180,7 +180,7 @@ reduction_phi_p (sese region, gimple_stmt_iterator *psi)
 /* Store the GRAPHITE representation of BB.  */
 
 static gimple_bb_p
-new_gimple_bb (basic_block bb, VEC (data_reference_p, heap) *drs)
+new_gimple_bb (basic_block bb, vec<data_reference_p> drs)
 {
   struct gimple_bb *gbb;
 
@@ -188,19 +188,19 @@ new_gimple_bb (basic_block bb, VEC (data_reference_p, heap) *drs)
   bb->aux = gbb;
   GBB_BB (gbb) = bb;
   GBB_DATA_REFS (gbb) = drs;
-  GBB_CONDITIONS (gbb) = NULL;
-  GBB_CONDITION_CASES (gbb) = NULL;
+  GBB_CONDITIONS (gbb).create (0);
+  GBB_CONDITION_CASES (gbb).create (0);
 
   return gbb;
 }
 
 static void
-free_data_refs_aux (VEC (data_reference_p, heap) *datarefs)
+free_data_refs_aux (vec<data_reference_p> datarefs)
 {
   unsigned int i;
   struct data_reference *dr;
 
-  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
+  FOR_EACH_VEC_ELT (datarefs, i, dr)
     if (dr->aux)
       {
 	base_alias_pair *bap = (base_alias_pair *)(dr->aux);
@@ -219,8 +219,8 @@ free_gimple_bb (struct gimple_bb *gbb)
   free_data_refs_aux (GBB_DATA_REFS (gbb));
   free_data_refs (GBB_DATA_REFS (gbb));
 
-  VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
-  VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
+  GBB_CONDITIONS (gbb).release ();
+  GBB_CONDITION_CASES (gbb).release ();
   GBB_BB (gbb)->aux = 0;
   XDELETE (gbb);
 }
@@ -233,26 +233,26 @@ remove_gbbs_in_scop (scop_p scop)
   int i;
   poly_bb_p pbb;
 
-  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
+  FOR_EACH_VEC_ELT (SCOP_BBS (scop), i, pbb)
     free_gimple_bb (PBB_BLACK_BOX (pbb));
 }
 
 /* Deletes all scops in SCOPS.  */
 
 void
-free_scops (VEC (scop_p, heap) *scops)
+free_scops (vec<scop_p> scops)
 {
   int i;
   scop_p scop;
 
-  FOR_EACH_VEC_ELT (scop_p, scops, i, scop)
+  FOR_EACH_VEC_ELT (scops, i, scop)
     {
       remove_gbbs_in_scop (scop);
       free_sese (SCOP_REGION (scop));
       free_scop (scop);
     }
 
-  VEC_free (scop_p, heap, scops);
+  scops.release ();
 }
 
 /* Same as outermost_loop_in_sese, returns the outermost loop
@@ -287,7 +287,8 @@ outermost_loop_in_sese_1 (sese region, basic_block bb)
 static gimple_bb_p
 try_generate_gimple_bb (scop_p scop, basic_block bb)
 {
-  VEC (data_reference_p, heap) *drs = VEC_alloc (data_reference_p, heap, 5);
+  vec<data_reference_p> drs;
+  drs.create (5);
   sese region = SCOP_REGION (scop);
   loop_p nest = outermost_loop_in_sese_1 (region, bb);
   gimple_stmt_iterator gsi;
@@ -321,7 +322,7 @@ all_non_dominated_preds_marked_p (basic_block bb, sbitmap map)
   edge_iterator ei;
 
   FOR_EACH_EDGE (e, ei, bb->preds)
-    if (!TEST_BIT (map, e->src->index)
+    if (!bitmap_bit_p (map, e->src->index)
 	&& !dominated_by_p (CDI_DOMINATORS, e->src, bb))
 	return false;
 
@@ -351,9 +352,9 @@ compare_bb_depths (const void *p1, const void *p2)
    a deepest loop level.  */
 
 static void
-graphite_sort_dominated_info (VEC (basic_block, heap) *dom)
+graphite_sort_dominated_info (vec<basic_block> dom)
 {
-  VEC_qsort (basic_block, dom, compare_bb_depths);
+  dom.qsort (compare_bb_depths);
 }
 
 /* Recursive helper function for build_scops_bbs.  */
@@ -362,39 +363,39 @@ static void
 build_scop_bbs_1 (scop_p scop, sbitmap visited, basic_block bb)
 {
   sese region = SCOP_REGION (scop);
-  VEC (basic_block, heap) *dom;
+  vec<basic_block> dom;
   poly_bb_p pbb;
 
-  if (TEST_BIT (visited, bb->index)
+  if (bitmap_bit_p (visited, bb->index)
       || !bb_in_sese_p (bb, region))
     return;
 
   pbb = new_poly_bb (scop, try_generate_gimple_bb (scop, bb));
-  VEC_safe_push (poly_bb_p, heap, SCOP_BBS (scop), pbb);
-  SET_BIT (visited, bb->index);
+  SCOP_BBS (scop).safe_push (pbb);
+  bitmap_set_bit (visited, bb->index);
 
   dom = get_dominated_by (CDI_DOMINATORS, bb);
 
-  if (dom == NULL)
+  if (!dom.exists ())
     return;
 
   graphite_sort_dominated_info (dom);
 
-  while (!VEC_empty (basic_block, dom))
+  while (!dom.is_empty ())
     {
       int i;
       basic_block dom_bb;
 
-      FOR_EACH_VEC_ELT (basic_block, dom, i, dom_bb)
+      FOR_EACH_VEC_ELT (dom, i, dom_bb)
 	if (all_non_dominated_preds_marked_p (dom_bb, visited))
 	  {
 	    build_scop_bbs_1 (scop, visited, dom_bb);
-	    VEC_unordered_remove (basic_block, dom, i);
+	    dom.unordered_remove (i);
 	    break;
 	  }
     }
 
-  VEC_free (basic_block, heap, dom);
+  dom.release ();
 }
 
 /* Gather the basic blocks belonging to the SCOP.  */
@@ -405,7 +406,7 @@ build_scop_bbs (scop_p scop)
   sbitmap visited = sbitmap_alloc (last_basic_block);
   sese region = SCOP_REGION (scop);
 
-  sbitmap_zero (visited);
+  bitmap_clear (visited);
   build_scop_bbs_1 (scop, visited, SESE_ENTRY_BB (region));
   sbitmap_free (visited);
 }
@@ -558,7 +559,7 @@ build_scop_scattering (scop_p scop)
      incremented before copying.  */
   static_sched = isl_aff_add_coefficient_si (static_sched, isl_dim_in, 0, -1);
 
-  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
+  FOR_EACH_VEC_ELT (SCOP_BBS (scop), i, pbb)
     {
       gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
       int prefix;
@@ -735,7 +736,7 @@ parameter_index_in_region_1 (tree name, sese region)
 
   gcc_assert (TREE_CODE (name) == SSA_NAME);
 
-  FOR_EACH_VEC_ELT (tree, SESE_PARAMS (region), i, p)
+  FOR_EACH_VEC_ELT (SESE_PARAMS (region), i, p)
     if (p == name)
       return i;
 
@@ -759,8 +760,8 @@ parameter_index_in_region (tree name, sese region)
 
   gcc_assert (SESE_ADD_PARAMS (region));
 
-  i = VEC_length (tree, SESE_PARAMS (region));
-  VEC_safe_push (tree, heap, SESE_PARAMS (region), name);
+  i = SESE_PARAMS (region).length ();
+  SESE_PARAMS (region).safe_push (name);
   return i;
 }
 
@@ -899,12 +900,12 @@ find_params_in_bb (sese region, gimple_bb_p gbb)
   loop_p loop = GBB_BB (gbb)->loop_father;
 
   /* Find parameters in the access functions of data references.  */
-  FOR_EACH_VEC_ELT (data_reference_p, GBB_DATA_REFS (gbb), i, dr)
+  FOR_EACH_VEC_ELT (GBB_DATA_REFS (gbb), i, dr)
     for (j = 0; j < DR_NUM_DIMENSIONS (dr); j++)
       scan_tree_for_params (region, DR_ACCESS_FN (dr, j));
 
   /* Find parameters in conditional statements.  */
-  FOR_EACH_VEC_ELT (gimple, GBB_CONDITIONS (gbb), i, stmt)
+  FOR_EACH_VEC_ELT (GBB_CONDITIONS (gbb), i, stmt)
     {
       tree lhs = scalar_evolution_in_region (region, loop,
 					     gimple_cond_lhs (stmt));
@@ -929,7 +930,7 @@ find_scop_parameters (scop_p scop)
   int nbp;
 
   /* Find the parameters used in the loop bounds.  */
-  FOR_EACH_VEC_ELT (loop_p, SESE_LOOP_NEST (region), i, loop)
+  FOR_EACH_VEC_ELT (SESE_LOOP_NEST (region), i, loop)
     {
       tree nb_iters = number_of_latch_executions (loop);
 
@@ -941,7 +942,7 @@ find_scop_parameters (scop_p scop)
     }
 
   /* Find the parameters used in data accesses.  */
-  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
+  FOR_EACH_VEC_ELT (SCOP_BBS (scop), i, pbb)
     find_params_in_bb (region, PBB_BLACK_BOX (pbb));
 
   nbp = sese_nb_params (region);
@@ -952,7 +953,7 @@ find_scop_parameters (scop_p scop)
     tree e;
     isl_space *space = isl_space_set_alloc (scop->ctx, nbp, 0);
 
-    FOR_EACH_VEC_ELT (tree, SESE_PARAMS (region), i, e)
+    FOR_EACH_VEC_ELT (SESE_PARAMS (region), i, e)
       space = isl_space_set_dim_id (space, isl_dim_param, i,
 				    isl_id_for_ssa_name (scop, e));
 
@@ -1057,6 +1058,8 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 	  c = isl_constraint_set_constant (c, v);
 	  inner = isl_set_add_constraint (inner, c);
 	}
+      else
+	isl_pw_aff_free (aff);
     }
   else
     gcc_unreachable ();
@@ -1149,10 +1152,10 @@ add_conditions_to_domain (poly_bb_p pbb)
   gimple stmt;
   gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
 
-  if (VEC_empty (gimple, GBB_CONDITIONS (gbb)))
+  if (GBB_CONDITIONS (gbb).is_empty ())
     return;
 
-  FOR_EACH_VEC_ELT (gimple, GBB_CONDITIONS (gbb), i, stmt)
+  FOR_EACH_VEC_ELT (GBB_CONDITIONS (gbb), i, stmt)
     switch (gimple_code (stmt))
       {
       case GIMPLE_COND:
@@ -1160,7 +1163,7 @@ add_conditions_to_domain (poly_bb_p pbb)
 	    enum tree_code code = gimple_cond_code (stmt);
 
 	    /* The conditions for ELSE-branches are inverted.  */
-	    if (!VEC_index (gimple, GBB_CONDITION_CASES (gbb), i))
+	    if (!GBB_CONDITION_CASES (gbb)[i])
 	      code = invert_tree_comparison (code, false);
 
 	    add_condition_to_pbb (pbb, stmt, code);
@@ -1185,7 +1188,7 @@ add_conditions_to_constraints (scop_p scop)
   int i;
   poly_bb_p pbb;
 
-  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
+  FOR_EACH_VEC_ELT (SCOP_BBS (scop), i, pbb)
     add_conditions_to_domain (pbb);
 }
 
@@ -1193,7 +1196,7 @@ add_conditions_to_constraints (scop_p scop)
 
 struct bsc
 {
-  VEC (gimple, heap) **conditions, **cases;
+  vec<gimple> *conditions, *cases;
   sese region;
 };
 
@@ -1230,8 +1233,8 @@ build_sese_conditions_before (struct dom_walk_data *dw_data,
 			      basic_block bb)
 {
   struct bsc *data = (struct bsc *) dw_data->global_data;
-  VEC (gimple, heap) **conditions = data->conditions;
-  VEC (gimple, heap) **cases = data->cases;
+  vec<gimple> *conditions = data->conditions;
+  vec<gimple> *cases = data->cases;
   gimple_bb_p gbb;
   gimple stmt;
 
@@ -1244,20 +1247,20 @@ build_sese_conditions_before (struct dom_walk_data *dw_data,
     {
       edge e = single_pred_edge (bb);
 
-      VEC_safe_push (gimple, heap, *conditions, stmt);
+      conditions->safe_push (stmt);
 
       if (e->flags & EDGE_TRUE_VALUE)
-	VEC_safe_push (gimple, heap, *cases, stmt);
+	cases->safe_push (stmt);
       else
-	VEC_safe_push (gimple, heap, *cases, NULL);
+	cases->safe_push (NULL);
     }
 
   gbb = gbb_from_bb (bb);
 
   if (gbb)
     {
-      GBB_CONDITIONS (gbb) = VEC_copy (gimple, heap, *conditions);
-      GBB_CONDITION_CASES (gbb) = VEC_copy (gimple, heap, *cases);
+      GBB_CONDITIONS (gbb) = conditions->copy ();
+      GBB_CONDITION_CASES (gbb) = cases->copy ();
     }
 }
 
@@ -1269,16 +1272,16 @@ build_sese_conditions_after (struct dom_walk_data *dw_data,
 			     basic_block bb)
 {
   struct bsc *data = (struct bsc *) dw_data->global_data;
-  VEC (gimple, heap) **conditions = data->conditions;
-  VEC (gimple, heap) **cases = data->cases;
+  vec<gimple> *conditions = data->conditions;
+  vec<gimple> *cases = data->cases;
 
   if (!bb_in_sese_p (bb, data->region))
     return;
 
   if (single_pred_cond_non_loop_exit (bb))
     {
-      VEC_pop (gimple, *conditions);
-      VEC_pop (gimple, *cases);
+      conditions->pop ();
+      cases->pop ();
     }
 }
 
@@ -1288,8 +1291,10 @@ static void
 build_sese_conditions (sese region)
 {
   struct dom_walk_data walk_data;
-  VEC (gimple, heap) *conditions = VEC_alloc (gimple, heap, 3);
-  VEC (gimple, heap) *cases = VEC_alloc (gimple, heap, 3);
+  vec<gimple> conditions;
+  conditions.create (3);
+  vec<gimple> cases;
+  cases.create (3);
   struct bsc data;
 
   data.conditions = &conditions;
@@ -1307,8 +1312,8 @@ build_sese_conditions (sese region)
   walk_dominator_tree (&walk_data, SESE_ENTRY_BB (region));
   fini_walk_dominator_tree (&walk_data);
 
-  VEC_free (gimple, heap, conditions);
-  VEC_free (gimple, heap, cases);
+  conditions.release ();
+  cases.release ();
 }
 
 /* Add constraints on the possible values of parameter P from the type
@@ -1317,7 +1322,7 @@ build_sese_conditions (sese region)
 static void
 add_param_constraints (scop_p scop, graphite_dim_t p)
 {
-  tree parameter = VEC_index (tree, SESE_PARAMS (SCOP_REGION (scop)), p);
+  tree parameter = SESE_PARAMS (SCOP_REGION (scop))[p];
   tree type = TREE_TYPE (parameter);
   tree lb = NULL_TREE;
   tree ub = NULL_TREE;
@@ -1402,12 +1407,12 @@ build_scop_iteration_domain (scop_p scop)
   int nb_loops = number_of_loops ();
   isl_set **doms = XCNEWVEC (isl_set *, nb_loops);
 
-  FOR_EACH_VEC_ELT (loop_p, SESE_LOOP_NEST (region), i, loop)
+  FOR_EACH_VEC_ELT (SESE_LOOP_NEST (region), i, loop)
     if (!loop_in_sese_p (loop_outer (loop), region))
       build_loop_iteration_domains (scop, loop, 0,
 				    isl_set_copy (scop->context), doms);
 
-  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
+  FOR_EACH_VEC_ELT (SCOP_BBS (scop), i, pbb)
     {
       loop = pbb_loop (pbb);
 
@@ -1616,9 +1621,9 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
 
 static inline bool
 write_alias_graph_to_ascii_dimacs (FILE *file, char *comment,
-				   VEC (data_reference_p, heap) *drs)
+				   vec<data_reference_p> drs)
 {
-  int num_vertex = VEC_length (data_reference_p, drs);
+  int num_vertex = drs.length ();
   int edge_num = 0;
   data_reference_p dr1, dr2;
   int i, j;
@@ -1626,8 +1631,8 @@ write_alias_graph_to_ascii_dimacs (FILE *file, char *comment,
   if (num_vertex == 0)
     return true;
 
-  FOR_EACH_VEC_ELT (data_reference_p, drs, i, dr1)
-    for (j = i + 1; VEC_iterate (data_reference_p, drs, j, dr2); j++)
+  FOR_EACH_VEC_ELT (drs, i, dr1)
+    for (j = i + 1; drs.iterate (j, &dr2); j++)
       if (dr_may_alias_p (dr1, dr2, true))
 	edge_num++;
 
@@ -1638,8 +1643,8 @@ write_alias_graph_to_ascii_dimacs (FILE *file, char *comment,
 
   fprintf (file, "p edge %d %d\n", num_vertex, edge_num);
 
-  FOR_EACH_VEC_ELT (data_reference_p, drs, i, dr1)
-    for (j = i + 1; VEC_iterate (data_reference_p, drs, j, dr2); j++)
+  FOR_EACH_VEC_ELT (drs, i, dr1)
+    for (j = i + 1; drs.iterate (j, &dr2); j++)
       if (dr_may_alias_p (dr1, dr2, true))
 	fprintf (file, "e %d %d\n", i + 1, j + 1);
 
@@ -1650,9 +1655,9 @@ write_alias_graph_to_ascii_dimacs (FILE *file, char *comment,
 
 static inline bool
 write_alias_graph_to_ascii_dot (FILE *file, char *comment,
-				VEC (data_reference_p, heap) *drs)
+				vec<data_reference_p> drs)
 {
-  int num_vertex = VEC_length (data_reference_p, drs);
+  int num_vertex = drs.length ();
   data_reference_p dr1, dr2;
   int i, j;
 
@@ -1665,11 +1670,11 @@ write_alias_graph_to_ascii_dot (FILE *file, char *comment,
     fprintf (file, "c %s\n", comment);
 
   /* First print all the vertices.  */
-  FOR_EACH_VEC_ELT (data_reference_p, drs, i, dr1)
+  FOR_EACH_VEC_ELT (drs, i, dr1)
     fprintf (file, "n%d;\n", i);
 
-  FOR_EACH_VEC_ELT (data_reference_p, drs, i, dr1)
-    for (j = i + 1; VEC_iterate (data_reference_p, drs, j, dr2); j++)
+  FOR_EACH_VEC_ELT (drs, i, dr1)
+    for (j = i + 1; drs.iterate (j, &dr2); j++)
       if (dr_may_alias_p (dr1, dr2, true))
 	fprintf (file, "n%d n%d\n", i, j);
 
@@ -1680,9 +1685,9 @@ write_alias_graph_to_ascii_dot (FILE *file, char *comment,
 
 static inline bool
 write_alias_graph_to_ascii_ecc (FILE *file, char *comment,
-				VEC (data_reference_p, heap) *drs)
+				vec<data_reference_p> drs)
 {
-  int num_vertex = VEC_length (data_reference_p, drs);
+  int num_vertex = drs.length ();
   data_reference_p dr1, dr2;
   int i, j;
 
@@ -1694,8 +1699,8 @@ write_alias_graph_to_ascii_ecc (FILE *file, char *comment,
   if (comment)
     fprintf (file, "c %s\n", comment);
 
-  FOR_EACH_VEC_ELT (data_reference_p, drs, i, dr1)
-    for (j = i + 1; VEC_iterate (data_reference_p, drs, j, dr2); j++)
+  FOR_EACH_VEC_ELT (drs, i, dr1)
+    for (j = i + 1; drs.iterate (j, &dr2); j++)
       if (dr_may_alias_p (dr1, dr2, true))
 	fprintf (file, "%d %d\n", i, j);
 
@@ -1716,9 +1721,9 @@ dr_same_base_object_p (const struct data_reference *dr1,
    true (1) if the above test is true, and false (0) otherwise.  */
 
 static int
-build_alias_set_optimal_p (VEC (data_reference_p, heap) *drs)
+build_alias_set_optimal_p (vec<data_reference_p> drs)
 {
-  int num_vertices = VEC_length (data_reference_p, drs);
+  int num_vertices = drs.length ();
   struct graph *g = new_graph (num_vertices);
   data_reference_p dr1, dr2;
   int i, j;
@@ -1730,8 +1735,8 @@ build_alias_set_optimal_p (VEC (data_reference_p, heap) *drs)
   int this_component_is_clique;
   int all_components_are_cliques = 1;
 
-  FOR_EACH_VEC_ELT (data_reference_p, drs, i, dr1)
-    for (j = i+1; VEC_iterate (data_reference_p, drs, j, dr2); j++)
+  FOR_EACH_VEC_ELT (drs, i, dr1)
+    for (j = i+1; drs.iterate (j, &dr2); j++)
       if (dr_may_alias_p (dr1, dr2, true))
 	{
 	  add_edge (g, i, j);
@@ -1747,7 +1752,7 @@ build_alias_set_optimal_p (VEC (data_reference_p, heap) *drs)
 					  NULL, true, NULL);
   for (i = 0; i < g->n_vertices; i++)
     {
-      data_reference_p dr = VEC_index (data_reference_p, drs, i);
+      data_reference_p dr = drs[i];
       base_alias_pair *bap;
 
       gcc_assert (dr->aux);
@@ -1802,16 +1807,16 @@ build_alias_set_optimal_p (VEC (data_reference_p, heap) *drs)
 /* Group each data reference in DRS with its base object set num.  */
 
 static void
-build_base_obj_set_for_drs (VEC (data_reference_p, heap) *drs)
+build_base_obj_set_for_drs (vec<data_reference_p> drs)
 {
-  int num_vertex = VEC_length (data_reference_p, drs);
+  int num_vertex = drs.length ();
   struct graph *g = new_graph (num_vertex);
   data_reference_p dr1, dr2;
   int i, j;
   int *queue;
 
-  FOR_EACH_VEC_ELT (data_reference_p, drs, i, dr1)
-    for (j = i + 1; VEC_iterate (data_reference_p, drs, j, dr2); j++)
+  FOR_EACH_VEC_ELT (drs, i, dr1)
+    for (j = i + 1; drs.iterate (j, &dr2); j++)
       if (dr_same_base_object_p (dr1, dr2))
 	{
 	  add_edge (g, i, j);
@@ -1826,7 +1831,7 @@ build_base_obj_set_for_drs (VEC (data_reference_p, heap) *drs)
 
   for (i = 0; i < g->n_vertices; i++)
     {
-      data_reference_p dr = VEC_index (data_reference_p, drs, i);
+      data_reference_p dr = drs[i];
       base_alias_pair *bap;
 
       gcc_assert (dr->aux);
@@ -1846,16 +1851,16 @@ build_pbb_drs (poly_bb_p pbb)
 {
   int j;
   data_reference_p dr;
-  VEC (data_reference_p, heap) *gbb_drs = GBB_DATA_REFS (PBB_BLACK_BOX (pbb));
+  vec<data_reference_p> gbb_drs = GBB_DATA_REFS (PBB_BLACK_BOX (pbb));
 
-  FOR_EACH_VEC_ELT (data_reference_p, gbb_drs, j, dr)
+  FOR_EACH_VEC_ELT (gbb_drs, j, dr)
     build_poly_dr (dr, pbb);
 }
 
 /* Dump to file the alias graphs for the data references in DRS.  */
 
 static void
-dump_alias_graphs (VEC (data_reference_p, heap) *drs)
+dump_alias_graphs (vec<data_reference_p> drs)
 {
   char comment[100];
   FILE *file_dimacs, *file_ecc, *file_dot;
@@ -1896,25 +1901,25 @@ build_scop_drs (scop_p scop)
   int i, j;
   poly_bb_p pbb;
   data_reference_p dr;
-  VEC (data_reference_p, heap) *drs = VEC_alloc (data_reference_p, heap, 3);
+  vec<data_reference_p> drs;
+  drs.create (3);
 
   /* Remove all the PBBs that do not have data references: these basic
      blocks are not handled in the polyhedral representation.  */
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
-    if (VEC_empty (data_reference_p, GBB_DATA_REFS (PBB_BLACK_BOX (pbb))))
+  for (i = 0; SCOP_BBS (scop).iterate (i, &pbb); i++)
+    if (GBB_DATA_REFS (PBB_BLACK_BOX (pbb)).is_empty ())
       {
 	free_gimple_bb (PBB_BLACK_BOX (pbb));
 	free_poly_bb (pbb);
-	VEC_ordered_remove (poly_bb_p, SCOP_BBS (scop), i);
+	SCOP_BBS (scop).ordered_remove (i);
 	i--;
       }
 
-  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
-    for (j = 0; VEC_iterate (data_reference_p,
-			     GBB_DATA_REFS (PBB_BLACK_BOX (pbb)), j, dr); j++)
-      VEC_safe_push (data_reference_p, heap, drs, dr);
+  FOR_EACH_VEC_ELT (SCOP_BBS (scop), i, pbb)
+    for (j = 0; GBB_DATA_REFS (PBB_BLACK_BOX (pbb)).iterate (j, &dr); j++)
+      drs.safe_push (dr);
 
-  FOR_EACH_VEC_ELT (data_reference_p, drs, i, dr)
+  FOR_EACH_VEC_ELT (drs, i, dr)
     dr->aux = XNEW (base_alias_pair);
 
   if (!build_alias_set_optimal_p (drs))
@@ -1930,9 +1935,9 @@ build_scop_drs (scop_p scop)
   if (0)
     dump_alias_graphs (drs);
 
-  VEC_free (data_reference_p, heap, drs);
+  drs.release ();
 
-  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
+  FOR_EACH_VEC_ELT (SCOP_BBS (scop), i, pbb)
     build_pbb_drs (pbb);
 }
 
@@ -1956,7 +1961,7 @@ gsi_for_phi_node (gimple stmt)
    GBB_DATA_REFS vector of BB.  */
 
 static void
-analyze_drs_in_stmts (scop_p scop, basic_block bb, VEC (gimple, heap) *stmts)
+analyze_drs_in_stmts (scop_p scop, basic_block bb, vec<gimple> stmts)
 {
   loop_p nest;
   gimple_bb_p gbb;
@@ -1970,7 +1975,7 @@ analyze_drs_in_stmts (scop_p scop, basic_block bb, VEC (gimple, heap) *stmts)
   nest = outermost_loop_in_sese_1 (region, bb);
   gbb = gbb_from_bb (bb);
 
-  FOR_EACH_VEC_ELT (gimple, stmts, i, stmt)
+  FOR_EACH_VEC_ELT (stmts, i, stmt)
     {
       loop_p loop;
 
@@ -1995,15 +2000,16 @@ insert_stmts (scop_p scop, gimple stmt, gimple_seq stmts,
 	      gimple_stmt_iterator insert_gsi)
 {
   gimple_stmt_iterator gsi;
-  VEC (gimple, heap) *x = VEC_alloc (gimple, heap, 3);
+  vec<gimple> x;
+  x.create (3);
 
   gimple_seq_add_stmt (&stmts, stmt);
   for (gsi = gsi_start (stmts); !gsi_end_p (gsi); gsi_next (&gsi))
-    VEC_safe_push (gimple, heap, x, gsi_stmt (gsi));
+    x.safe_push (gsi_stmt (gsi));
 
   gsi_insert_seq_before (&insert_gsi, stmts, GSI_SAME_STMT);
   analyze_drs_in_stmts (scop, gsi_bb (insert_gsi), x);
-  VEC_free (gimple, heap, x);
+  x.release ();
 }
 
 /* Insert the assignment "RES := EXPR" just after AFTER_STMT.  */
@@ -2014,12 +2020,13 @@ insert_out_of_ssa_copy (scop_p scop, tree res, tree expr, gimple after_stmt)
   gimple_seq stmts;
   gimple_stmt_iterator gsi;
   tree var = force_gimple_operand (expr, &stmts, true, NULL_TREE);
-  gimple stmt = gimple_build_assign (res, var);
-  VEC (gimple, heap) *x = VEC_alloc (gimple, heap, 3);
+  gimple stmt = gimple_build_assign (unshare_expr (res), var);
+  vec<gimple> x;
+  x.create (3);
 
   gimple_seq_add_stmt (&stmts, stmt);
   for (gsi = gsi_start (stmts); !gsi_end_p (gsi); gsi_next (&gsi))
-    VEC_safe_push (gimple, heap, x, gsi_stmt (gsi));
+    x.safe_push (gsi_stmt (gsi));
 
   if (gimple_code (after_stmt) == GIMPLE_PHI)
     {
@@ -2033,7 +2040,7 @@ insert_out_of_ssa_copy (scop_p scop, tree res, tree expr, gimple after_stmt)
     }
 
   analyze_drs_in_stmts (scop, gimple_bb (after_stmt), x);
-  VEC_free (gimple, heap, x);
+  x.release ();
 }
 
 /* Creates a poly_bb_p for basic_block BB from the existing PBB.  */
@@ -2041,23 +2048,24 @@ insert_out_of_ssa_copy (scop_p scop, tree res, tree expr, gimple after_stmt)
 static void
 new_pbb_from_pbb (scop_p scop, poly_bb_p pbb, basic_block bb)
 {
-  VEC (data_reference_p, heap) *drs = VEC_alloc (data_reference_p, heap, 3);
+  vec<data_reference_p> drs;
+  drs.create (3);
   gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
   gimple_bb_p gbb1 = new_gimple_bb (bb, drs);
   poly_bb_p pbb1 = new_poly_bb (scop, gbb1);
-  int index, n = VEC_length (poly_bb_p, SCOP_BBS (scop));
+  int index, n = SCOP_BBS (scop).length ();
 
   /* The INDEX of PBB in SCOP_BBS.  */
   for (index = 0; index < n; index++)
-    if (VEC_index (poly_bb_p, SCOP_BBS (scop), index) == pbb)
+    if (SCOP_BBS (scop)[index] == pbb)
       break;
 
   pbb1->domain = isl_set_copy (pbb->domain);
 
   GBB_PBB (gbb1) = pbb1;
-  GBB_CONDITIONS (gbb1) = VEC_copy (gimple, heap, GBB_CONDITIONS (gbb));
-  GBB_CONDITION_CASES (gbb1) = VEC_copy (gimple, heap, GBB_CONDITION_CASES (gbb));
-  VEC_safe_insert (poly_bb_p, heap, SCOP_BBS (scop), index + 1, pbb1);
+  GBB_CONDITIONS (gbb1) = GBB_CONDITIONS (gbb).copy ();
+  GBB_CONDITION_CASES (gbb1) = GBB_CONDITION_CASES (gbb).copy ();
+  SCOP_BBS (scop).safe_insert (index + 1, pbb1);
 }
 
 /* Insert on edge E the assignment "RES := EXPR".  */
@@ -2068,13 +2076,14 @@ insert_out_of_ssa_copy_on_edge (scop_p scop, edge e, tree res, tree expr)
   gimple_stmt_iterator gsi;
   gimple_seq stmts = NULL;
   tree var = force_gimple_operand (expr, &stmts, true, NULL_TREE);
-  gimple stmt = gimple_build_assign (res, var);
+  gimple stmt = gimple_build_assign (unshare_expr (res), var);
   basic_block bb;
-  VEC (gimple, heap) *x = VEC_alloc (gimple, heap, 3);
+  vec<gimple> x;
+  x.create (3);
 
   gimple_seq_add_stmt (&stmts, stmt);
   for (gsi = gsi_start (stmts); !gsi_end_p (gsi); gsi_next (&gsi))
-    VEC_safe_push (gimple, heap, x, gsi_stmt (gsi));
+    x.safe_push (gsi_stmt (gsi));
 
   gsi_insert_seq_on_edge (e, stmts);
   gsi_commit_edge_inserts ();
@@ -2087,7 +2096,7 @@ insert_out_of_ssa_copy_on_edge (scop_p scop, edge e, tree res, tree expr)
     new_pbb_from_pbb (scop, pbb_from_bb (e->src), bb);
 
   analyze_drs_in_stmts (scop, bb, x);
-  VEC_free (gimple, heap, x);
+  x.release ();
 }
 
 /* Creates a zero dimension array of the same type as VAR.  */
@@ -2100,8 +2109,6 @@ create_zero_dim_array (tree var, const char *base_name)
   tree array_type = build_array_type (elt_type, index_type);
   tree base = create_tmp_var (array_type, base_name);
 
-  add_referenced_var (base);
-
   return build4 (ARRAY_REF, elt_type, base, integer_zero_node, NULL_TREE,
 		 NULL_TREE);
 }
@@ -2112,7 +2119,7 @@ static bool
 scalar_close_phi_node_p (gimple phi)
 {
   if (gimple_code (phi) != GIMPLE_PHI
-      || !is_gimple_reg (gimple_phi_result (phi)))
+      || virtual_operand_p (gimple_phi_result (phi)))
     return false;
 
   /* Note that loop close phi nodes should have a single argument
@@ -2168,7 +2175,6 @@ rewrite_close_phi_out_of_ssa (scop_p scop, gimple_stmt_iterator *psi)
   sese region = SCOP_REGION (scop);
   gimple phi = gsi_stmt (*psi);
   tree res = gimple_phi_result (phi);
-  tree var = SSA_NAME_VAR (res);
   basic_block bb = gimple_bb (phi);
   gimple_stmt_iterator gsi = gsi_after_labels (bb);
   tree arg = gimple_phi_arg_def (phi, 0);
@@ -2224,9 +2230,9 @@ rewrite_close_phi_out_of_ssa (scop_p scop, gimple_stmt_iterator *psi)
     }
   else
     {
-      tree zero_dim_array = create_zero_dim_array (var, "Close_Phi");
+      tree zero_dim_array = create_zero_dim_array (res, "Close_Phi");
 
-      stmt = gimple_build_assign (res, zero_dim_array);
+      stmt = gimple_build_assign (res, unshare_expr (zero_dim_array));
 
       if (TREE_CODE (arg) == SSA_NAME)
 	insert_out_of_ssa_copy (scop, zero_dim_array, arg,
@@ -2252,10 +2258,8 @@ rewrite_phi_out_of_ssa (scop_p scop, gimple_stmt_iterator *psi)
   gimple phi = gsi_stmt (*psi);
   basic_block bb = gimple_bb (phi);
   tree res = gimple_phi_result (phi);
-  tree var = SSA_NAME_VAR (res);
-  tree zero_dim_array = create_zero_dim_array (var, "phi_out_of_ssa");
+  tree zero_dim_array = create_zero_dim_array (res, "phi_out_of_ssa");
   gimple stmt;
-  gimple_seq stmts;
 
   for (i = 0; i < gimple_phi_num_args (phi); i++)
     {
@@ -2272,13 +2276,10 @@ rewrite_phi_out_of_ssa (scop_p scop, gimple_stmt_iterator *psi)
 	insert_out_of_ssa_copy_on_edge (scop, e, zero_dim_array, arg);
     }
 
-  var = force_gimple_operand (zero_dim_array, &stmts, true, NULL_TREE);
-
-  stmt = gimple_build_assign (res, var);
+  stmt = gimple_build_assign (res, unshare_expr (zero_dim_array));
   remove_phi_node (psi, false);
   SSA_NAME_DEF_STMT (res) = stmt;
-
-  insert_stmts (scop, stmt, stmts, gsi_after_labels (bb));
+  insert_stmts (scop, stmt, NULL, gsi_after_labels (bb));
 }
 
 /* Rewrite the degenerate phi node at position PSI from the degenerate
@@ -2321,7 +2322,7 @@ rewrite_reductions_out_of_ssa (scop_p scop)
 	{
 	  gimple phi = gsi_stmt (psi);
 
-	  if (!is_gimple_reg (gimple_phi_result (phi)))
+	  if (virtual_operand_p (gimple_phi_result (phi)))
 	    {
 	      gsi_next (&psi);
 	      continue;
@@ -2351,13 +2352,15 @@ static void
 rewrite_cross_bb_scalar_dependence (scop_p scop, tree zero_dim_array,
 				    tree def, gimple use_stmt)
 {
-  tree var = SSA_NAME_VAR (def);
-  gimple name_stmt = gimple_build_assign (var, zero_dim_array);
-  tree name = make_ssa_name (var, name_stmt);
+  gimple name_stmt;
+  tree name;
   ssa_op_iter iter;
   use_operand_p use_p;
 
   gcc_assert (gimple_code (use_stmt) != GIMPLE_PHI);
+
+  name = copy_ssa_name (def, NULL);
+  name_stmt = gimple_build_assign (name, zero_dim_array);
 
   gimple_assign_set_lhs (name_stmt, name);
   insert_stmts (scop, name_stmt, NULL, gsi_for_stmt (use_stmt));
@@ -2405,7 +2408,6 @@ handle_scalar_deps_crossing_scop_limits (scop_p scop, tree def, gimple stmt)
       gimple assign = gimple_build_assign (new_name, def);
       gimple_stmt_iterator psi = gsi_after_labels (SESE_EXIT (region)->dest);
 
-      add_referenced_var (var);
       SSA_NAME_DEF_STMT (new_name) = assign;
       update_stmt (assign);
       gsi_insert_before (&psi, assign, GSI_SAME_STMT);
@@ -2483,7 +2485,7 @@ rewrite_cross_bb_scalar_deps (scop_p scop, gimple_stmt_iterator *gsi)
 	if (!zero_dim_array)
 	  {
 	    zero_dim_array = create_zero_dim_array
-	      (SSA_NAME_VAR (def), "Cross_BB_scalar_dependence");
+	      (def, "Cross_BB_scalar_dependence");
 	    insert_out_of_ssa_copy (scop, zero_dim_array, def,
 				    SSA_NAME_DEF_STMT (def));
 	    gsi_next (gsi);
@@ -2533,7 +2535,7 @@ nb_pbbs_in_loops (scop_p scop)
   poly_bb_p pbb;
   int res = 0;
 
-  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
+  FOR_EACH_VEC_ELT (SCOP_BBS (scop), i, pbb)
     if (loop_in_sese_p (gbb_loop (PBB_BLACK_BOX (pbb)), SCOP_REGION (scop)))
       res++;
 
@@ -2601,15 +2603,15 @@ split_reduction_stmt (scop_p scop, gimple stmt)
   /* A part of the data references will end in a different basic block
      after the split: move the DRs from the original GBB to the newly
      created GBB1.  */
-  FOR_EACH_VEC_ELT (data_reference_p, GBB_DATA_REFS (gbb), i, dr)
+  FOR_EACH_VEC_ELT (GBB_DATA_REFS (gbb), i, dr)
     {
       basic_block bb1 = gimple_bb (DR_STMT (dr));
 
       if (bb1 != bb)
 	{
 	  gimple_bb_p gbb1 = gbb_from_bb (bb1);
-	  VEC_safe_push (data_reference_p, heap, GBB_DATA_REFS (gbb1), dr);
-	  VEC_ordered_remove (data_reference_p, GBB_DATA_REFS (gbb), i);
+	  GBB_DATA_REFS (gbb1).safe_push (dr);
+	  GBB_DATA_REFS (gbb).ordered_remove (i);
 	  i--;
 	}
     }
@@ -2691,16 +2693,16 @@ follow_ssa_with_commutative_ops (tree arg, tree lhs)
 
 static gimple
 detect_commutative_reduction_arg (tree lhs, gimple stmt, tree arg,
-				  VEC (gimple, heap) **in,
-				  VEC (gimple, heap) **out)
+				  vec<gimple> *in,
+				  vec<gimple> *out)
 {
   gimple phi = follow_ssa_with_commutative_ops (arg, lhs);
 
   if (!phi)
     return NULL;
 
-  VEC_safe_push (gimple, heap, *in, stmt);
-  VEC_safe_push (gimple, heap, *out, stmt);
+  in->safe_push (stmt);
+  out->safe_push (stmt);
   return phi;
 }
 
@@ -2708,8 +2710,8 @@ detect_commutative_reduction_arg (tree lhs, gimple stmt, tree arg,
    STMT.  Return the phi node of the reduction cycle, or NULL.  */
 
 static gimple
-detect_commutative_reduction_assign (gimple stmt, VEC (gimple, heap) **in,
-				     VEC (gimple, heap) **out)
+detect_commutative_reduction_assign (gimple stmt, vec<gimple> *in,
+				     vec<gimple> *out)
 {
   tree lhs = gimple_assign_lhs (stmt);
 
@@ -2821,8 +2823,8 @@ used_outside_reduction (tree def, gimple loop_phi)
    node of the reduction cycle, or NULL.  */
 
 static gimple
-detect_commutative_reduction (scop_p scop, gimple stmt, VEC (gimple, heap) **in,
-			      VEC (gimple, heap) **out)
+detect_commutative_reduction (scop_p scop, gimple stmt, vec<gimple> *in,
+			      vec<gimple> *out)
 {
   if (scalar_close_phi_node_p (stmt))
     {
@@ -2850,8 +2852,8 @@ detect_commutative_reduction (scop_p scop, gimple stmt, VEC (gimple, heap) **in,
 		  || !has_single_use (gimple_phi_result (phi))))
 	return NULL;
 
-      VEC_safe_push (gimple, heap, *in, loop_phi);
-      VEC_safe_push (gimple, heap, *out, close_phi);
+      in->safe_push (loop_phi);
+      out->safe_push (close_phi);
       return phi;
     }
 
@@ -2890,7 +2892,8 @@ remove_phi (gimple phi)
   tree def;
   use_operand_p use_p;
   gimple_stmt_iterator gsi;
-  VEC (gimple, heap) *update = VEC_alloc (gimple, heap, 3);
+  vec<gimple> update;
+  update.create (3);
   unsigned int i;
   gimple stmt;
 
@@ -2902,14 +2905,14 @@ remove_phi (gimple phi)
       if (is_gimple_debug (stmt))
 	{
 	  gimple_debug_bind_reset_value (stmt);
-	  VEC_safe_push (gimple, heap, update, stmt);
+	  update.safe_push (stmt);
 	}
     }
 
-  FOR_EACH_VEC_ELT (gimple, update, i, stmt)
+  FOR_EACH_VEC_ELT (update, i, stmt)
     update_stmt (stmt);
 
-  VEC_free (gimple, heap, update);
+  update.release ();
 
   gsi = gsi_for_phi_node (phi);
   remove_phi_node (&gsi, false);
@@ -3001,16 +3004,16 @@ close_phi_written_to_memory (gimple close_phi)
 
 static void
 translate_scalar_reduction_to_array (scop_p scop,
-				     VEC (gimple, heap) *in,
-				     VEC (gimple, heap) *out)
+				     vec<gimple> in,
+				     vec<gimple> out)
 {
   gimple loop_phi;
-  unsigned int i = VEC_length (gimple, out) - 1;
-  tree red = close_phi_written_to_memory (VEC_index (gimple, out, i));
+  unsigned int i = out.length () - 1;
+  tree red = close_phi_written_to_memory (out[i]);
 
-  FOR_EACH_VEC_ELT (gimple, in, i, loop_phi)
+  FOR_EACH_VEC_ELT (in, i, loop_phi)
     {
-      gimple close_phi = VEC_index (gimple, out, i);
+      gimple close_phi = out[i];
 
       if (i == 0)
 	{
@@ -3024,12 +3027,11 @@ translate_scalar_reduction_to_array (scop_p scop,
 	    red = create_zero_dim_array
 	      (gimple_assign_lhs (stmt), "Commutative_Associative_Reduction");
 
-	  translate_scalar_reduction_to_array_for_stmt
-	    (scop, red, stmt, VEC_index (gimple, in, 1));
+	  translate_scalar_reduction_to_array_for_stmt (scop, red, stmt, in[1]);
 	  continue;
 	}
 
-      if (i == VEC_length (gimple, in) - 1)
+      if (i == in.length () - 1)
 	{
 	  insert_out_of_ssa_copy (scop, gimple_phi_result (close_phi),
 				  unshare_expr (red), close_phi);
@@ -3051,16 +3053,18 @@ rewrite_commutative_reductions_out_of_ssa_close_phi (scop_p scop,
 						     gimple close_phi)
 {
   bool res;
-  VEC (gimple, heap) *in = VEC_alloc (gimple, heap, 10);
-  VEC (gimple, heap) *out = VEC_alloc (gimple, heap, 10);
+  vec<gimple> in;
+  in.create (10);
+  vec<gimple> out;
+  out.create (10);
 
   detect_commutative_reduction (scop, close_phi, &in, &out);
-  res = VEC_length (gimple, in) > 1;
+  res = in.length () > 1;
   if (res)
     translate_scalar_reduction_to_array (scop, in, out);
 
-  VEC_free (gimple, heap, in);
-  VEC_free (gimple, heap, out);
+  in.release ();
+  out.release ();
   return res;
 }
 
@@ -3081,7 +3085,7 @@ rewrite_commutative_reductions_out_of_ssa_loop (scop_p scop,
 
   for (gsi = gsi_start_phis (exit->dest); !gsi_end_p (gsi); gsi_next (&gsi))
     if ((res = gimple_phi_result (gsi_stmt (gsi)))
-	&& is_gimple_reg (res)
+	&& !virtual_operand_p (res)
 	&& !scev_analyzable_p (res, SCOP_REGION (scop)))
       changed |= rewrite_commutative_reductions_out_of_ssa_close_phi
 	(scop, gsi_stmt (gsi));
@@ -3124,6 +3128,7 @@ scop_ivs_can_be_represented (scop_p scop)
   loop_iterator li;
   loop_p loop;
   gimple_stmt_iterator psi;
+  bool result = true;
 
   FOR_EACH_LOOP (li, loop, 0)
     {
@@ -3139,11 +3144,16 @@ scop_ivs_can_be_represented (scop_p scop)
 
 	  if (TYPE_UNSIGNED (type)
 	      && TYPE_PRECISION (type) >= TYPE_PRECISION (long_long_integer_type_node))
-	    return false;
+	    {
+	      result = false;
+	      break;
+	    }
 	}
+      if (!result)
+	FOR_EACH_LOOP_BREAK (li);
     }
 
-  return true;
+  return result;
 }
 
 /* Builds the polyhedral representation for a SESE region.  */

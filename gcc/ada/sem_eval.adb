@@ -37,6 +37,7 @@ with Namet;    use Namet;
 with Nmake;    use Nmake;
 with Nlists;   use Nlists;
 with Opt;      use Opt;
+with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
@@ -198,7 +199,7 @@ package body Sem_Eval is
    --  Tests to see if expression N whose single operand is Op1 is foldable,
    --  i.e. the operand value is known at compile time. If the operation is
    --  foldable, then Fold is True on return, and Stat indicates whether
-   --  the result is static (i.e. both operands were static). Note that it
+   --  the result is static (i.e. the operand was static). Note that it
    --  is quite possible for Fold to be True, and Stat to be False, since
    --  there are cases in which we know the value of an operand even though
    --  it is not technically static (e.g. the static lower bound of a range
@@ -232,7 +233,7 @@ package body Sem_Eval is
       Stat : out Boolean;
       Fold : out Boolean);
    --  Same processing, except applies to an expression N with two operands
-   --  Op1 and Op2.
+   --  Op1 and Op2. The result is static only if both operands are static.
 
    function Test_In_Range
      (N            : Node_Id;
@@ -240,11 +241,11 @@ package body Sem_Eval is
       Assume_Valid : Boolean;
       Fixed_Int    : Boolean;
       Int_Real     : Boolean) return Range_Membership;
-   --  Common processing for Is_In_Range and Is_Out_Of_Range:
-   --  Returns In_Range or Out_Of_Range if it can be guaranteed at compile time
-   --  that expression N is known to be in or out of range of the subtype Typ.
-   --  If not compile time known, Unknown is returned.
-   --  See documentation of Is_In_Range for complete description of parameters.
+   --  Common processing for Is_In_Range and Is_Out_Of_Range: Returns In_Range
+   --  or Out_Of_Range if it can be guaranteed at compile time that expression
+   --  N is known to be in or out of range of the subtype Typ. If not compile
+   --  time known, Unknown is returned. See documentation of Is_In_Range for
+   --  complete description of parameters.
 
    procedure To_Bits (U : Uint; B : out Bits);
    --  Converts a Uint value to a bit string of length B'Length
@@ -292,7 +293,7 @@ package body Sem_Eval is
            and then Is_Out_Of_Range (N, Base_Type (T), Assume_Valid => True)
          then
             Error_Msg_N
-              ("?float value out of range, infinity will be generated", N);
+              ("??float value out of range, infinity will be generated", N);
          end if;
 
          return;
@@ -368,7 +369,7 @@ package body Sem_Eval is
            Intval (N) > Expr_Value (Type_High_Bound (Universal_Integer)))
       then
          Apply_Compile_Time_Constraint_Error
-           (N, "non-static universal integer value out of range?",
+           (N, "non-static universal integer value out of range??",
             CE_Range_Check_Failed);
 
       --  Check out of range of base type
@@ -389,7 +390,7 @@ package body Sem_Eval is
 
          elsif Is_Out_Of_Range (N, T, Assume_Valid => True) then
             Apply_Compile_Time_Constraint_Error
-              (N, "value not in range of}?", CE_Range_Check_Failed);
+              (N, "value not in range of}??", CE_Range_Check_Failed);
 
          elsif Checks_On then
             Enable_Range_Check (N);
@@ -406,14 +407,12 @@ package body Sem_Eval is
 
    procedure Check_String_Literal_Length (N : Node_Id; Ttype : Entity_Id) is
    begin
-      if not Raises_Constraint_Error (N)
-        and then Is_Constrained (Ttype)
-      then
+      if not Raises_Constraint_Error (N) and then Is_Constrained (Ttype) then
          if
            UI_From_Int (String_Length (Strval (N))) /= String_Type_Len (Ttype)
          then
             Apply_Compile_Time_Constraint_Error
-              (N, "string length wrong for}?",
+              (N, "string length wrong for}??",
                CE_Length_Check_Failed,
                Ent => Ttype,
                Typ => Ttype);
@@ -743,6 +742,21 @@ package body Sem_Eval is
    begin
       Diff.all := No_Uint;
 
+      --  In preanalysis mode, always return Unknown unless the expression
+      --  is static. It is too early to be thinking we know the result of a
+      --  comparison, save that judgment for the full analysis. This is
+      --  particularly important in the case of pre and postconditions, which
+      --  otherwise can be prematurely collapsed into having True or False
+      --  conditions when this is inappropriate.
+
+      if not (Full_Analysis
+               or else (Is_Static_Expression (L)
+                          and then
+                        Is_Static_Expression (R)))
+      then
+         return Unknown;
+      end if;
+
       --  If either operand could raise constraint error, then we cannot
       --  know the result at compile time (since CE may be raised!)
 
@@ -932,28 +946,80 @@ package body Sem_Eval is
             end if;
          end if;
 
-         --  Try range analysis on variables and see if ranges are disjoint
+         --  First attempt is to decompose the expressions to extract a
+         --  constant offset resulting from the use of any of the forms:
+
+         --     expr + literal
+         --     expr - literal
+         --     typ'Succ (expr)
+         --     typ'Pred (expr)
+
+         --  Then we see if the two expressions are the same value, and if so
+         --  the result is obtained by comparing the offsets.
+
+         --  Note: the reason we do this test first is that it returns only
+         --  decisive results (with diff set), where other tests, like the
+         --  range test, may not be as so decisive. Consider for example
+         --  J .. J + 1. This code can conclude LT with a difference of 1,
+         --  even if the range of J is not known.
+
+         declare
+            Lnode : Node_Id;
+            Loffs : Uint;
+            Rnode : Node_Id;
+            Roffs : Uint;
+
+         begin
+            Compare_Decompose (L, Lnode, Loffs);
+            Compare_Decompose (R, Rnode, Roffs);
+
+            if Is_Same_Value (Lnode, Rnode) then
+               if Loffs = Roffs then
+                  return EQ;
+
+               elsif Loffs < Roffs then
+                  Diff.all := Roffs - Loffs;
+                  return LT;
+
+               else
+                  Diff.all := Loffs - Roffs;
+                  return GT;
+               end if;
+            end if;
+         end;
+
+         --  Next, try range analysis and see if operand ranges are disjoint
 
          declare
             LOK, ROK : Boolean;
             LLo, LHi : Uint;
             RLo, RHi : Uint;
 
+            Single : Boolean;
+            --  True if each range is a single point
+
          begin
             Determine_Range (L, LOK, LLo, LHi, Assume_Valid);
             Determine_Range (R, ROK, RLo, RHi, Assume_Valid);
 
             if LOK and ROK then
+               Single := (LLo = LHi) and then (RLo = RHi);
+
                if LHi < RLo then
+                  if Single and Assume_Valid then
+                     Diff.all := RLo - LLo;
+                  end if;
+
                   return LT;
 
                elsif RHi < LLo then
+                  if Single and Assume_Valid then
+                     Diff.all := LLo - RLo;
+                  end if;
+
                   return GT;
 
-               elsif LLo = LHi
-                 and then RLo = RHi
-                 and then LLo = RLo
-               then
+               elsif Single and then LLo = RLo then
 
                   --  If the range includes a single literal and we can assume
                   --  validity then the result is known even if an operand is
@@ -1053,42 +1119,6 @@ package body Sem_Eval is
                end case;
             end if;
          end if;
-
-         --  Next attempt is to decompose the expressions to extract
-         --  a constant offset resulting from the use of any of the forms:
-
-         --     expr + literal
-         --     expr - literal
-         --     typ'Succ (expr)
-         --     typ'Pred (expr)
-
-         --  Then we see if the two expressions are the same value, and if so
-         --  the result is obtained by comparing the offsets.
-
-         declare
-            Lnode : Node_Id;
-            Loffs : Uint;
-            Rnode : Node_Id;
-            Roffs : Uint;
-
-         begin
-            Compare_Decompose (L, Lnode, Loffs);
-            Compare_Decompose (R, Rnode, Roffs);
-
-            if Is_Same_Value (Lnode, Rnode) then
-               if Loffs = Roffs then
-                  return EQ;
-
-               elsif Loffs < Roffs then
-                  Diff.all := Roffs - Loffs;
-                  return LT;
-
-               else
-                  Diff.all := Loffs - Roffs;
-                  return GT;
-               end if;
-            end if;
-         end;
 
          --  Next attempt is to see if we have an entity compared with a
          --  compile time known value, where there is a current value
@@ -1267,10 +1297,13 @@ package body Sem_Eval is
 
    begin
       --  Never known at compile time if bad type or raises constraint error
-      --  or empty (latter case occurs only as a result of a previous error)
+      --  or empty (latter case occurs only as a result of a previous error).
 
-      if No (Op)
-        or else Op = Error
+      if No (Op) then
+         Check_Error_Detected;
+         return False;
+
+      elsif Op = Error
         or else Etype (Op) = Any_Type
         or else Raises_Constraint_Error (Op)
       then
@@ -1288,7 +1321,19 @@ package body Sem_Eval is
         and then K /= N_Null
         and then not Is_Static_Expression (Op)
       then
-         return False;
+         --  We make an exception for expressions that evaluate to True/False,
+         --  to suppress spurious checks in ZFP mode. So far we have not seen
+         --  any negative consequences of this exception.
+
+         if Is_Entity_Name (Op)
+           and then Ekind (Entity (Op)) = E_Enumeration_Literal
+           and then Etype (Entity (Op)) = Standard_Boolean
+         then
+            null;
+
+         else
+            return False;
+         end if;
       end if;
 
       --  If we have an entity name, then see if it is the name of a constant
@@ -1608,7 +1653,7 @@ package body Sem_Eval is
                begin
                   if Result < Lo or else Result > Hi then
                      Apply_Compile_Time_Constraint_Error
-                       (N, "value not in range of }?",
+                       (N, "value not in range of }??",
                         CE_Overflow_Check_Failed,
                         Ent => BT);
                      return;
@@ -1732,21 +1777,63 @@ package body Sem_Eval is
    -- Eval_Case_Expression --
    --------------------------
 
-   --  Right now we do not attempt folding of any case expressions, and the
-   --  language does not require it, so the only required processing is to
-   --  do the check for all expressions appearing in the case expression.
+   --  A conditional expression is static if all its conditions and dependent
+   --  expressions are static.
 
    procedure Eval_Case_Expression (N : Node_Id) is
-      Alt : Node_Id;
+      Alt       : Node_Id;
+      Choice    : Node_Id;
+      Is_Static : Boolean;
+      Result    : Node_Id;
+      Val       : Uint;
 
    begin
-      Check_Non_Static_Context (Expression (N));
+      Result := Empty;
+      Is_Static := True;
+
+      if Is_Static_Expression (Expression (N)) then
+         Val := Expr_Value (Expression (N));
+
+      else
+         Check_Non_Static_Context (Expression (N));
+         Is_Static := False;
+      end if;
 
       Alt := First (Alternatives (N));
-      while Present (Alt) loop
-         Check_Non_Static_Context (Expression (Alt));
+
+      Search : while Present (Alt) loop
+         if not Is_Static
+           or else not Is_Static_Expression (Expression (Alt))
+         then
+            Check_Non_Static_Context (Expression (Alt));
+            Is_Static := False;
+
+         else
+            Choice := First (Discrete_Choices (Alt));
+            while Present (Choice) loop
+               if Nkind (Choice) = N_Others_Choice then
+                  Result := Expression (Alt);
+                  exit Search;
+
+               elsif Expr_Value (Choice) = Val then
+                  Result := Expression (Alt);
+                  exit Search;
+
+               else
+                  Next (Choice);
+               end if;
+            end loop;
+         end if;
+
          Next (Alt);
-      end loop;
+      end loop Search;
+
+      if Is_Static then
+         Rewrite (N, Relocate_Node (Result));
+
+      else
+         Set_Is_Static_Expression (N, False);
+      end if;
    end Eval_Case_Expression;
 
    ------------------------
@@ -1862,15 +1949,74 @@ package body Sem_Eval is
       end;
    end Eval_Concatenation;
 
-   ---------------------------------
-   -- Eval_Conditional_Expression --
-   ---------------------------------
+   ----------------------
+   -- Eval_Entity_Name --
+   ----------------------
 
-   --  We can fold to a static expression if the condition and both constituent
+   --  This procedure is used for identifiers and expanded names other than
+   --  named numbers (see Eval_Named_Integer, Eval_Named_Real. These are
+   --  static if they denote a static constant (RM 4.9(6)) or if the name
+   --  denotes an enumeration literal (RM 4.9(22)).
+
+   procedure Eval_Entity_Name (N : Node_Id) is
+      Def_Id : constant Entity_Id := Entity (N);
+      Val    : Node_Id;
+
+   begin
+      --  Enumeration literals are always considered to be constants
+      --  and cannot raise constraint error (RM 4.9(22)).
+
+      if Ekind (Def_Id) = E_Enumeration_Literal then
+         Set_Is_Static_Expression (N);
+         return;
+
+      --  A name is static if it denotes a static constant (RM 4.9(5)), and
+      --  we also copy Raise_Constraint_Error. Notice that even if non-static,
+      --  it does not violate 10.2.1(8) here, since this is not a variable.
+
+      elsif Ekind (Def_Id) = E_Constant then
+
+         --  Deferred constants must always be treated as nonstatic
+         --  outside the scope of their full view.
+
+         if Present (Full_View (Def_Id))
+           and then not In_Open_Scopes (Scope (Def_Id))
+         then
+            Val := Empty;
+         else
+            Val := Constant_Value (Def_Id);
+         end if;
+
+         if Present (Val) then
+            Set_Is_Static_Expression
+              (N, Is_Static_Expression (Val)
+                    and then Is_Static_Subtype (Etype (Def_Id)));
+            Set_Raises_Constraint_Error (N, Raises_Constraint_Error (Val));
+
+            if not Is_Static_Expression (N)
+              and then not Is_Generic_Type (Etype (N))
+            then
+               Validate_Static_Object_Name (N);
+            end if;
+
+            return;
+         end if;
+      end if;
+
+      --  Fall through if the name is not static
+
+      Validate_Static_Object_Name (N);
+   end Eval_Entity_Name;
+
+   ------------------------
+   -- Eval_If_Expression --
+   ------------------------
+
+   --  We can fold to a static expression if the condition and both dependent
    --  expressions are static. Otherwise, the only required processing is to do
    --  the check for non-static context for the then and else expressions.
 
-   procedure Eval_Conditional_Expression (N : Node_Id) is
+   procedure Eval_If_Expression (N : Node_Id) is
       Condition  : constant Node_Id := First (Expressions (N));
       Then_Expr  : constant Node_Id := Next (Condition);
       Else_Expr  : constant Node_Id := Next (Then_Expr);
@@ -1939,66 +2085,7 @@ package body Sem_Eval is
       end if;
 
       Set_Is_Static_Expression (N, Rstat);
-   end Eval_Conditional_Expression;
-
-   ----------------------
-   -- Eval_Entity_Name --
-   ----------------------
-
-   --  This procedure is used for identifiers and expanded names other than
-   --  named numbers (see Eval_Named_Integer, Eval_Named_Real. These are
-   --  static if they denote a static constant (RM 4.9(6)) or if the name
-   --  denotes an enumeration literal (RM 4.9(22)).
-
-   procedure Eval_Entity_Name (N : Node_Id) is
-      Def_Id : constant Entity_Id := Entity (N);
-      Val    : Node_Id;
-
-   begin
-      --  Enumeration literals are always considered to be constants
-      --  and cannot raise constraint error (RM 4.9(22)).
-
-      if Ekind (Def_Id) = E_Enumeration_Literal then
-         Set_Is_Static_Expression (N);
-         return;
-
-      --  A name is static if it denotes a static constant (RM 4.9(5)), and
-      --  we also copy Raise_Constraint_Error. Notice that even if non-static,
-      --  it does not violate 10.2.1(8) here, since this is not a variable.
-
-      elsif Ekind (Def_Id) = E_Constant then
-
-         --  Deferred constants must always be treated as nonstatic
-         --  outside the scope of their full view.
-
-         if Present (Full_View (Def_Id))
-           and then not In_Open_Scopes (Scope (Def_Id))
-         then
-            Val := Empty;
-         else
-            Val := Constant_Value (Def_Id);
-         end if;
-
-         if Present (Val) then
-            Set_Is_Static_Expression
-              (N, Is_Static_Expression (Val)
-                    and then Is_Static_Subtype (Etype (Def_Id)));
-            Set_Raises_Constraint_Error (N, Raises_Constraint_Error (Val));
-
-            if not Is_Static_Expression (N)
-              and then not Is_Generic_Type (Etype (N))
-            then
-               Validate_Static_Object_Name (N);
-            end if;
-
-            return;
-         end if;
-      end if;
-
-      --  Fall through if the name is not static
-
-      Validate_Static_Object_Name (N);
-   end Eval_Entity_Name;
+   end Eval_If_Expression;
 
    ----------------------------
    -- Eval_Indexed_Component --
@@ -3169,7 +3256,7 @@ package body Sem_Eval is
       Left_Int := Expr_Value (Left);
 
       if (Kind = N_And_Then and then Is_False (Left_Int))
-            or else
+           or else
          (Kind = N_Or_Else  and then Is_True  (Left_Int))
       then
          Fold_Uint (N, Left_Int, Rstat);
@@ -3227,10 +3314,10 @@ package body Sem_Eval is
                     = Entity (Drange)
                then
                   if Warn_On_Redundant_Constructs then
-                     Error_Msg_N ("redundant slice denotes whole array?", N);
+                     Error_Msg_N ("redundant slice denotes whole array?r?", N);
                   end if;
 
-                  --  The following might be a useful optimization????
+                  --  The following might be a useful optimization???
 
                   --  Rewrite (N, New_Occurrence_Of (E, Sloc (N)));
                end if;
@@ -3238,6 +3325,38 @@ package body Sem_Eval is
          end;
       end if;
    end Eval_Slice;
+
+   ---------------------------------
+   -- Eval_Static_Predicate_Check --
+   ---------------------------------
+
+   function Eval_Static_Predicate_Check
+     (N   : Node_Id;
+      Typ : Entity_Id) return Boolean
+   is
+      Loc  : constant Source_Ptr := Sloc (N);
+      Pred : constant List_Id := Static_Predicate (Typ);
+      Test : Node_Id;
+
+   begin
+      if No (Pred) then
+         return True;
+      end if;
+
+      --  The static predicate is a list of alternatives in the proper format
+      --  for an Ada 2012 membership test. If the argument is a literal, the
+      --  membership test can be evaluated statically. The caller transforms
+      --  a result of False into a static contraint error.
+
+      Test := Make_In (Loc,
+         Left_Opnd    => New_Copy_Tree (N),
+         Right_Opnd   => Empty,
+         Alternatives => Pred);
+      Analyze_And_Resolve (Test, Standard_Boolean);
+
+      return Nkind (Test) = N_Identifier
+        and then Entity (Test) = Standard_True;
+   end Eval_Static_Predicate_Check;
 
    -------------------------
    -- Eval_String_Literal --
@@ -3761,7 +3880,6 @@ package body Sem_Eval is
    function Expr_Value_R (N : Node_Id) return Ureal is
       Kind : constant Node_Kind := Nkind (N);
       Ent  : Entity_Id;
-      Expr : Node_Id;
 
    begin
       if Kind = N_Real_Literal then
@@ -3774,25 +3892,6 @@ package body Sem_Eval is
 
       elsif Kind = N_Integer_Literal then
          return UR_From_Uint (Expr_Value (N));
-
-      --  Strange case of VAX literals, which are at this stage transformed
-      --  into Vax_Type!x_To_y(IEEE_Literal). See Expand_N_Real_Literal in
-      --  Exp_Vfpt for further details.
-
-      elsif Vax_Float (Etype (N))
-        and then Nkind (N) = N_Unchecked_Type_Conversion
-      then
-         Expr := Expression (N);
-
-         if Nkind (Expr) = N_Function_Call
-           and then Present (Parameter_Associations (Expr))
-         then
-            Expr := First (Parameter_Associations (Expr));
-
-            if Nkind (Expr) = N_Real_Literal then
-               return Realval (Expr);
-            end if;
-         end if;
 
       --  Peculiar VMS case, if we have xxx'Null_Parameter, return 0.0
 
@@ -3987,12 +4086,18 @@ package body Sem_Eval is
 
       --  We now have the literal with the right value, both the actual type
       --  and the expected type of this literal are taken from the expression
-      --  that was evaluated.
+      --  that was evaluated. So now we do the Analyze and Resolve.
+
+      --  Note that we have to reset Is_Static_Expression both after the
+      --  analyze step (because Resolve will evaluate the literal, which
+      --  will cause semantic errors if it is marked as static), and after
+      --  the Resolve step (since Resolve in some cases sets this flag).
 
       Analyze (N);
       Set_Is_Static_Expression (N, Static);
       Set_Etype (N, Typ);
       Resolve (N);
+      Set_Is_Static_Expression (N, Static);
    end Fold_Str;
 
    ---------------
@@ -4041,12 +4146,18 @@ package body Sem_Eval is
 
       --  We now have the literal with the right value, both the actual type
       --  and the expected type of this literal are taken from the expression
-      --  that was evaluated.
+      --  that was evaluated. So now we do the Analyze and Resolve.
+
+      --  Note that we have to reset Is_Static_Expression both after the
+      --  analyze step (because Resolve will evaluate the literal, which
+      --  will cause semantic errors if it is marked as static), and after
+      --  the Resolve step (since Resolve in some cases sets this flag).
 
       Analyze (N);
       Set_Is_Static_Expression (N, Static);
       Set_Etype (N, Typ);
       Resolve (N);
+      Set_Is_Static_Expression (N, Static);
    end Fold_Uint;
 
    ----------------
@@ -4076,12 +4187,20 @@ package body Sem_Eval is
 
       Set_Original_Entity (N, Ent);
 
-      --  Both the actual and expected type comes from the original expression
+      --  We now have the literal with the right value, both the actual type
+      --  and the expected type of this literal are taken from the expression
+      --  that was evaluated. So now we do the Analyze and Resolve.
+
+      --  Note that we have to reset Is_Static_Expression both after the
+      --  analyze step (because Resolve will evaluate the literal, which
+      --  will cause semantic errors if it is marked as static), and after
+      --  the Resolve step (since Resolve in some cases sets this flag).
 
       Analyze (N);
       Set_Is_Static_Expression (N, Static);
       Set_Etype (N, Typ);
       Resolve (N);
+      Set_Is_Static_Expression (N, Static);
    end Fold_Ureal;
 
    ---------------
@@ -4535,7 +4654,7 @@ package body Sem_Eval is
 
       else
          Apply_Compile_Time_Constraint_Error
-           (N, "value not in range of}?", CE_Range_Check_Failed);
+           (N, "value not in range of}??", CE_Range_Check_Failed);
       end if;
    end Out_Of_Range;
 
@@ -5361,10 +5480,12 @@ package body Sem_Eval is
             return;
          end if;
 
-         --  Type must be scalar or string type
+         --  Type must be scalar or string type (but allow Bignum, since this
+         --  is really a scalar type from our point of view in this diagnosis).
 
          if not Is_Scalar_Type (Typ)
            and then not Is_String_Type (Typ)
+           and then not Is_RTE (Typ, RE_Bignum)
          then
             Error_Msg_N
               ("static expression must have scalar or string type " &
@@ -5481,7 +5602,14 @@ package body Sem_Eval is
 
          when N_Function_Call =>
             Why_Not_Static_List (Parameter_Associations (N));
-            Error_Msg_N ("non-static function call (RM 4.9(6,18))!", N);
+
+            --  Complain about non-static function call unless we have Bignum
+            --  which means that the underlying expression is really some
+            --  scalar arithmetic operation.
+
+            if not Is_RTE (Typ, RE_Bignum) then
+               Error_Msg_N ("non-static function call (RM 4.9(6,18))!", N);
+            end if;
 
          when N_Parameter_Association =>
             Why_Not_Static (Explicit_Actual_Parameter (N));

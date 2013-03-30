@@ -1,6 +1,4 @@
-@c Copyright (C) 1988,1989,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,
-@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
-@c Free Software Foundation, Inc.
+@c Copyright (C) 1988-2013 Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -1091,6 +1089,8 @@ make it all fit in fewer cache lines.
 If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
+@hook TARGET_VECTOR_ALIGNMENT
+
 @defmac STACK_SLOT_ALIGNMENT (@var{type}, @var{mode}, @var{basic-align})
 If defined, a C expression to compute the alignment for stack slot.
 @var{type} is the data type, @var{mode} is the widest mode available,
@@ -1238,9 +1238,9 @@ these accesses should use the bitfield container type.
 The default is @code{!TARGET_STRICT_ALIGN}.
 @end deftypefn
 
-@defmac MEMBER_TYPE_FORCES_BLK (@var{field}, @var{mode})
-Return 1 if a structure or array containing @var{field} should be accessed using
-@code{BLKMODE}.
+@hook TARGET_MEMBER_TYPE_FORCES_BLK
+Return true if a structure, union or array containing @var{field} should
+be accessed using @code{BLKMODE}.
 
 If @var{field} is the only field in the structure, @var{mode} is its
 mode, otherwise @var{mode} is VOIDmode.  @var{mode} is provided in the
@@ -1248,7 +1248,7 @@ case where structures of one field would require the structure's mode to
 retain the field's mode.
 
 Normally, this is not needed.
-@end defmac
+@end deftypefn
 
 @defmac ROUND_TYPE_ALIGN (@var{type}, @var{computed}, @var{specified})
 Define this macro as an expression for the alignment of a type (given
@@ -2808,15 +2808,13 @@ registers of @var{rclass} are needed for spill registers.
 
 The default version of this target hook returns @code{true} if @var{rclass}
 has exactly one register and @code{false} otherwise.  On most machines, this
-default should be used.  Only use this target hook to some other expression
-if pseudos allocated by @file{local-alloc.c} end up in memory because their
-hard registers were needed for spill registers.  If this target hook returns
-@code{false} for those classes, those pseudos will only be allocated by
-@file{global.c}, which knows how to reallocate the pseudo to another
-register.  If there would not be another register available for reallocation,
-you should not change the implementation of this target hook since
-the only effect of such implementation would be to slow down register
-allocation.
+default should be used.  For generally register-starved machines, such as
+i386, or machines with right register constraints, such as SH, this hook
+can be used to avoid excessive spilling.
+
+This hook is also used by some of the global intra-procedural code
+transformations to throtle code motion, to avoid increasing register
+pressure.
 @end deftypefn
 
 @hook TARGET_CLASS_MAX_NREGS
@@ -2866,6 +2864,14 @@ as below:
    ? reg_classes_intersect_p (FLOAT_REGS, (CLASS)) : 0)
 @end smallexample
 @end defmac
+
+@hook TARGET_LRA_P
+
+@hook TARGET_REGISTER_PRIORITY
+
+@hook TARGET_DIFFERENT_ADDR_DISPLACEMENT_P
+
+@hook TARGET_SPILL_CLASS
 
 @node Old Constraints
 @section Obsolete Macros for Defining Constraints
@@ -3861,11 +3867,12 @@ alignment.  Then the definition should be
 If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
-@findex current_function_outgoing_args_size
+@findex outgoing_args_size
+@findex crtl->outgoing_args_size
 @defmac ACCUMULATE_OUTGOING_ARGS
 A C expression.  If nonzero, the maximum amount of space required for outgoing arguments
-will be computed and placed into the variable
-@code{current_function_outgoing_args_size}.  No space will be pushed
+will be computed and placed into
+@code{crtl->outgoing_args_size}.  No space will be pushed
 onto the stack for each call; instead, the function prologue should
 increase the stack frame size by this amount.
 
@@ -3899,7 +3906,7 @@ if the function called is a library function.
 
 If @code{ACCUMULATE_OUTGOING_ARGS} is defined, this macro controls
 whether the space for these arguments counts in the value of
-@code{current_function_outgoing_args_size}.
+@code{crtl->outgoing_args_size}.
 @end defmac
 
 @defmac STACK_PARMS_IN_REG_PARM_AREA
@@ -4698,7 +4705,8 @@ others leave that for the caller to do.  For example, the 68020 when
 given @option{-mrtd} pops arguments in functions that take a fixed
 number of arguments.
 
-@findex current_function_pops_args
+@findex pops_args
+@findex crtl->args.pops_args
 Your definition of the macro @code{RETURN_POPS_ARGS} decides which
 functions pop their own arguments.  @code{TARGET_ASM_FUNCTION_EPILOGUE}
 needs to know what was decided.  The number of bytes of the current
@@ -4708,8 +4716,9 @@ function's arguments that this function should pop is available in
 
 @itemize @bullet
 @item
-@findex current_function_pretend_args_size
-A region of @code{current_function_pretend_args_size} bytes of
+@findex pretend_args_size
+@findex crtl->args.pretend_args_size
+A region of @code{crtl->args.pretend_args_size} bytes of
 uninitialized space just underneath the first argument arriving on the
 stack.  (This may not be at the very start of the allocated stack region
 if the calling sequence has pushed anything else since pushing the stack
@@ -4736,7 +4745,7 @@ save area closer to the top of the stack.
 @item
 @cindex @code{ACCUMULATE_OUTGOING_ARGS} and stack frames
 Optionally, when @code{ACCUMULATE_OUTGOING_ARGS} is defined, a region of
-@code{current_function_outgoing_args_size} bytes to be used for outgoing
+@code{crtl->outgoing_args_size} bytes to be used for outgoing
 argument lists of the function.  @xref{Stack Arguments}.
 @end itemize
 
@@ -4763,40 +4772,6 @@ pointer registers are already assumed to be used as needed.
 Define this macro as a C expression that is nonzero for registers that are
 used by the exception handling mechanism, and so should be considered live
 on entry to an exception edge.
-@end defmac
-
-@defmac DELAY_SLOTS_FOR_EPILOGUE
-Define this macro if the function epilogue contains delay slots to which
-instructions from the rest of the function can be ``moved''.  The
-definition should be a C expression whose value is an integer
-representing the number of delay slots there.
-@end defmac
-
-@defmac ELIGIBLE_FOR_EPILOGUE_DELAY (@var{insn}, @var{n})
-A C expression that returns 1 if @var{insn} can be placed in delay
-slot number @var{n} of the epilogue.
-
-The argument @var{n} is an integer which identifies the delay slot now
-being considered (since different slots may have different rules of
-eligibility).  It is never negative and is always less than the number
-of epilogue delay slots (what @code{DELAY_SLOTS_FOR_EPILOGUE} returns).
-If you reject a particular insn for a given delay slot, in principle, it
-may be reconsidered for a subsequent delay slot.  Also, other insns may
-(at least in principle) be considered for the so far unfilled delay
-slot.
-
-@findex current_function_epilogue_delay_list
-@findex final_scan_insn
-The insns accepted to fill the epilogue delay slots are put in an RTL
-list made with @code{insn_list} objects, stored in the variable
-@code{current_function_epilogue_delay_list}.  The insn for the first
-delay slot comes first in the list.  Your definition of the macro
-@code{TARGET_ASM_FUNCTION_EPILOGUE} should fill the delay slots by
-outputting the insns in this list, usually by calling
-@code{final_scan_insn}.
-
-You need not define this macro if you did not define
-@code{DELAY_SLOTS_FOR_EPILOGUE}.
 @end defmac
 
 @hook TARGET_ASM_OUTPUT_MI_THUNK
@@ -4917,6 +4892,8 @@ FRAME_POINTER_REGNUM, ARG_POINTER_REGNUM, and the PIC_OFFSET_TABLE_REGNUM.
 @end deftypefn
 
 @hook TARGET_SET_UP_BY_PROLOGUE
+
+@hook TARGET_WARN_FUNC_RETURN
 
 @node Stack Smashing Protection
 @subsection Stack smashing protection
@@ -5528,7 +5505,8 @@ address;  but often a machine-dependent strategy can generate better code.
 @end defmac
 
 @hook TARGET_MODE_DEPENDENT_ADDRESS_P
-This hook returns @code{true} if memory address @var{addr} can have
+This hook returns @code{true} if memory address @var{addr} in address
+space @var{addrspace} can have
 different meanings depending on the machine mode of the memory
 reference it is used for or if the address is valid for some modes
 but not others.
@@ -5542,24 +5520,6 @@ You may assume that @var{addr} is a valid address for the machine.
 
 The default version of this hook returns @code{false}.
 @end deftypefn
-
-@defmac GO_IF_MODE_DEPENDENT_ADDRESS (@var{addr}, @var{label})
-A C statement or compound statement with a conditional @code{goto
-@var{label};} executed if memory address @var{x} (an RTX) can have
-different meanings depending on the machine mode of the memory
-reference it is used for or if the address is valid for some modes
-but not others.
-
-Autoincrement and autodecrement addresses typically have mode-dependent
-effects because the amount of the increment or decrement is the size
-of the operand being addressed.  Some machines have other mode-dependent
-addresses.  Many RISC machines have no mode-dependent addresses.
-
-You may assume that @var{addr} is a valid address for the machine.
-
-These are obsolete macros, replaced by the
-@code{TARGET_MODE_DEPENDENT_ADDRESS_P} target hook.
-@end defmac
 
 @hook TARGET_LEGITIMATE_CONSTANT_P
 This hook returns true if @var{x} is a legitimate constant for a
@@ -5604,6 +5564,13 @@ be placed in an @code{object_block} structure.  @var{mode} is the mode
 of @var{x}.
 
 The default version returns false for all constants.
+@end deftypefn
+
+@hook TARGET_USE_BLOCKS_FOR_DECL_P
+This hook should return true if pool entries for @var{decl} should
+be placed in an @code{object_block} structure.
+
+The default version returns true for all decls.
 @end deftypefn
 
 @hook TARGET_BUILTIN_RECIPROCAL
@@ -5959,25 +5926,27 @@ You should define this macro if and only if you define extra CC modes
 in @file{@var{machine}-modes.def}.
 @end defmac
 
-@defmac CANONICALIZE_COMPARISON (@var{code}, @var{op0}, @var{op1})
+@hook TARGET_CANONICALIZE_COMPARISON (@var{code}, @var{op0}, @var{op1}, @var{op0_preserve_value})
 On some machines not all possible comparisons are defined, but you can
 convert an invalid comparison into a valid one.  For example, the Alpha
 does not have a @code{GT} comparison, but you can use an @code{LT}
 comparison instead and swap the order of the operands.
 
-On such machines, define this macro to be a C statement to do any
-required conversions.  @var{code} is the initial comparison code
-and @var{op0} and @var{op1} are the left and right operands of the
-comparison, respectively.  You should modify @var{code}, @var{op0}, and
-@var{op1} as required.
+On such machines, implement this hook to do any required conversions.
+@var{code} is the initial comparison code and @var{op0} and @var{op1}
+are the left and right operands of the comparison, respectively.  If
+@var{op0_preserve_value} is @code{true} the implementation is not
+allowed to change the value of @var{op0} since the value might be used
+in RTXs which aren't comparisons.  E.g. the implementation is not
+allowed to swap operands in that case.
 
 GCC will not assume that the comparison resulting from this macro is
 valid but will see if the resulting insn matches a pattern in the
 @file{md} file.
 
-You need not define this macro if it would never change the comparison
-code or operands.
-@end defmac
+You need not to implement this hook if it would never change the
+comparison code or operands.
+@end deftypefn
 
 @defmac REVERSIBLE_CC_MODE (@var{mode})
 A C expression whose value is one if it is always safe to reverse a
@@ -7723,6 +7692,20 @@ not recognize @samp{.} or cannot do calculations with it, you will need
 to redefine @code{ASM_OUTPUT_MEASURED_SIZE} to use some other technique.
 @end defmac
 
+@defmac NO_DOLLAR_IN_LABEL
+Define this macro if the assembler does not accept the character
+@samp{$} in label names.  By default constructors and destructors in
+G++ have @samp{$} in the identifiers.  If this macro is defined,
+@samp{.} is used instead.
+@end defmac
+
+@defmac NO_DOT_IN_LABEL
+Define this macro if the assembler does not accept the character
+@samp{.} in label names.  By default constructors and destructors in G++
+have names that use @samp{.}.  If this macro is defined, these names
+are rewritten to avoid @samp{.}.
+@end defmac
+
 @defmac TYPE_ASM_OP
 A C string containing the appropriate assembler directive to specify the
 type of a symbol, without any arguments.  On systems that use ELF, the
@@ -8690,7 +8673,7 @@ fprintf (@var{stream}, "\t.word L%d\n", @var{value})
 Define this if the label before a jump-table needs to be output
 specially.  The first three arguments are the same as for
 @code{(*targetm.asm_out.internal_label)}; the fourth argument is the
-jump-table which follows (a @code{jump_insn} containing an
+jump-table which follows (a @code{jump_table_data} containing an
 @code{addr_vec} or @code{addr_diff_vec}).
 
 This feature is used on system V to output a @code{swbeg} statement
@@ -9726,40 +9709,40 @@ target specific attribute attached to it, it will not be inlined.
 @end deftypefn
 
 @hook TARGET_OPTION_VALID_ATTRIBUTE_P
-This hook is called to parse the @code{attribute(option("..."))}, and
-it allows the function to set different target machine compile time
-options for the current function that might be different than the
-options specified on the command line.  The hook should return
+This hook is called to parse @code{attribute(target("..."))}, which
+allows setting target-specific options on individual functions.
+These function-specific options may differ
+from the options specified on the command line.  The hook should return
 @code{true} if the options are valid.
 
-The hook should set the @var{DECL_FUNCTION_SPECIFIC_TARGET} field in
-the function declaration to hold a pointer to a target specific
-@var{struct cl_target_option} structure.
+The hook should set the @code{DECL_FUNCTION_SPECIFIC_TARGET} field in
+the function declaration to hold a pointer to a target-specific
+@code{struct cl_target_option} structure.
 @end deftypefn
 
 @hook TARGET_OPTION_SAVE
-This hook is called to save any additional target specific information
-in the @var{struct cl_target_option} structure for function specific
+This hook is called to save any additional target-specific information
+in the @code{struct cl_target_option} structure for function-specific
 options.
 @xref{Option file format}.
 @end deftypefn
 
 @hook TARGET_OPTION_RESTORE
-This hook is called to restore any additional target specific
-information in the @var{struct cl_target_option} structure for
-function specific options.
+This hook is called to restore any additional target-specific
+information in the @code{struct cl_target_option} structure for
+function-specific options.
 @end deftypefn
 
 @hook TARGET_OPTION_PRINT
-This hook is called to print any additional target specific
-information in the @var{struct cl_target_option} structure for
-function specific options.
+This hook is called to print any additional target-specific
+information in the @code{struct cl_target_option} structure for
+function-specific options.
 @end deftypefn
 
 @hook TARGET_OPTION_PRAGMA_PARSE
-This target hook parses the options for @code{#pragma GCC option} to
-set the machine specific options for functions that occur later in the
-input stream.  The options should be the same as handled by the
+This target hook parses the options for @code{#pragma GCC target}, which
+sets the target-specific options for functions that occur later in the
+input stream.  The options accepted should be the same as those handled by the
 @code{TARGET_OPTION_VALID_ATTRIBUTE_P} hook.
 @end deftypefn
 
@@ -9775,6 +9758,14 @@ Don't use this hook to turn on various extra optimizations for
 If you need to do something whenever the optimization level is
 changed via the optimize attribute or pragma, see
 @code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}
+@end deftypefn
+
+@hook TARGET_OPTION_FUNCTION_VERSIONS
+This target hook returns @code{true} if @var{DECL1} and @var{DECL2} are
+versions of the same function.  @var{DECL1} and @var{DECL2} are function
+versions if and only if they have the same function signature and
+different target specific attributes, that is, they are compiled for
+different target machines.
 @end deftypefn
 
 @hook TARGET_CAN_INLINE_P
@@ -10205,12 +10196,6 @@ Define this macro if loading short immediate values into registers sign
 extends.
 @end defmac
 
-@defmac FIXUNS_TRUNC_LIKE_FIX_TRUNC
-Define this macro if the same instructions that convert a floating
-point number to a signed fixed point number also convert validly to an
-unsigned one.
-@end defmac
-
 @hook TARGET_MIN_DIVISIONS_FOR_RECIP_MUL
 When @option{-ffast-math} is in effect, GCC tries to optimize
 divisions by the same divisor, by turning them into multiplications by
@@ -10506,6 +10491,8 @@ convention when processing system header files, but when processing user
 files @code{__STDC__} will always expand to 1.
 @end defmac
 
+@hook TARGET_C_PREINCLUDE
+
 @defmac NO_IMPLICIT_EXTERN_C
 Define this macro if the system header files support C++ as well as C@.
 This macro inhibits the usual method of using system header files in
@@ -10587,20 +10574,6 @@ Define this macro to control use of the character @samp{$} in
 identifier names for the C family of languages.  0 means @samp{$} is
 not allowed by default; 1 means it is allowed.  1 is the default;
 there is no need to define this macro in that case.
-@end defmac
-
-@defmac NO_DOLLAR_IN_LABEL
-Define this macro if the assembler does not accept the character
-@samp{$} in label names.  By default constructors and destructors in
-G++ have @samp{$} in the identifiers.  If this macro is defined,
-@samp{.} is used instead.
-@end defmac
-
-@defmac NO_DOT_IN_LABEL
-Define this macro if the assembler does not accept the character
-@samp{.} in label names.  By default constructors and destructors in G++
-have names that use @samp{.}.  If this macro is defined, these names
-are rewritten to avoid @samp{.}.
 @end defmac
 
 @defmac INSN_SETS_ARE_DELAYED (@var{insn})
@@ -10803,6 +10776,29 @@ The result is another tree containing a simplified expression for the
 call's result.  If @var{ignore} is true the value will be ignored.
 @end deftypefn
 
+@hook TARGET_COMPARE_VERSION_PRIORITY
+This hook is used to compare the target attributes in two functions to
+determine which function's features get higher priority.  This is used
+during function multi-versioning to figure out the order in which two
+versions must be dispatched.  A function version with a higher priority
+is checked for dispatching earlier.  @var{decl1} and @var{decl2} are
+ the two function decls that will be compared.
+@end deftypefn
+
+@hook TARGET_GET_FUNCTION_VERSIONS_DISPATCHER
+This hook is used to get the dispatcher function for a set of function
+versions.  The dispatcher function is called to invoke the right function
+version at run-time. @var{decl} is one version from a set of semantically
+identical versions.
+@end deftypefn
+
+@hook TARGET_GENERATE_VERSION_DISPATCHER_BODY
+This hook is used to generate the dispatcher logic to invoke the right
+function version at run-time for a given set of function versions.
+@var{arg} points to the callgraph node of the dispatcher function whose
+body must be generated.
+@end deftypefn
+
 @hook TARGET_INVALID_WITHIN_DOLOOP
 
 Take an instruction in @var{insn} and return NULL if it is valid within a
@@ -10816,6 +10812,8 @@ By default, the RTL loop optimizer does not use a present doloop pattern for
 loops containing function calls or branch on table instructions.
 @end deftypefn
 
+@hook TARGET_LEGITIMATE_COMBINED_INSN
+
 @defmac MD_CAN_REDIRECT_BRANCH (@var{branch1}, @var{branch2})
 
 Take a branch insn in @var{branch1} and another in @var{branch2}.
@@ -10826,6 +10824,8 @@ On some targets, branches may have a limited range.  Optimizing the
 filling of delay slots can result in branches being redirected, and this
 may in turn cause a branch offset to overflow.
 @end defmac
+
+@hook TARGET_CAN_FOLLOW_JUMP
 
 @hook TARGET_COMMUTATIVE_P
 This target hook returns @code{true} if @var{x} is considered to be commutative.
@@ -10849,8 +10849,8 @@ the hard register itself, if it is known not to be clobbered---or a
 @code{MEM}.
 If you are returning a @code{MEM}, this is only a hint for the allocator;
 it might decide to use another register anyways.
-You may use @code{current_function_leaf_function} in the hook, functions
-that use @code{REG_N_SETS}, to determine if the hard
+You may use @code{current_function_is_leaf} or 
+@code{REG_N_SETS} in the hook to determine if the hard
 register in question will not be clobbered.
 The default value of this hook is @code{NULL}, which disables any special
 allocation.
@@ -11166,7 +11166,10 @@ accepted by immediate-add plus one.  We currently assume that the
 value of @code{TARGET_CONST_ANCHOR} is a power of 2.  For example, on
 MIPS, where add-immediate takes a 16-bit signed value,
 @code{TARGET_CONST_ANCHOR} is set to @samp{0x8000}.  The default value
-is zero, which disables this optimization.  @end deftypevr
+is zero, which disables this optimization.
+@end deftypevr
+
+@hook TARGET_ASAN_SHADOW_OFFSET
 
 @hook TARGET_MEMMODEL_CHECK
 Validate target specific memory model mask bits. When NULL no target specific
@@ -11174,3 +11177,5 @@ memory model bits are allowed.
 @end deftypefn
 
 @hook TARGET_ATOMIC_TEST_AND_SET_TRUEVAL
+
+@hook TARGET_HAS_IFUNC_P

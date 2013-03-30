@@ -1,6 +1,5 @@
 /* Array prefetching.
-   Copyright (C) 2005, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2005-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -278,6 +277,26 @@ struct mem_ref
 				   nontemporal one.  */
 };
 
+/* Dumps information about memory reference */
+static void
+dump_mem_details (FILE *file, tree base, tree step,
+	    HOST_WIDE_INT delta, bool write_p) 
+{
+  fprintf (file, "(base ");
+  print_generic_expr (file, base, TDF_SLIM);
+  fprintf (file, ", step ");
+  if (cst_and_fits_in_hwi (step))
+    fprintf (file, HOST_WIDE_INT_PRINT_DEC, int_cst_value (step));
+  else
+    print_generic_expr (file, step, TDF_TREE);
+  fprintf (file, ")\n");
+  fprintf (file, "  delta ");
+  fprintf (file, HOST_WIDE_INT_PRINT_DEC, delta);
+  fprintf (file, "\n");
+  fprintf (file, "  %s\n", write_p ? "write" : "read");
+  fprintf (file, "\n");
+}
+
 /* Dumps information about reference REF to FILE.  */
 
 static void
@@ -285,22 +304,10 @@ dump_mem_ref (FILE *file, struct mem_ref *ref)
 {
   fprintf (file, "Reference %p:\n", (void *) ref);
 
-  fprintf (file, "  group %p (base ", (void *) ref->group);
-  print_generic_expr (file, ref->group->base, TDF_SLIM);
-  fprintf (file, ", step ");
-  if (cst_and_fits_in_hwi (ref->group->step))
-    fprintf (file, HOST_WIDE_INT_PRINT_DEC, int_cst_value (ref->group->step));
-  else
-    print_generic_expr (file, ref->group->step, TDF_TREE);
-  fprintf (file, ")\n");
+  fprintf (file, "  group %p ", (void *) ref->group);
 
-  fprintf (file, "  delta ");
-  fprintf (file, HOST_WIDE_INT_PRINT_DEC, ref->delta);
-  fprintf (file, "\n");
-
-  fprintf (file, "  %s\n", ref->write_p ? "write" : "read");
-
-  fprintf (file, "\n");
+  dump_mem_details (file, ref->group->base, ref->group->step, ref->delta,
+                   ref->write_p);
 }
 
 /* Finds a group with BASE and STEP in GROUPS, or creates one if it does not
@@ -537,9 +544,44 @@ gather_memory_references_ref (struct loop *loop, struct mem_ref_group **refs,
   if (may_be_nonaddressable_p (base))
     return false;
 
-  /* Limit non-constant step prefetching only to the innermost loops.  */
-  if (!cst_and_fits_in_hwi (step) && loop->inner != NULL)
-    return false;
+  /* Limit non-constant step prefetching only to the innermost loops and 
+     only when the step is loop invariant in the entire loop nest. */
+  if (!cst_and_fits_in_hwi (step))
+    {
+      if (loop->inner != NULL)
+        {
+          if (dump_file && (dump_flags & TDF_DETAILS))
+            {
+              fprintf (dump_file, "Memory expression %p\n",(void *) ref ); 
+              print_generic_expr (dump_file, ref, TDF_TREE); 
+              fprintf (dump_file,":");
+              dump_mem_details( dump_file, base, step, delta, write_p);              
+              fprintf (dump_file, 
+                       "Ignoring %p, non-constant step prefetching is "
+                       "limited to inner most loops \n", 
+                       (void *) ref);
+            }
+            return false;    
+         }
+      else
+        {
+          if (!expr_invariant_in_loop_p (loop_outermost (loop), step))
+          {
+            if (dump_file && (dump_flags & TDF_DETAILS))
+              {
+                fprintf (dump_file, "Memory expression %p\n",(void *) ref );
+                print_generic_expr (dump_file, ref, TDF_TREE);
+                fprintf (dump_file,":");
+                dump_mem_details(dump_file, base, step, delta, write_p);
+                fprintf (dump_file, 
+                         "Not prefetching, ignoring %p due to "
+                         "loop variant step\n",
+                         (void *) ref);
+              }
+              return false;                 
+            }
+        }
+    }
 
   /* Now we know that REF = &BASE + STEP * iter + DELTA, where DELTA and STEP
      are integer constants.  */
@@ -1186,13 +1228,13 @@ mark_nontemporal_store (struct mem_ref *ref)
 static void
 emit_mfence_after_loop (struct loop *loop)
 {
-  VEC (edge, heap) *exits = get_loop_exit_edges (loop);
+  vec<edge> exits = get_loop_exit_edges (loop);
   edge exit;
   gimple call;
   gimple_stmt_iterator bsi;
   unsigned i;
 
-  FOR_EACH_VEC_ELT (edge, exits, i, exit)
+  FOR_EACH_VEC_ELT (exits, i, exit)
     {
       call = gimple_build_call (FENCE_FOLLOWING_MOVNT, 0);
 
@@ -1204,10 +1246,9 @@ emit_mfence_after_loop (struct loop *loop)
       bsi = gsi_after_labels (exit->dest);
 
       gsi_insert_before (&bsi, call, GSI_NEW_STMT);
-      mark_virtual_ops_for_renaming (call);
     }
 
-  VEC_free (edge, heap, exits);
+  exits.release ();
   update_ssa (TODO_update_ssa_only_virtuals);
 }
 
@@ -1225,16 +1266,16 @@ may_use_storent_in_loop_p (struct loop *loop)
      is a suitable place for it at each of the loop exits.  */
   if (FENCE_FOLLOWING_MOVNT != NULL_TREE)
     {
-      VEC (edge, heap) *exits = get_loop_exit_edges (loop);
+      vec<edge> exits = get_loop_exit_edges (loop);
       unsigned i;
       edge exit;
 
-      FOR_EACH_VEC_ELT (edge, exits, i, exit)
+      FOR_EACH_VEC_ELT (exits, i, exit)
 	if ((exit->flags & EDGE_ABNORMAL)
 	    && exit->dest == EXIT_BLOCK_PTR)
 	  ret = false;
 
-      VEC_free (edge, heap, exits);
+      exits.release ();
     }
 
   return ret;
@@ -1429,7 +1470,7 @@ self_reuse_distance (data_reference_p dr, unsigned *loop_sizes, unsigned n,
 {
   tree stride, access_fn;
   HOST_WIDE_INT *strides, astride;
-  VEC (tree, heap) *access_fns;
+  vec<tree> access_fns;
   tree ref = DR_REF (dr);
   unsigned i, ret = ~0u;
 
@@ -1448,7 +1489,7 @@ self_reuse_distance (data_reference_p dr, unsigned *loop_sizes, unsigned n,
   strides = XCNEWVEC (HOST_WIDE_INT, n);
   access_fns = DR_ACCESS_FNS (dr);
 
-  FOR_EACH_VEC_ELT (tree, access_fns, i, access_fn)
+  FOR_EACH_VEC_ELT (access_fns, i, access_fn)
     {
       /* Keep track of the reference corresponding to the subscript, so that we
 	 know its stride.  */
@@ -1499,11 +1540,11 @@ determine_loop_nest_reuse (struct loop *loop, struct mem_ref_group *refs,
 			   bool no_other_refs)
 {
   struct loop *nest, *aloop;
-  VEC (data_reference_p, heap) *datarefs = NULL;
-  VEC (ddr_p, heap) *dependences = NULL;
+  vec<data_reference_p> datarefs = vNULL;
+  vec<ddr_p> dependences = vNULL;
   struct mem_ref_group *gr;
   struct mem_ref *ref, *refb;
-  VEC (loop_p, heap) *vloops = NULL;
+  vec<loop_p> vloops = vNULL;
   unsigned *loop_data_size;
   unsigned i, j, n;
   unsigned volume, dist, adist;
@@ -1532,7 +1573,7 @@ determine_loop_nest_reuse (struct loop *loop, struct mem_ref_group *refs,
      We use this to estimate whether the reference is evicted from the
      cache before its reuse.  */
   find_loop_nest (nest, &vloops);
-  n = VEC_length (loop_p, vloops);
+  n = vloops.length ();
   loop_data_size = XNEWVEC (unsigned, n);
   volume = volume_of_references (refs);
   i = n;
@@ -1544,7 +1585,7 @@ determine_loop_nest_reuse (struct loop *loop, struct mem_ref_group *refs,
       if (volume > L2_CACHE_SIZE_BYTES)
 	continue;
 
-      aloop = VEC_index (loop_p, vloops, i);
+      aloop = vloops[i];
       vol = estimated_stmt_executions_int (aloop);
       if (vol == -1)
 	vol = expected_loop_iterations (aloop);
@@ -1565,13 +1606,13 @@ determine_loop_nest_reuse (struct loop *loop, struct mem_ref_group *refs,
 	  {
 	    ref->reuse_distance = volume;
 	    dr->aux = ref;
-	    VEC_safe_push (data_reference_p, heap, datarefs, dr);
+	    datarefs.safe_push (dr);
 	  }
 	else
 	  no_other_refs = false;
       }
 
-  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
+  FOR_EACH_VEC_ELT (datarefs, i, dr)
     {
       dist = self_reuse_distance (dr, loop_data_size, n, loop);
       ref = (struct mem_ref *) dr->aux;
@@ -1585,7 +1626,7 @@ determine_loop_nest_reuse (struct loop *loop, struct mem_ref_group *refs,
   if (!compute_all_dependences (datarefs, &dependences, vloops, true))
     return false;
 
-  FOR_EACH_VEC_ELT (ddr_p, dependences, i, dep)
+  FOR_EACH_VEC_ELT (dependences, i, dep)
     {
       if (DDR_ARE_DEPENDENT (dep) == chrec_known)
 	continue;

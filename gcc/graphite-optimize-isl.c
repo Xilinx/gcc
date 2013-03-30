@@ -1,5 +1,5 @@
 /* A scheduling optimizer for Graphite
-   Copyright (C) 2012 Free Software Foundation, Inc.
+   Copyright (C) 2012-2013 Free Software Foundation, Inc.
    Contributed by Tobias Grosser <tobias@grosser.es>.
 
 This file is part of GCC.
@@ -51,7 +51,7 @@ scop_get_domains (scop_p scop ATTRIBUTE_UNUSED)
   isl_space *space = isl_set_get_space (scop->context);
   isl_union_set *res = isl_union_set_empty (space);
 
-  FOR_EACH_VEC_ELT (poly_bb_p, scop->bbs, i, pbb)
+  FOR_EACH_VEC_ELT (scop->bbs, i, pbb)
     res = isl_union_set_add_set (res, isl_set_copy (pbb->domain));
 
   return res;
@@ -414,7 +414,7 @@ apply_schedule_map_to_scop (scop_p scop, isl_union_map *schedule_map)
   int i;
   poly_bb_p pbb;
 
-  FOR_EACH_VEC_ELT (poly_bb_p, scop->bbs, i, pbb)
+  FOR_EACH_VEC_ELT (scop->bbs, i, pbb)
     {
       isl_set *domain = isl_set_copy (pbb->domain);
       isl_union_map *stmtBand;

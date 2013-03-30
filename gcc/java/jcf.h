@@ -1,6 +1,5 @@
 /* Utility macros to read Java(TM) .class files and byte codes.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 1996-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -82,7 +81,7 @@ typedef struct GTY(()) CPool {
   /* The constant_pool_count. */
   int		count;
 
-  uint8* GTY((length ("%h.count")))	tags;
+  uint8 * GTY((atomic)) tags;
 
   union cpool_entry * GTY((length ("%h.count"),
 			   desc ("cpool_entry_is_tree (%1.tags%a)")))	data;
@@ -91,7 +90,7 @@ typedef struct GTY(()) CPool {
 typedef struct GTY(()) bootstrap_method {
   unsigned method_ref;
   unsigned num_arguments;
-  unsigned* GTY((length ("%h.num_arguments"))) bootstrap_arguments;
+  unsigned * GTY((atomic)) bootstrap_arguments;
 } bootstrap_method;
 
 typedef struct GTY(()) BootstrapMethods {

@@ -21,7 +21,7 @@ import (
 type Server struct {
 	URL      string // base URL of form http://ipaddr:port with no trailing slash
 	Listener net.Listener
-	TLS      *tls.Config // nil if not using using TLS
+	TLS      *tls.Config // nil if not using TLS
 
 	// Config may be changed after calling NewUnstartedServer and
 	// before Start or StartTLS.
@@ -36,13 +36,16 @@ type Server struct {
 // accepted.
 type historyListener struct {
 	net.Listener
-	history []net.Conn
+	sync.Mutex // protects history
+	history    []net.Conn
 }
 
 func (hs *historyListener) Accept() (c net.Conn, err error) {
 	c, err = hs.Listener.Accept()
 	if err == nil {
+		hs.Lock()
 		hs.history = append(hs.history, c)
+		hs.Unlock()
 	}
 	return
 }
@@ -96,7 +99,7 @@ func (s *Server) Start() {
 	if s.URL != "" {
 		panic("Server already started")
 	}
-	s.Listener = &historyListener{s.Listener, make([]net.Conn, 0)}
+	s.Listener = &historyListener{Listener: s.Listener}
 	s.URL = "http://" + s.Listener.Addr().String()
 	s.wrapHandler()
 	go s.Config.Serve(s.Listener)
@@ -122,7 +125,7 @@ func (s *Server) StartTLS() {
 	}
 	tlsListener := tls.NewListener(s.Listener, s.TLS)
 
-	s.Listener = &historyListener{tlsListener, make([]net.Conn, 0)}
+	s.Listener = &historyListener{Listener: tlsListener}
 	s.URL = "https://" + s.Listener.Addr().String()
 	s.wrapHandler()
 	go s.Config.Serve(s.Listener)
@@ -152,6 +155,10 @@ func NewTLSServer(handler http.Handler) *Server {
 func (s *Server) Close() {
 	s.Listener.Close()
 	s.wg.Wait()
+	s.CloseClientConnections()
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		t.CloseIdleConnections()
+	}
 }
 
 // CloseClientConnections closes any currently open HTTP connections
@@ -161,9 +168,11 @@ func (s *Server) CloseClientConnections() {
 	if !ok {
 		return
 	}
+	hl.Lock()
 	for _, conn := range hl.history {
 		conn.Close()
 	}
+	hl.Unlock()
 }
 
 // waitGroupHandler wraps a handler, incrementing and decrementing a
@@ -184,15 +193,15 @@ func (h *waitGroupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // "127.0.0.1" and "[::1]", expiring at the last second of 2049 (the end
 // of ASN.1 time).
 var localhostCert = []byte(`-----BEGIN CERTIFICATE-----
-MIIBOTCB5qADAgECAgEAMAsGCSqGSIb3DQEBBTAAMB4XDTcwMDEwMTAwMDAwMFoX
+MIIBTTCB+qADAgECAgEAMAsGCSqGSIb3DQEBBTAAMB4XDTcwMDEwMTAwMDAwMFoX
 DTQ5MTIzMTIzNTk1OVowADBaMAsGCSqGSIb3DQEBAQNLADBIAkEAsuA5mAFMj6Q7
 qoBzcvKzIq4kzuT5epSp2AkcQfyBHm7K13Ws7u+0b5Vb9gqTf5cAiIKcrtrXVqkL
-8i1UQF6AzwIDAQABo08wTTAOBgNVHQ8BAf8EBAMCACQwDQYDVR0OBAYEBAECAwQw
-DwYDVR0jBAgwBoAEAQIDBDAbBgNVHREEFDASggkxMjcuMC4wLjGCBVs6OjFdMAsG
-CSqGSIb3DQEBBQNBAJH30zjLWRztrWpOCgJL8RQWLaKzhK79pVhAx6q/3NrF16C7
-+l1BRZstTwIGdoGId8BRpErK1TXkniFb95ZMynM=
------END CERTIFICATE-----
-`)
+8i1UQF6AzwIDAQABo2MwYTAOBgNVHQ8BAf8EBAMCACQwEgYDVR0TAQH/BAgwBgEB
+/wIBATANBgNVHQ4EBgQEAQIDBDAPBgNVHSMECDAGgAQBAgMEMBsGA1UdEQQUMBKC
+CTEyNy4wLjAuMYIFWzo6MV0wCwYJKoZIhvcNAQEFA0EAj1Jsn/h2KHy7dgqutZNB
+nCGlNN+8vw263Bax9MklR85Ti6a0VWSvp/fDQZUADvmFTDkcXeA24pqmdUxeQDWw
+Pg==
+-----END CERTIFICATE-----`)
 
 // localhostKey is the private key for localhostCert.
 var localhostKey = []byte(`-----BEGIN RSA PRIVATE KEY-----

@@ -1,5 +1,5 @@
 ;; Constraint definitions for Renesas / SuperH SH.
-;; Copyright (C) 2007, 2008, 2011, 2012 Free Software Foundation, Inc.
+;; Copyright (C) 2007-2013 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -26,13 +26,14 @@
 ;;  Csu: unsigned 16-bit constant, literal or symbolic
 ;;  Csy: label or symbol
 ;;  Cpg: non-explicit constants that can be directly loaded into a general
-;;       purpose register in PIC code.  like 's' except we don't allow
+;;       purpose register in PIC code.  Like 's' except we don't allow
 ;;       PIC_ADDR_P
 ;; IJKLMNOP: CONT_INT constants
 ;;  Ixx: signed xx bit
 ;;  J16: 0xffffffff00000000 | 0x00000000ffffffff
 ;;  Jmb: 0x000000FF
 ;;  Jmw: 0x0000FFFF
+;;  Jhb: 0x80000000
 ;;  Kxx: unsigned xx bit
 ;;  M: 1
 ;;  N: 0
@@ -49,6 +50,7 @@
 ;;  Sbw: QImode address with 12 bit displacement
 ;;  Snd: address without displacement
 ;;  Sdd: address with displacement
+;;  Sra: simple register address
 ;; W: vector
 ;; Z: zero in any mode
 ;;
@@ -146,6 +148,11 @@
   "Low word mask constant 0x0000FFFF"
   (and (match_code "const_int")
        (match_test "ival == 0xFFFF")))
+
+(define_constraint "Jhb"
+  "Highest bit constant"
+  (and (match_code "const_int")
+       (match_test "(ival & 0xFFFFFFFF) == 0x80000000")))
 
 (define_constraint "K03"
   "An unsigned 3-bit constant, as used in SH2A bclr, bset, etc."
@@ -306,4 +313,9 @@
   (and (match_test "satisfies_constraint_Sdd (op)")
        (match_test "GET_MODE (op) == QImode")
        (match_test "satisfies_constraint_K12 (XEXP (XEXP (op, 0), 1))")))
+
+(define_memory_constraint "Sra"
+  "A memory reference that uses simple register addressing."
+  (and (match_test "MEM_P (op)")
+       (match_test "REG_P (XEXP (op, 0))")))
 

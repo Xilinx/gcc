@@ -1,7 +1,7 @@
 /* Miscellaneous utilities for tree streaming.  Things that are used
    in both input and output are here.
 
-   Copyright 2011 Free Software Foundation, Inc.
+   Copyright (C) 2011-2013 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@google.com>
 
 This file is part of GCC.
@@ -96,12 +96,12 @@ streamer_tree_cache_add_to_node_array (struct streamer_tree_cache_d *cache,
 {
   /* Make sure we're either replacing an old element or
      appending consecutively.  */
-  gcc_assert (ix <= VEC_length (tree, cache->nodes));
+  gcc_assert (ix <= cache->nodes.length ());
 
-  if (ix == VEC_length (tree, cache->nodes))
-    VEC_safe_push (tree, heap, cache->nodes, t);
+  if (ix == cache->nodes.length ())
+    cache->nodes.safe_push (t);
   else
-    VEC_replace (tree, cache->nodes, ix, t);
+    cache->nodes[ix] = t;
 }
 
 
@@ -131,7 +131,7 @@ streamer_tree_cache_insert_1 (struct streamer_tree_cache_d *cache,
     {
       /* Determine the next slot to use in the cache.  */
       if (insert_at_next_slot_p)
-	ix = VEC_length (tree, cache->nodes);
+	ix = cache->nodes.length ();
       else
 	ix = *ix_p;
        *slot = (void *)(size_t) (ix + 1);
@@ -195,7 +195,7 @@ streamer_tree_cache_insert_at (struct streamer_tree_cache_d *cache,
 void
 streamer_tree_cache_append (struct streamer_tree_cache_d *cache, tree t)
 {
-  unsigned ix = VEC_length (tree, cache->nodes);
+  unsigned ix = cache->nodes.length ();
   streamer_tree_cache_insert_1 (cache, t, &ix, false);
 }
 
@@ -232,25 +232,21 @@ streamer_tree_cache_lookup (struct streamer_tree_cache_d *cache, tree t,
 }
 
 
-/* Return the tree node at slot IX in CACHE.  */
-
-tree
-streamer_tree_cache_get (struct streamer_tree_cache_d *cache, unsigned ix)
-{
-  gcc_assert (cache);
-
-  /* Make sure we're not requesting something we don't have.  */
-  gcc_assert (ix < VEC_length (tree, cache->nodes));
-
-  return VEC_index (tree, cache->nodes, ix);
-}
-
-
 /* Record NODE in CACHE.  */
 
 static void
 record_common_node (struct streamer_tree_cache_d *cache, tree node)
 {
+  /* If we recursively end up at nodes we do not want to preload simply don't.
+     ???  We'd want to verify that this doesn't happen, or alternatively
+     do not recurse at all.  */
+  if (node == char_type_node)
+    return;
+
+  gcc_checking_assert (node != boolean_type_node
+		       && node != boolean_true_node
+		       && node != boolean_false_node);
+
   /* We have to make sure to fill exactly the same number of
      elements for all frontends.  That can include NULL trees.
      As our hash table can't deal with zero entries we'll simply stream
@@ -334,6 +330,6 @@ streamer_tree_cache_delete (struct streamer_tree_cache_d *c)
     return;
 
   pointer_map_destroy (c->node_map);
-  VEC_free (tree, heap, c->nodes);
+  c->nodes.release ();
   free (c);
 }

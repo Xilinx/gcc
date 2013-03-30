@@ -1,7 +1,5 @@
 /* RTL reader for GCC.
-   Copyright (C) 1987, 1988, 1991, 1994, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2007, 2008, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -59,8 +57,6 @@ struct mapping {
 
 /* Vector definitions for the above.  */
 typedef struct mapping *mapping_ptr;
-DEF_VEC_P (mapping_ptr);
-DEF_VEC_ALLOC_P (mapping_ptr, heap);
 
 /* A structure for abstracting the common parts of iterators.  */
 struct iterator_group {
@@ -87,8 +83,6 @@ struct iterator_use {
 
 /* Vector definitions for the above.  */
 typedef struct iterator_use iterator_use;
-DEF_VEC_O (iterator_use);
-DEF_VEC_ALLOC_O (iterator_use, heap);
 
 /* Records one use of an attribute (the "<[iterator:]attribute>" syntax)
    in a non-string rtx field.  */
@@ -105,8 +99,21 @@ struct attribute_use {
 
 /* Vector definitions for the above.  */
 typedef struct attribute_use attribute_use;
-DEF_VEC_O (attribute_use);
-DEF_VEC_ALLOC_O (attribute_use, heap);
+
+/* This struct is used to link subst_attr named ATTR_NAME with
+   corresponding define_subst named ITER_NAME.  */
+struct subst_attr_to_iter_mapping
+{
+    char *attr_name;
+    char *iter_name;
+};
+
+/* Hash-table to store links between subst-attributes and
+   define_substs.  */
+htab_t subst_attr_to_iter_map = NULL;
+/* This global stores name of subst-iterator which is currently being
+   processed.  */
+const char *current_iterator_name;
 
 static void validate_const_int (const char *);
 static rtx read_rtx_code (const char *);
@@ -114,16 +121,16 @@ static rtx read_nested_rtx (void);
 static rtx read_rtx_variadic (rtx);
 
 /* The mode and code iterator structures.  */
-static struct iterator_group modes, codes, ints;
+static struct iterator_group modes, codes, ints, substs;
 
 /* All iterators used in the current rtx.  */
-static VEC (mapping_ptr, heap) *current_iterators;
+static vec<mapping_ptr> current_iterators;
 
 /* The list of all iterator uses in the current rtx.  */
-static VEC (iterator_use, heap) *iterator_uses;
+static vec<iterator_use> iterator_uses;
 
 /* The list of all attribute uses in the current rtx.  */
-static VEC (attribute_use, heap) *attribute_uses;
+static vec<attribute_use> attribute_uses;
 
 /* Implementations of the iterator_group callbacks for modes.  */
 
@@ -184,6 +191,91 @@ apply_int_iterator (void *loc, int value)
   *(int *)loc = value;
 }
 
+/* This routine adds attribute or does nothing depending on VALUE.  When
+   VALUE is 1, it does nothing - the first duplicate of original
+   template is kept untouched when it's subjected to a define_subst.
+   When VALUE isn't 1, the routine modifies RTL-template LOC, adding
+   attribute, named exactly as define_subst, which later will be
+   applied.  If such attribute has already been added, then no the
+   routine has no effect.  */
+static void
+apply_subst_iterator (void *loc, int value)
+{
+  rtx rt = (rtx)loc;
+  rtx new_attr;
+  rtvec attrs_vec, new_attrs_vec;
+  int i;
+  if (value == 1)
+    return;
+  gcc_assert (GET_CODE (rt) == DEFINE_INSN
+	      || GET_CODE (rt) == DEFINE_EXPAND);
+
+  attrs_vec = XVEC (rt, 4);
+
+  /* If we've already added attribute 'current_iterator_name', then we
+     have nothing to do now.  */
+  if (attrs_vec)
+    {
+      for (i = 0; i < GET_NUM_ELEM (attrs_vec); i++)
+	{
+	  if (strcmp (XSTR (attrs_vec->elem[i], 0), current_iterator_name) == 0)
+	    return;
+	}
+    }
+
+  /* Add attribute with subst name - it serves as a mark for
+     define_subst which later would be applied to this pattern.  */
+  new_attr = rtx_alloc (SET_ATTR);
+  PUT_CODE (new_attr, SET_ATTR);
+  XSTR (new_attr, 0) = xstrdup (current_iterator_name);
+  XSTR (new_attr, 1) = xstrdup ("yes");
+
+  if (!attrs_vec)
+    {
+      new_attrs_vec = rtvec_alloc (1);
+      new_attrs_vec->elem[0] = new_attr;
+    }
+  else
+    {
+      new_attrs_vec = rtvec_alloc (GET_NUM_ELEM (attrs_vec) + 1);
+      memcpy (&new_attrs_vec->elem[0], &attrs_vec->elem[0],
+	      GET_NUM_ELEM (attrs_vec) * sizeof (rtx));
+      new_attrs_vec->elem[GET_NUM_ELEM (attrs_vec)] = new_attr;
+    }
+  XVEC (rt, 4) = new_attrs_vec;
+}
+
+/* Map subst-attribute ATTR to subst iterator ITER.  */
+
+static void
+bind_subst_iter_and_attr (const char *iter, const char *attr)
+{
+  struct subst_attr_to_iter_mapping *value;
+  void **slot;
+  if (!subst_attr_to_iter_map)
+    subst_attr_to_iter_map =
+      htab_create (1, leading_string_hash, leading_string_eq_p, 0);
+  value = XNEW (struct subst_attr_to_iter_mapping);
+  value->attr_name = xstrdup (attr);
+  value->iter_name = xstrdup (iter);
+  slot = htab_find_slot (subst_attr_to_iter_map, value, INSERT);
+  *slot = value;
+}
+
+/* Return name of a subst-iterator, corresponding to subst-attribute ATTR.  */
+
+static char*
+find_subst_iter_by_attr (const char *attr)
+{
+  char *iter_name = NULL;
+  struct subst_attr_to_iter_mapping *value;
+  value = (struct subst_attr_to_iter_mapping*)
+    htab_find (subst_attr_to_iter_map, &attr);
+  if (value)
+    iter_name = value->iter_name;
+  return iter_name;
+}
+
 /* Map attribute string P to its current value.  Return null if the attribute
    isn't known.  */
 
@@ -211,7 +303,7 @@ map_attr_string (const char *p)
       attr++;
     }
 
-  FOR_EACH_VEC_ELT (mapping_ptr, current_iterators, i, iterator)
+  FOR_EACH_VEC_ELT (current_iterators, i, iterator)
     {
       /* If an iterator name was specified, check that it matches.  */
       if (iterator_name_len >= 0
@@ -222,11 +314,23 @@ map_attr_string (const char *p)
       /* Find the attribute specification.  */
       m = (struct mapping *) htab_find (iterator->group->attrs, &attr);
       if (m)
-	/* Find the attribute value associated with the current
-	   iterator value.  */
-	for (v = m->values; v; v = v->next)
-	  if (v->number == iterator->current_value->number)
-	    return v;
+	{
+	  /* In contrast to code/mode/int iterators, attributes of subst
+	     iterators are linked to one specific subst-iterator.  So, if
+	     we are dealing with subst-iterator, we should check if it's
+	     the one which linked with the given attribute.  */
+	  if (iterator->group == &substs)
+	    {
+	      char *iter_name = find_subst_iter_by_attr (attr);
+	      if (strcmp (iter_name, iterator->name) != 0)
+		continue;
+	    }
+	  /* Find the attribute value associated with the current
+	     iterator value.  */
+	  for (v = m->values; v; v = v->next)
+	    if (v->number == iterator->current_value->number)
+	      return v;
+	}
     }
   return NULL;
 }
@@ -343,6 +447,7 @@ add_condition_to_rtx (rtx x, const char *extra)
     {
     case DEFINE_INSN:
     case DEFINE_EXPAND:
+    case DEFINE_SUBST:
       XSTR (x, 2) = add_condition_to_string (XSTR (x, 2), extra);
       break;
 
@@ -372,7 +477,7 @@ apply_attribute_uses (void)
   attribute_use *ause;
   unsigned int i;
 
-  FOR_EACH_VEC_ELT (attribute_use, attribute_uses, i, ause)
+  FOR_EACH_VEC_ELT (attribute_uses, i, ause)
     {
       v = map_attr_string (ause->value);
       if (!v)
@@ -392,7 +497,7 @@ add_current_iterators (void **slot, void *data ATTRIBUTE_UNUSED)
 
   iterator = (struct mapping *) *slot;
   if (iterator->current_value)
-    VEC_safe_push (mapping_ptr, heap, current_iterators, iterator);
+    current_iterators.safe_push (iterator);
   return 1;
 }
 
@@ -409,7 +514,7 @@ apply_iterators (rtx original, rtx *queue)
   struct map_value *v;
   rtx x;
 
-  if (VEC_empty (iterator_use, iterator_uses))
+  if (iterator_uses.is_empty ())
     {
       /* Raise an error if any attributes were used.  */
       apply_attribute_uses ();
@@ -419,12 +524,12 @@ apply_iterators (rtx original, rtx *queue)
     }
 
   /* Clear out the iterators from the previous run.  */
-  FOR_EACH_VEC_ELT (mapping_ptr, current_iterators, i, iterator)
+  FOR_EACH_VEC_ELT (current_iterators, i, iterator)
     iterator->current_value = NULL;
-  VEC_truncate (mapping_ptr, current_iterators, 0);
+  current_iterators.truncate (0);
 
   /* Mark the iterators that we need this time.  */
-  FOR_EACH_VEC_ELT (iterator_use, iterator_uses, i, iuse)
+  FOR_EACH_VEC_ELT (iterator_uses, i, iuse)
     iuse->iterator->current_value = iuse->iterator->values;
 
   /* Get the list of iterators that are in use, preserving the
@@ -432,15 +537,18 @@ apply_iterators (rtx original, rtx *queue)
   htab_traverse (modes.iterators, add_current_iterators, NULL);
   htab_traverse (codes.iterators, add_current_iterators, NULL);
   htab_traverse (ints.iterators, add_current_iterators, NULL);
-  gcc_assert (!VEC_empty (mapping_ptr, current_iterators));
+  htab_traverse (substs.iterators, add_current_iterators, NULL);
+  gcc_assert (!current_iterators.is_empty ());
 
   for (;;)
     {
       /* Apply the current iterator values.  Accumulate a condition to
 	 say when the resulting rtx can be used.  */
-      condition = NULL;
-      FOR_EACH_VEC_ELT (iterator_use, iterator_uses, i, iuse)
+      condition = "";
+      FOR_EACH_VEC_ELT (iterator_uses, i, iuse)
 	{
+	  if (iuse->iterator->group == &substs)
+	    continue;
 	  v = iuse->iterator->current_value;
 	  iuse->iterator->group->apply_iterator (iuse->ptr, v->number);
 	  condition = join_c_conditions (condition, v->string);
@@ -449,6 +557,19 @@ apply_iterators (rtx original, rtx *queue)
       x = copy_rtx_for_iterators (original);
       add_condition_to_rtx (x, condition);
 
+      /* We apply subst iterator after RTL-template is copied, as during
+	 subst-iterator processing, we could add an attribute to the
+	 RTL-template, and we don't want to do it in the original one.  */
+      FOR_EACH_VEC_ELT (iterator_uses, i, iuse)
+	{
+	  v = iuse->iterator->current_value;
+	  if (iuse->iterator->group == &substs)
+	    {
+	      iuse->ptr = x;
+	      current_iterator_name = iuse->iterator->name;
+	      iuse->iterator->group->apply_iterator (iuse->ptr, v->number);
+	    }
+	}
       /* Add the new rtx to the end of the queue.  */
       XEXP (*queue, 0) = x;
       XEXP (*queue, 1) = NULL_RTX;
@@ -456,13 +577,13 @@ apply_iterators (rtx original, rtx *queue)
       /* Lexicographically increment the iterator value sequence.
 	 That is, cycle through iterator values, starting from the right,
 	 and stopping when one of them doesn't wrap around.  */
-      i = VEC_length (mapping_ptr, current_iterators);
+      i = current_iterators.length ();
       for (;;)
 	{
 	  if (i == 0)
 	    return;
 	  i--;
-	  iterator = VEC_index (mapping_ptr, current_iterators, i);
+	  iterator = current_iterators[i];
 	  iterator->current_value = iterator->current_value->next;
 	  if (iterator->current_value)
 	    break;
@@ -543,6 +664,12 @@ initialize_iterators (void)
 				 leading_string_eq_p, 0);
   ints.find_builtin = find_int;
   ints.apply_iterator = apply_int_iterator;
+
+  substs.attrs = htab_create (13, leading_string_hash, leading_string_eq_p, 0);
+  substs.iterators = htab_create (13, leading_string_hash,
+				 leading_string_eq_p, 0);
+  substs.find_builtin = find_int; /* We don't use it, anyway.  */
+  substs.apply_iterator = apply_subst_iterator;
 
   lower = add_mapping (&modes, modes.attrs, "mode");
   upper = add_mapping (&modes, modes.attrs, "MODE");
@@ -684,11 +811,8 @@ validate_const_int (const char *string)
 static void
 record_iterator_use (struct mapping *iterator, void *ptr)
 {
-  struct iterator_use *iuse;
-
-  iuse = VEC_safe_push (iterator_use, heap, iterator_uses, NULL);
-  iuse->iterator = iterator;
-  iuse->ptr = ptr;
+  struct iterator_use iuse = {iterator, ptr};
+  iterator_uses.safe_push (iuse);
 }
 
 /* Record that PTR uses attribute VALUE, which must match a built-in
@@ -698,12 +822,8 @@ static void
 record_attribute_use (struct iterator_group *group, void *ptr,
 		      const char *value)
 {
-  struct attribute_use *ause;
-
-  ause = VEC_safe_push (attribute_use, heap, attribute_uses, NULL);
-  ause->group = group;
-  ause->value = value;
-  ause->ptr = ptr;
+  struct attribute_use ause = {group, value, ptr};
+  attribute_uses.safe_push (ause);
 }
 
 /* Interpret NAME as either a built-in value, iterator or attribute
@@ -793,6 +913,94 @@ read_mapping (struct iterator_group *group, htab_t table)
   return m;
 }
 
+/* For iterator with name ATTR_NAME generate define_attr with values
+   'yes' and 'no'.  This attribute is used to mark templates to which
+   define_subst ATTR_NAME should be applied.  This attribute is set and
+   defined implicitly and automatically.  */
+static void
+add_define_attr_for_define_subst (const char *attr_name, rtx *queue)
+{
+  rtx const_str, return_rtx;
+
+  return_rtx = rtx_alloc (DEFINE_ATTR);
+  PUT_CODE (return_rtx, DEFINE_ATTR);
+
+  const_str = rtx_alloc (CONST_STRING);
+  PUT_CODE (const_str, CONST_STRING);
+  XSTR (const_str, 0) = xstrdup ("no");
+
+  XSTR (return_rtx, 0) = xstrdup (attr_name);
+  XSTR (return_rtx, 1) = xstrdup ("no,yes");
+  XEXP (return_rtx, 2) = const_str;
+
+  XEXP (*queue, 0) = return_rtx;
+  XEXP (*queue, 1) = NULL_RTX;
+}
+
+/* This routine generates DEFINE_SUBST_ATTR expression with operands
+   ATTR_OPERANDS and places it to QUEUE.  */
+static void
+add_define_subst_attr (const char **attr_operands, rtx *queue)
+{
+  rtx return_rtx;
+  int i;
+
+  return_rtx = rtx_alloc (DEFINE_SUBST_ATTR);
+  PUT_CODE (return_rtx, DEFINE_SUBST_ATTR);
+
+  for (i = 0; i < 4; i++)
+    XSTR (return_rtx, i) = xstrdup (attr_operands[i]);
+
+  XEXP (*queue, 0) = return_rtx;
+  XEXP (*queue, 1) = NULL_RTX;
+}
+
+/* Read define_subst_attribute construction.  It has next form:
+	(define_subst_attribute <attribute_name> <iterator_name> <value1> <value2>)
+   Attribute is substituted with value1 when no subst is applied and with
+   value2 in the opposite case.
+   Attributes are added to SUBST_ATTRS_TABLE.
+   In case the iterator is encountered for the first time, it's added to
+   SUBST_ITERS_TABLE.  Also, implicit define_attr is generated.  */
+
+static void
+read_subst_mapping (htab_t subst_iters_table, htab_t subst_attrs_table,
+		    rtx *queue)
+{
+  struct mapping *m;
+  struct map_value **end_ptr;
+  const char *attr_operands[4];
+  rtx * queue_elem = queue;
+  int i;
+
+  for (i = 0; i < 4; i++)
+    attr_operands[i] = read_string (false);
+
+  add_define_subst_attr (attr_operands, queue_elem);
+
+  bind_subst_iter_and_attr (attr_operands[1], attr_operands[0]);
+
+  m = (struct mapping *) htab_find (substs.iterators, &attr_operands[1]);
+  if (!m)
+    {
+      m = add_mapping (&substs, subst_iters_table, attr_operands[1]);
+      end_ptr = &m->values;
+      end_ptr = add_map_value (end_ptr, 1, "");
+      end_ptr = add_map_value (end_ptr, 2, "");
+
+      /* Add element to the queue.  */
+      XEXP (*queue, 1) = rtx_alloc (EXPR_LIST);
+      queue_elem = &XEXP (*queue, 1);
+
+      add_define_attr_for_define_subst (attr_operands[1], queue_elem);
+    }
+
+  m = add_mapping (&substs, subst_attrs_table, attr_operands[0]);
+  end_ptr = &m->values;
+  end_ptr = add_map_value (end_ptr, 1, attr_operands[2]);
+  end_ptr = add_map_value (end_ptr, 2, attr_operands[3]);
+}
+
 /* Check newly-created code iterator ITERATOR to see whether every code has the
    same format.  */
 
@@ -863,10 +1071,19 @@ read_rtx (const char *rtx_name, rtx *x)
       read_mapping (&ints, ints.iterators);
       return false;
     }
+  if (strcmp (rtx_name, "define_subst_attr") == 0)
+    {
+      read_subst_mapping (substs.iterators, substs.attrs, &queue_head);
+      *x = queue_head;
+
+      /* READ_SUBST_MAPPING could generate a new DEFINE_ATTR.  Return
+	 TRUE to process it.  */
+      return true;
+    }
 
   apply_iterators (read_rtx_code (rtx_name), &queue_head);
-  VEC_truncate (iterator_use, iterator_uses, 0);
-  VEC_truncate (attribute_use, attribute_uses, 0);
+  iterator_uses.truncate (0);
+  attribute_uses.truncate (0);
 
   *x = queue_head;
   return true;
@@ -881,12 +1098,15 @@ read_rtx_code (const char *code_name)
 {
   int i;
   RTX_CODE code;
-  struct mapping *iterator;
+  struct mapping *iterator, *m;
   const char *format_ptr;
   struct md_name name;
   rtx return_rtx;
   int c;
   HOST_WIDE_INT tmp_wide;
+  char *str;
+  char *start, *end, *ptr;
+  char tmpstr[256];
 
   /* Linked list structure for making RTXs: */
   struct rtx_list
@@ -1029,6 +1249,34 @@ read_rtx_code (const char *code_name)
 	      sprintf (line_name, ":%d", read_md_lineno);
 	      obstack_grow (&string_obstack, line_name, strlen (line_name)+1);
 	      stringbuf = XOBFINISH (&string_obstack, char *);
+	    }
+
+	  /* Find attr-names in the string.  */
+	  ptr = &tmpstr[0];
+	  end = stringbuf;
+	  while ((start = strchr (end, '<')) && (end  = strchr (start, '>')))
+	    {
+	      if ((end - start - 1 > 0)
+		  && (end - start - 1 < (int)sizeof (tmpstr)))
+		{
+		  strncpy (tmpstr, start+1, end-start-1);
+		  tmpstr[end-start-1] = 0;
+		  end++;
+		}
+	      else
+		break;
+	      m = (struct mapping *) htab_find (substs.attrs, &ptr);
+	      if (m != 0)
+		{
+		  /* Here we should find linked subst-iter.  */
+		  str = find_subst_iter_by_attr (ptr);
+		  if (str)
+		    m = (struct mapping *) htab_find (substs.iterators, &str);
+		  else
+		    m = 0;
+		}
+	      if (m != 0)
+		record_iterator_use (m, return_rtx);
 	    }
 
 	  if (star_if_braced)

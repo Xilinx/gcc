@@ -1,7 +1,6 @@
 /* Header file for intrinsics check, resolve and simplify function
    prototypes.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 2000-2013 Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
 This file is part of GCC.
@@ -144,6 +143,11 @@ gfc_try gfc_check_size (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_try gfc_check_sign (gfc_expr *, gfc_expr *);
 gfc_try gfc_check_signal (gfc_expr *, gfc_expr *);
 gfc_try gfc_check_sizeof (gfc_expr *);
+gfc_try gfc_check_c_associated (gfc_expr *, gfc_expr *);
+gfc_try gfc_check_c_f_pointer (gfc_expr *, gfc_expr *, gfc_expr *);
+gfc_try gfc_check_c_f_procpointer (gfc_expr *, gfc_expr *);
+gfc_try gfc_check_c_funloc (gfc_expr *);
+gfc_try gfc_check_c_loc (gfc_expr *);
 gfc_try gfc_check_c_sizeof (gfc_expr *);
 gfc_try gfc_check_sngl (gfc_expr *);
 gfc_try gfc_check_spread (gfc_expr *, gfc_expr *, gfc_expr *);
@@ -372,6 +376,8 @@ gfc_expr *gfc_simplify_shiftr (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_sin (gfc_expr *);
 gfc_expr *gfc_simplify_sinh (gfc_expr *);
 gfc_expr *gfc_simplify_size (gfc_expr *, gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_sizeof (gfc_expr *);
+gfc_expr *gfc_simplify_storage_size (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_sngl (gfc_expr *);
 gfc_expr *gfc_simplify_spacing (gfc_expr *);
 gfc_expr *gfc_simplify_spread (gfc_expr *, gfc_expr *, gfc_expr *);
@@ -422,6 +428,8 @@ void gfc_resolve_atomic_ref (gfc_code *);
 void gfc_resolve_besn (gfc_expr *, gfc_expr *, gfc_expr *);
 void gfc_resolve_bessel_n2 (gfc_expr *, gfc_expr *, gfc_expr *, gfc_expr *a);
 void gfc_resolve_btest (gfc_expr *, gfc_expr *, gfc_expr *);
+void gfc_resolve_c_loc (gfc_expr *, gfc_expr *);
+void gfc_resolve_c_funloc (gfc_expr *, gfc_expr *);
 void gfc_resolve_ceiling (gfc_expr *, gfc_expr *, gfc_expr *);
 void gfc_resolve_char (gfc_expr *, gfc_expr *, gfc_expr *);
 void gfc_resolve_chdir (gfc_expr *, gfc_expr *);
@@ -546,6 +554,7 @@ void gfc_resolve_signal (gfc_expr *, gfc_expr *, gfc_expr *);
 void gfc_resolve_sin (gfc_expr *, gfc_expr *);
 void gfc_resolve_sinh (gfc_expr *, gfc_expr *);
 void gfc_resolve_size (gfc_expr *, gfc_expr *, gfc_expr *, gfc_expr *);
+void gfc_resolve_stride (gfc_expr *, gfc_expr *, gfc_expr *);
 void gfc_resolve_spacing (gfc_expr *, gfc_expr *);
 void gfc_resolve_spread (gfc_expr *, gfc_expr *, gfc_expr *, gfc_expr *);
 void gfc_resolve_sqrt (gfc_expr *, gfc_expr *);

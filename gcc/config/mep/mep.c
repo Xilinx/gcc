@@ -1,7 +1,5 @@
 /* Definitions for Toshiba Media Processor
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2001-2013 Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
 This file is part of GCC.
@@ -212,7 +210,7 @@ static int mep_sched_reorder (FILE *, int, rtx *, int *, int);
 static rtx mep_make_bundle (rtx, rtx);
 static void mep_bundle_insns (rtx);
 static bool mep_rtx_cost (rtx, int, int, int, int *, bool);
-static int mep_address_cost (rtx, bool);
+static int mep_address_cost (rtx, enum machine_mode, addr_space_t, bool);
 static void mep_setup_incoming_varargs (cumulative_args_t, enum machine_mode,
 					tree, int *, int);
 static bool mep_pass_by_reference (cumulative_args_t cum, enum machine_mode,
@@ -300,54 +298,54 @@ mep_option_override (void)
   unsigned int i;
   int j;
   cl_deferred_option *opt;
-  VEC(cl_deferred_option,heap) *vec
-    = (VEC(cl_deferred_option,heap) *) mep_deferred_options;
+  vec<cl_deferred_option> *v = (vec<cl_deferred_option> *) mep_deferred_options;
 
-  FOR_EACH_VEC_ELT (cl_deferred_option, vec, i, opt)
-    {
-      switch (opt->opt_index)
-	{
-	case OPT_mivc2:
-	  for (j = 0; j < 32; j++)
-	    fixed_regs[j + 48] = 0;
-	  for (j = 0; j < 32; j++)
-	    call_used_regs[j + 48] = 1;
-	  for (j = 6; j < 8; j++)
-	    call_used_regs[j + 48] = 0;
+  if (v)
+    FOR_EACH_VEC_ELT (*v, i, opt)
+      {
+	switch (opt->opt_index)
+	  {
+	  case OPT_mivc2:
+	    for (j = 0; j < 32; j++)
+	      fixed_regs[j + 48] = 0;
+	    for (j = 0; j < 32; j++)
+	      call_used_regs[j + 48] = 1;
+	    for (j = 6; j < 8; j++)
+	      call_used_regs[j + 48] = 0;
 
 #define RN(n,s) reg_names[FIRST_CCR_REGNO + n] = s
-	  RN (0, "$csar0");
-	  RN (1, "$cc");
-	  RN (4, "$cofr0");
-	  RN (5, "$cofr1");
-	  RN (6, "$cofa0");
-	  RN (7, "$cofa1");
-	  RN (15, "$csar1");
+	    RN (0, "$csar0");
+	    RN (1, "$cc");
+	    RN (4, "$cofr0");
+	    RN (5, "$cofr1");
+	    RN (6, "$cofa0");
+	    RN (7, "$cofa1");
+	    RN (15, "$csar1");
 
-	  RN (16, "$acc0_0");
-	  RN (17, "$acc0_1");
-	  RN (18, "$acc0_2");
-	  RN (19, "$acc0_3");
-	  RN (20, "$acc0_4");
-	  RN (21, "$acc0_5");
-	  RN (22, "$acc0_6");
-	  RN (23, "$acc0_7");
+	    RN (16, "$acc0_0");
+	    RN (17, "$acc0_1");
+	    RN (18, "$acc0_2");
+	    RN (19, "$acc0_3");
+	    RN (20, "$acc0_4");
+	    RN (21, "$acc0_5");
+	    RN (22, "$acc0_6");
+	    RN (23, "$acc0_7");
 
-	  RN (24, "$acc1_0");
-	  RN (25, "$acc1_1");
-	  RN (26, "$acc1_2");
-	  RN (27, "$acc1_3");
-	  RN (28, "$acc1_4");
-	  RN (29, "$acc1_5");
-	  RN (30, "$acc1_6");
-	  RN (31, "$acc1_7");
+	    RN (24, "$acc1_0");
+	    RN (25, "$acc1_1");
+	    RN (26, "$acc1_2");
+	    RN (27, "$acc1_3");
+	    RN (28, "$acc1_4");
+	    RN (29, "$acc1_5");
+	    RN (30, "$acc1_6");
+	    RN (31, "$acc1_7");
 #undef RN
-	  break;
+	    break;
 
-	default:
-	  gcc_unreachable ();
-	}
-    }
+	  default:
+	    gcc_unreachable ();
+	  }
+      }
 
   if (flag_pic == 1)
     warning (OPT_fpic, "-fpic is not supported");
@@ -595,132 +593,6 @@ mep_regno_reg_class (int regno)
   gcc_assert (regno >= FIRST_SHADOW_REGISTER && regno <= LAST_SHADOW_REGISTER);
   return NO_REGS;
 }
-
-#if 0
-int
-mep_reg_class_from_constraint (int c, const char *str)
-{
-  switch (c)
-    {
-    case 'a':
-      return SP_REGS;
-    case 'b':
-      return TP_REGS;
-    case 'c':
-      return CONTROL_REGS;
-    case 'd':
-      return HILO_REGS;
-    case 'e':
-      {
-	switch (str[1])
-	  {
-	  case 'm':
-	    return LOADABLE_CR_REGS;
-	  case 'x':
-	    return mep_have_copro_copro_moves_p ? CR_REGS : NO_REGS;
-	  case 'r':
-	    return mep_have_core_copro_moves_p ? CR_REGS : NO_REGS;
-	  default:
-	    return NO_REGS;
-	  }
-      }
-    case 'h':
-      return HI_REGS;
-    case 'j':
-      return RPC_REGS;
-    case 'l':
-      return LO_REGS;
-    case 't':
-      return TPREL_REGS;
-    case 'v':
-      return GP_REGS;
-    case 'x':
-      return CR_REGS;
-    case 'y':
-      return CCR_REGS;
-    case 'z':
-      return R0_REGS;
-
-    case 'A':
-    case 'B':
-    case 'C':
-    case 'D':
-      {
-	enum reg_class which = c - 'A' + USER0_REGS;
-	return (reg_class_size[which] > 0 ? which : NO_REGS);
-      }
-
-    default:
-      return NO_REGS;
-    }
-}
-
-bool
-mep_const_ok_for_letter_p (HOST_WIDE_INT value, int c)
-{
-  switch (c)
-    {
-      case 'I': return value >= -32768 && value <      32768;
-      case 'J': return value >=      0 && value <      65536;
-      case 'K': return value >=      0 && value < 0x01000000;
-      case 'L': return value >=    -32 && value <         32;
-      case 'M': return value >=      0 && value <         32;
-      case 'N': return value >=      0 && value <         16;
-      case 'O':
-	if (value & 0xffff)
-	  return false;
-	return value >= -2147483647-1 && value <= 2147483647;
-    default:
-      gcc_unreachable ();
-    }
-}
-
-bool
-mep_extra_constraint (rtx value, int c)
-{
-  encode_pattern (value);
-
-  switch (c)
-    {
-    case 'R':
-      /* For near symbols, like what call uses.  */
-      if (GET_CODE (value) == REG)
-	return 0;
-      return mep_call_address_operand (value, GET_MODE (value));
-
-    case 'S':
-      /* For signed 8-bit immediates.  */
-      return (GET_CODE (value) == CONST_INT
-	      && INTVAL (value) >= -128
-	      && INTVAL (value) <= 127);
-
-    case 'T':
-      /* For tp/gp relative symbol values.  */
-      return (RTX_IS ("u3s") || RTX_IS ("u2s")
-              || RTX_IS ("+u3si") || RTX_IS ("+u2si"));
-
-    case 'U':
-      /* Non-absolute memories.  */
-      return GET_CODE (value) == MEM && ! CONSTANT_P (XEXP (value, 0));
-
-    case 'W':
-      /* %hi(sym) */
-      return RTX_IS ("Hs");
-
-    case 'Y':
-      /* Register indirect.  */
-      return RTX_IS ("mr");
-
-    case 'Z':
-      return mep_section_tag (value) == 'c' && RTX_IS ("ms");
-    }
-
-  return false;
-}
-#endif
-
-#undef PASS
-#undef FAIL
 
 static bool
 const_in_range (rtx x, int minv, int maxv)
@@ -5010,7 +4882,7 @@ mep_reorg_regmove (rtx insns)
 
   if (dump_file)
     for (insn = insns; insn; insn = NEXT_INSN (insn))
-      if (GET_CODE (insn) == INSN)
+      if (NONJUMP_INSN_P (insn))
 	before++;
 
   /* We're looking for (set r2 r1) moves where r1 dies, followed by a
@@ -5024,7 +4896,7 @@ mep_reorg_regmove (rtx insns)
       for (insn = insns; insn; insn = next)
 	{
 	  next = next_nonnote_nondebug_insn (insn);
-	  if (GET_CODE (insn) != INSN)
+	  if (! NONJUMP_INSN_P (insn))
 	    continue;
 	  pat = PATTERN (insn);
 
@@ -5040,7 +4912,7 @@ mep_reorg_regmove (rtx insns)
 	      if (dump_file)
 		fprintf (dump_file, "superfluous moves: considering %d\n", INSN_UID (insn));
 
-	      while (follow && GET_CODE (follow) == INSN
+	      while (follow && NONJUMP_INSN_P (follow)
 		     && GET_CODE (PATTERN (follow)) == SET
 		     && !dead_or_set_p (follow, SET_SRC (pat))
 		     && !mep_mentioned_p (PATTERN (follow), SET_SRC (pat), 0)
@@ -5053,7 +4925,7 @@ mep_reorg_regmove (rtx insns)
 
 	      if (dump_file)
 		fprintf (dump_file, "\tfollow is %d\n", INSN_UID (follow));
-	      if (follow && GET_CODE (follow) == INSN
+	      if (follow && NONJUMP_INSN_P (follow)
 		  && GET_CODE (PATTERN (follow)) == SET
 		  && find_regno_note (follow, REG_DEAD, REGNO (SET_DEST (pat))))
 		{
@@ -5639,7 +5511,6 @@ mep_reorg_erepeat (rtx insns)
 
   for (insn = insns; insn; insn = NEXT_INSN (insn))
     if (JUMP_P (insn)
-	&& ! JUMP_TABLE_DATA_P (insn)
 	&& mep_invertable_branch_p (insn))
       {
 	if (dump_file)
@@ -5651,8 +5522,7 @@ mep_reorg_erepeat (rtx insns)
 	count = simplejump_p (insn) ? 0 : 1;
 	for (prev = PREV_INSN (insn); prev; prev = PREV_INSN (prev))
 	  {
-	    if (GET_CODE (prev) == CALL_INSN
-		|| BARRIER_P (prev))
+	    if (CALL_P (prev) || BARRIER_P (prev))
 	      break;
 
 	    if (prev == JUMP_LABEL (insn))
@@ -5671,10 +5541,10 @@ mep_reorg_erepeat (rtx insns)
 		       *after* the label.  */
 		    rtx barrier;
 		    for (barrier = PREV_INSN (prev);
-			 barrier && GET_CODE (barrier) == NOTE;
+			 barrier && NOTE_P (barrier);
 			 barrier = PREV_INSN (barrier))
 		      ;
-		    if (barrier && GET_CODE (barrier) != BARRIER)
+		    if (barrier && ! BARRIER_P (barrier))
 		      break;
 		  }
 		else
@@ -5718,10 +5588,9 @@ mep_reorg_erepeat (rtx insns)
 		if (LABEL_NUSES (prev) == 1)
 		  {
 		    for (user = PREV_INSN (prev);
-			 user && (INSN_P (user) || GET_CODE (user) == NOTE);
+			 user && (INSN_P (user) || NOTE_P (user));
 			 user = PREV_INSN (user))
-		      if (GET_CODE (user) == JUMP_INSN
-			  && JUMP_LABEL (user) == prev)
+		      if (JUMP_P (user) && JUMP_LABEL (user) == prev)
 			{
 			  safe = INSN_UID (user);
 			  break;
@@ -5759,8 +5628,8 @@ mep_jmp_return_reorg (rtx insns)
       /* Find the fist real insn the jump jumps to.  */
       label = ret = JUMP_LABEL (insn);
       while (ret
-	     && (GET_CODE (ret) == NOTE
-		 || GET_CODE (ret) == CODE_LABEL
+	     && (NOTE_P (ret)
+		 || LABEL_P (ret)
 		 || GET_CODE (PATTERN (ret)) == USE))
 	ret = NEXT_INSN (ret);
 
@@ -6940,9 +6809,9 @@ mep_make_bundle (rtx core, rtx cop)
   /* Derive a location for the bundle.  Individual instructions cannot
      have their own location because there can be no assembler labels
      between CORE and COP.  */
-  INSN_LOCATOR (insn) = INSN_LOCATOR (INSN_LOCATOR (core) ? core : cop);
-  INSN_LOCATOR (core) = 0;
-  INSN_LOCATOR (cop) = 0;
+  INSN_LOCATION (insn) = INSN_LOCATION (INSN_LOCATION (core) ? core : cop);
+  INSN_LOCATION (core) = 0;
+  INSN_LOCATION (cop) = 0;
 
   return insn;
 }
@@ -7039,7 +6908,7 @@ mep_bundle_insns (rtx insns)
 	     whenever the current line changes, set the location info
 	     for INSN to match FIRST.  */
 
-	  INSN_LOCATOR (insn) = INSN_LOCATOR (first);
+	  INSN_LOCATION (insn) = INSN_LOCATION (first);
 
 	  note = PREV_INSN (insn);
 	  while (note && note != first)
@@ -7146,7 +7015,7 @@ mep_bundle_insns (rtx insns)
       if (recog_memoized (insn) >= 0
 	  && get_attr_slot (insn) == SLOT_COP)
 	{
-	  if (GET_CODE (insn) == JUMP_INSN
+	  if (JUMP_P (insn)
 	      || ! last
 	      || recog_memoized (last) < 0
 	      || get_attr_slot (last) != SLOT_CORE
@@ -7278,7 +7147,10 @@ mep_rtx_cost (rtx x, int code, int outer_code ATTRIBUTE_UNUSED,
 }
 
 static int
-mep_address_cost (rtx addr ATTRIBUTE_UNUSED, bool ATTRIBUTE_UNUSED speed_p)
+mep_address_cost (rtx addr ATTRIBUTE_UNUSED,
+		  enum machine_mode mode ATTRIBUTE_UNUSED,
+		  addr_space_t as ATTRIBUTE_UNUSED,
+		  bool ATTRIBUTE_UNUSED speed_p)
 {
   return 1;
 }

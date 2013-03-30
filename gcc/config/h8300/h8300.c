@@ -1,7 +1,5 @@
 /* Subroutines for insn-output.c for Renesas H8/300.
-   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 1992-2013 Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com),
    Jim Wilson (wilson@cygnus.com), and Doug Evans (dje@cygnus.com).
 
@@ -1244,7 +1242,7 @@ h8300_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
 	    *total = 0;
 	    return true;
 	  }
-	if (-4 <= n || n <= 4)
+	if (-4 <= n && n <= 4)
 	  {
 	    switch ((int) n)
 	      {
@@ -2166,7 +2164,8 @@ h8300_get_index (rtx x, enum machine_mode mode, int *size)
    (the amount of decrement or increment being the length of the operand).  */
 
 static bool
-h8300_mode_dependent_address_p (const_rtx addr)
+h8300_mode_dependent_address_p (const_rtx addr,
+				addr_space_t as ATTRIBUTE_UNUSED)
 {
   if (GET_CODE (addr) == PLUS
       && h8300_get_index (XEXP (addr, 0), VOIDmode, 0) != XEXP (addr, 0))

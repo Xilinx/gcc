@@ -1,7 +1,5 @@
 /* Perform simple optimizations to clean up the result of reload.
-   Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -48,8 +46,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "dbgcnt.h"
 
 static int reload_cse_noop_set_p (rtx);
-static void reload_cse_simplify (rtx, rtx);
-static void reload_cse_regs_1 (rtx);
+static bool reload_cse_simplify (rtx, rtx);
+static void reload_cse_regs_1 (void);
 static int reload_cse_simplify_set (rtx, rtx);
 static int reload_cse_simplify_operands (rtx, rtx);
 
@@ -67,14 +65,14 @@ static void
 reload_cse_regs (rtx first ATTRIBUTE_UNUSED)
 {
   bool moves_converted;
-  reload_cse_regs_1 (first);
+  reload_cse_regs_1 ();
   reload_combine ();
   moves_converted = reload_cse_move2add (first);
   if (flag_expensive_optimizations)
     {
       if (moves_converted)
 	reload_combine ();
-      reload_cse_regs_1 (first);
+      reload_cse_regs_1 ();
     }
 }
 
@@ -88,11 +86,13 @@ reload_cse_noop_set_p (rtx set)
   return rtx_equal_for_cselib_p (SET_DEST (set), SET_SRC (set));
 }
 
-/* Try to simplify INSN.  */
-static void
+/* Try to simplify INSN.  Return true if the CFG may have changed.  */
+static bool
 reload_cse_simplify (rtx insn, rtx testreg)
 {
   rtx body = PATTERN (insn);
+  basic_block insn_bb = BLOCK_FOR_INSN (insn);
+  unsigned insn_bb_succs = EDGE_COUNT (insn_bb->succs);
 
   if (GET_CODE (body) == SET)
     {
@@ -113,7 +113,8 @@ reload_cse_simplify (rtx insn, rtx testreg)
 	    value = 0;
 	  if (check_for_inc_dec (insn))
 	    delete_insn_and_edges (insn);
-	  return;
+	  /* We're done with this insn.  */
+	  goto done;
 	}
 
       if (count > 0)
@@ -166,7 +167,7 @@ reload_cse_simplify (rtx insn, rtx testreg)
 	  if (check_for_inc_dec (insn))
 	    delete_insn_and_edges (insn);
 	  /* We're done with this insn.  */
-	  return;
+	  goto done;
 	}
 
       /* It's not a no-op, but we can try to simplify it.  */
@@ -179,6 +180,9 @@ reload_cse_simplify (rtx insn, rtx testreg)
       else
 	reload_cse_simplify_operands (insn, testreg);
     }
+
+done:
+  return (EDGE_COUNT (insn_bb->succs) != insn_bb_succs);
 }
 
 /* Do a very simple CSE pass over the hard registers.
@@ -199,25 +203,30 @@ reload_cse_simplify (rtx insn, rtx testreg)
    if possible, much like an optional reload would.  */
 
 static void
-reload_cse_regs_1 (rtx first)
+reload_cse_regs_1 (void)
 {
+  bool cfg_changed = false;
+  basic_block bb;
   rtx insn;
   rtx testreg = gen_rtx_REG (VOIDmode, -1);
 
   cselib_init (CSELIB_RECORD_MEMORY);
   init_alias_analysis ();
 
-  for (insn = first; insn; insn = NEXT_INSN (insn))
-    {
-      if (INSN_P (insn))
-	reload_cse_simplify (insn, testreg);
+  FOR_EACH_BB (bb)
+    FOR_BB_INSNS (bb, insn)
+      {
+	if (INSN_P (insn))
+	  cfg_changed |= reload_cse_simplify (insn, testreg);
 
-      cselib_process_insn (insn);
-    }
+	cselib_process_insn (insn);
+      }
 
   /* Clean up.  */
   end_alias_analysis ();
   cselib_finish ();
+  if (cfg_changed)
+    cleanup_cfg (0);
 }
 
 /* Try to simplify a single SET instruction.  SET is the set pattern.
@@ -1378,7 +1387,7 @@ reload_combine (void)
 	     }
 	}
 
-      if (control_flow_insn && GET_CODE (PATTERN (insn)) != RETURN)
+      if (control_flow_insn && !ANY_RETURN_P (PATTERN (insn)))
 	{
 	  /* Non-spill registers might be used at the call destination in
 	     some unknown fashion, so we have to mark the unknown use.  */
@@ -1386,13 +1395,19 @@ reload_combine (void)
 
 	  if ((condjump_p (insn) || condjump_in_parallel_p (insn))
 	      && JUMP_LABEL (insn))
-	    live = &LABEL_LIVE (JUMP_LABEL (insn));
+	    {
+	      if (ANY_RETURN_P (JUMP_LABEL (insn)))
+		live = NULL;
+	      else
+		live = &LABEL_LIVE (JUMP_LABEL (insn));
+	    }
 	  else
 	    live = &ever_live_at_start;
 
-	  for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
-	    if (TEST_HARD_REG_BIT (*live, r))
-	      reg_state[r].use_index = -1;
+	  if (live)
+	    for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
+	      if (TEST_HARD_REG_BIT (*live, r))
+		reg_state[r].use_index = -1;
 	}
 
       reload_combine_note_use (&PATTERN (insn), insn, reload_combine_ruid,
@@ -2278,8 +2293,9 @@ rest_of_handle_postreload (void)
   reload_cse_regs (get_insns ());
   /* Reload_cse_regs can eliminate potentially-trapping MEMs.
      Remove any EH edges associated with them.  */
-  if (cfun->can_throw_non_call_exceptions)
-    purge_all_dead_edges ();
+  if (cfun->can_throw_non_call_exceptions
+      && purge_all_dead_edges ())
+    cleanup_cfg (0);
 
   return 0;
 }
@@ -2289,6 +2305,7 @@ struct rtl_opt_pass pass_postreload_cse =
  {
   RTL_PASS,
   "postreload",                         /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_postreload,               /* gate */
   rest_of_handle_postreload,            /* execute */
   NULL,                                 /* sub */

@@ -1,6 +1,5 @@
 /* Parse tree dumper
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2003-2013 Free Software Foundation, Inc.
    Contributed by Steven Bosscher
 
 This file is part of GCC.
@@ -569,7 +568,7 @@ show_expr (gfc_expr *p)
       if (p->value.function.name == NULL)
 	{
 	  fprintf (dumpfile, "%s", p->symtree->n.sym->name);
-	  if (gfc_is_proc_ptr_comp (p, NULL))
+	  if (gfc_is_proc_ptr_comp (p))
 	    show_ref (p->ref);
 	  fputc ('[', dumpfile);
 	  show_actual_arglist (p->value.function.actual);
@@ -578,7 +577,7 @@ show_expr (gfc_expr *p)
       else
 	{
 	  fprintf (dumpfile, "%s", p->value.function.name);
-	  if (gfc_is_proc_ptr_comp (p, NULL))
+	  if (gfc_is_proc_ptr_comp (p))
 	    show_ref (p->ref);
 	  fputc ('[', dumpfile);
 	  fputc ('[', dumpfile);
@@ -613,6 +612,8 @@ show_attr (symbol_attribute *attr, const char * module)
   if (attr->save != SAVE_NONE)
     fprintf (dumpfile, "%s", gfc_code2string (save_status, attr->save));
 
+  if (attr->artificial)
+    fputs (" ARTIFICIAL", dumpfile);
   if (attr->allocatable)
     fputs (" ALLOCATABLE", dumpfile);
   if (attr->asynchronous)
@@ -788,7 +789,7 @@ show_f2k_derived (gfc_namespace* f2k)
   for (f = f2k->finalizers; f; f = f->next)
     {
       show_indent ();
-      fprintf (dumpfile, "FINAL %s", f->proc_sym->name);
+      fprintf (dumpfile, "FINAL %s", f->proc_tree->n.sym->name);
     }
 
   /* Type-bound procedures.  */
@@ -2246,67 +2247,63 @@ show_namespace (gfc_namespace *ns)
   gfc_equiv *eq;
   int i;
 
+  gcc_assert (ns);
   save = gfc_current_ns;
 
   show_indent ();
   fputs ("Namespace:", dumpfile);
 
-  if (ns != NULL)
+  i = 0;
+  do
     {
-      i = 0;
-      do
-	{
-	  int l = i;
-	  while (i < GFC_LETTERS - 1
-		 && gfc_compare_types(&ns->default_type[i+1],
-				      &ns->default_type[l]))
-	    i++;
+      int l = i;
+      while (i < GFC_LETTERS - 1
+	     && gfc_compare_types (&ns->default_type[i+1],
+				   &ns->default_type[l]))
+	i++;
 
-	  if (i > l)
-	    fprintf (dumpfile, " %c-%c: ", l+'A', i+'A');
-	  else
-	    fprintf (dumpfile, " %c: ", l+'A');
+      if (i > l)
+	fprintf (dumpfile, " %c-%c: ", l+'A', i+'A');
+      else
+	fprintf (dumpfile, " %c: ", l+'A');
 
-	  show_typespec(&ns->default_type[l]);
-	  i++;
-      } while (i < GFC_LETTERS);
+      show_typespec(&ns->default_type[l]);
+      i++;
+    } while (i < GFC_LETTERS);
 
-      if (ns->proc_name != NULL)
-	{
-	  show_indent ();
-	  fprintf (dumpfile, "procedure name = %s", ns->proc_name->name);
-	}
-
-      ++show_level;
-      gfc_current_ns = ns;
-      gfc_traverse_symtree (ns->common_root, show_common);
-
-      gfc_traverse_symtree (ns->sym_root, show_symtree);
-
-      for (op = GFC_INTRINSIC_BEGIN; op != GFC_INTRINSIC_END; op++)
-	{
-	  /* User operator interfaces */
-	  intr = ns->op[op];
-	  if (intr == NULL)
-	    continue;
-
-	  show_indent ();
-	  fprintf (dumpfile, "Operator interfaces for %s:",
-		   gfc_op2string ((gfc_intrinsic_op) op));
-
-	  for (; intr; intr = intr->next)
-	    fprintf (dumpfile, " %s", intr->sym->name);
-	}
-
-      if (ns->uop_root != NULL)
-	{
-	  show_indent ();
-	  fputs ("User operators:\n", dumpfile);
-	  gfc_traverse_user_op (ns, show_uop);
-	}
+  if (ns->proc_name != NULL)
+    {
+      show_indent ();
+      fprintf (dumpfile, "procedure name = %s", ns->proc_name->name);
     }
-  else
-    ++show_level;
+
+  ++show_level;
+  gfc_current_ns = ns;
+  gfc_traverse_symtree (ns->common_root, show_common);
+
+  gfc_traverse_symtree (ns->sym_root, show_symtree);
+
+  for (op = GFC_INTRINSIC_BEGIN; op != GFC_INTRINSIC_END; op++)
+    {
+      /* User operator interfaces */
+      intr = ns->op[op];
+      if (intr == NULL)
+	continue;
+
+      show_indent ();
+      fprintf (dumpfile, "Operator interfaces for %s:",
+	       gfc_op2string ((gfc_intrinsic_op) op));
+
+      for (; intr; intr = intr->next)
+	fprintf (dumpfile, " %s", intr->sym->name);
+    }
+
+  if (ns->uop_root != NULL)
+    {
+      show_indent ();
+      fputs ("User operators:\n", dumpfile);
+      gfc_traverse_user_op (ns, show_uop);
+    }
   
   for (eq = ns->equiv; eq; eq = eq->next)
     show_equiv (eq);

@@ -1,6 +1,5 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2003-2013 Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
 This file is part of GCC.
@@ -39,7 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Return varpool node assigned to DECL.  Create new one when needed.  */
 struct varpool_node *
-varpool_node (tree decl)
+varpool_node_for_decl (tree decl)
 {
   struct varpool_node *node = varpool_get_node (decl);
   gcc_assert (TREE_CODE (decl) == VAR_DECL
@@ -63,9 +62,8 @@ varpool_remove_node (struct varpool_node *node)
       && !DECL_IN_CONSTANT_POOL (node->symbol.decl)
       /* Keep vtables for BINFO folding.  */
       && !DECL_VIRTUAL_P (node->symbol.decl)
-      /* dbxout output constant initializers for readonly vars.  */
-      && (!host_integerp (DECL_INITIAL (node->symbol.decl), 0)
-	  || !TREE_READONLY (node->symbol.decl)))
+      /* FIXME: http://gcc.gnu.org/PR55395 */
+      && debug_info_level == DINFO_LEVEL_NONE)
     DECL_INITIAL (node->symbol.decl) = error_mark_node;
   ggc_free (node);
 }
@@ -114,9 +112,9 @@ debug_varpool (void)
 struct varpool_node *
 varpool_node_for_asm (tree asmname)
 {
-  symtab_node node = symtab_node_for_asm (asmname);
-  if (node && symtab_variable_p (node))
-    return varpool (node);
+  if (symtab_node node = symtab_node_for_asm (asmname))
+    if (varpool_node *vnode = dyn_cast <varpool_node> (node))
+      return vnode;
   return NULL;
 }
 
@@ -192,7 +190,7 @@ varpool_add_new_variable (tree decl)
 {
   struct varpool_node *node;
   varpool_finalize_decl (decl);
-  node = varpool_node (decl);
+  node = varpool_node_for_decl (decl);
   if (varpool_externally_visible_p (node, false))
     node->symbol.externally_visible = true;
 }
@@ -232,7 +230,7 @@ varpool_analyze_node (struct varpool_node *node)
     }
   if (node->alias && node->alias_of)
     {
-      struct varpool_node *tgt = varpool_node (node->alias_of);
+      struct varpool_node *tgt = varpool_node_for_decl (node->alias_of);
       struct varpool_node *n;
 
       for (n = tgt; n && n->alias;
@@ -243,7 +241,7 @@ varpool_analyze_node (struct varpool_node *node)
 	    node->alias = false;
 	    continue;
 	  }
-      if (!VEC_length (ipa_ref_t, node->symbol.ref_list.references))
+      if (!vec_safe_length (node->symbol.ref_list.references))
 	ipa_record_reference ((symtab_node)node, (symtab_node)tgt, IPA_REF_ALIAS, NULL);
       if (node->extra_name_alias)
 	{
@@ -301,6 +299,10 @@ varpool_assemble_decl (struct varpool_node *node)
       && !targetm.have_tls)
     return false;
 
+  /* Hard register vars do not need to be output.  */
+  if (DECL_HARD_REGISTER (decl))
+    return false;
+
   gcc_checking_assert (!TREE_ASM_WRITTEN (decl)
 		       && TREE_CODE (decl) == VAR_DECL
 		       && !DECL_HAS_VALUE_EXPR_P (decl));
@@ -355,8 +357,7 @@ varpool_remove_unreferenced_decls (void)
 	  && (!varpool_can_remove_if_no_refs (node)
 	      /* We just expanded all function bodies.  See if any of
 		 them needed the variable.  */
-	      || (!DECL_EXTERNAL (node->symbol.decl)
-		  && DECL_RTL_SET_P (node->symbol.decl))))
+	      || DECL_RTL_SET_P (node->symbol.decl)))
 	{
 	  enqueue_node (node, &first);
           if (cgraph_dump_file)
@@ -374,16 +375,21 @@ varpool_remove_unreferenced_decls (void)
 	  for (next = node->symbol.same_comdat_group;
 	       next != (symtab_node)node;
 	       next = next->symbol.same_comdat_group)
-	    if (symtab_variable_p (next)
-		&& varpool (next)->analyzed)
-	      enqueue_node (varpool (next), &first);
+	    {
+	      varpool_node *vnext = dyn_cast <varpool_node> (next);
+	      if (vnext && vnext->analyzed)
+		enqueue_node (vnext, &first);
+	    }
 	}
       for (i = 0; ipa_ref_list_reference_iterate (&node->symbol.ref_list, i, ref); i++)
-	if (symtab_variable_p (ref->referred)
-	    && (!DECL_EXTERNAL (ref->referred->symbol.decl)
-		|| varpool (ref->referred)->alias)
-	    && varpool (ref->referred)->analyzed)
-	  enqueue_node (varpool (ref->referred), &first);
+	{
+	  varpool_node *vnode = dyn_cast <varpool_node> (ref->referred);
+	  if (vnode
+	      && (!DECL_EXTERNAL (ref->referred->symbol.decl)
+		  || vnode->alias)
+	      && vnode->analyzed)
+	    enqueue_node (vnode, &first);
+	}
     }
   if (cgraph_dump_file)
     fprintf (cgraph_dump_file, "\nRemoving variables:");
@@ -457,7 +463,7 @@ add_new_static_var (tree type)
   DECL_CONTEXT (new_decl) = NULL_TREE;
   DECL_ABSTRACT (new_decl) = 0;
   lang_hooks.dup_lang_specific_decl (new_decl);
-  new_node = varpool_node (new_decl);
+  new_node = varpool_node_for_decl (new_decl);
   varpool_finalize_decl (new_decl);
 
   return new_node->symbol.decl;
@@ -473,7 +479,7 @@ varpool_create_variable_alias (tree alias, tree decl)
 
   gcc_assert (TREE_CODE (decl) == VAR_DECL);
   gcc_assert (TREE_CODE (alias) == VAR_DECL);
-  alias_node = varpool_node (alias);
+  alias_node = varpool_node_for_decl (alias);
   alias_node->alias = 1;
   alias_node->finalized = 1;
   alias_node->alias_of = decl;

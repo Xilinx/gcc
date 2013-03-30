@@ -46,6 +46,14 @@ package Sem_Ch13 is
    --  order is specified and there is at least one component clause. Adjusts
    --  component positions according to either Ada 95 or Ada 2005 (AI-133).
 
+   function Build_Invariant_Procedure_Declaration
+     (Typ : Entity_Id) return Node_Id;
+   --  If a type declaration has a specified invariant aspect, build the
+   --  declaration for the procedure at once, so that calls to it can be
+   --  generated before the body of the invariant procedure is built. This
+   --  is needed in the presence of public expression functions that return
+   --  the type in question.
+
    procedure Build_Invariant_Procedure (Typ : Entity_Id; N : Node_Id);
    --  Typ is a private type with invariants (indicated by Has_Invariants being
    --  set for Typ, indicating the presence of pragma Invariant entries on the
@@ -310,4 +318,8 @@ package Sem_Ch13 is
    --  Performs the processing described above at the freeze all point, and
    --  issues appropriate error messages if the visibility has indeed changed.
    --  Again, ASN is the N_Aspect_Specification node for the aspect.
+
+   procedure Inherit_Aspects_At_Freeze_Point (Typ : Entity_Id);
+   --  Given an entity Typ that denotes a derived type or a subtype, this
+   --  routine performs the inheritance of aspects at the freeze point.
 end Sem_Ch13;

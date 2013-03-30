@@ -1,7 +1,6 @@
 // Compatibility symbols for previous versions -*- C++ -*-
 
-// Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
-// Free Software Foundation, Inc.
+// Copyright (C) 2005-2013 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -25,7 +24,7 @@
 
 #include <bits/c++config.h>
 
-#if defined(_GLIBCXX_SYMVER_GNU) && defined(PIC) \
+#if defined(_GLIBCXX_SYMVER_GNU) && defined(_GLIBCXX_SHARED) \
     && defined(_GLIBCXX_HAVE_AS_SYMVER_DIRECTIVE)\
     && defined(_GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT)
 #define istreambuf_iterator istreambuf_iteratorXX
@@ -204,7 +203,7 @@ _GLIBCXX_END_NAMESPACE_VERSION
 
 // NB: These symbols renames should go into the shared library only,
 // and only those shared libraries that support versioning.
-#if defined(_GLIBCXX_SYMVER_GNU) && defined(PIC) \
+#if defined(_GLIBCXX_SYMVER_GNU) && defined(_GLIBCXX_SHARED) \
     && defined(_GLIBCXX_HAVE_AS_SYMVER_DIRECTIVE) \
     && defined(_GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT)
 
@@ -529,7 +528,7 @@ extern __attribute__((used, weak)) const void * const _ZTIPKe[4]
 #endif // _GLIBCXX_LONG_DOUBLE_COMPAT
 
 #ifdef _GLIBCXX_SYMVER_DARWIN
-#if (defined(__ppc__) || defined(__ppc64__)) && defined(PIC)
+#if (defined(__ppc__) || defined(__ppc64__)) && defined(_GLIBCXX_SHARED)
 /* __eprintf shouldn't have been made visible from libstdc++, or
    anywhere, but on Mac OS X 10.4 it was defined in
    libstdc++.6.0.3.dylib; so on that platform we have to keep defining

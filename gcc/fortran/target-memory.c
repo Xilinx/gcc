@@ -1,6 +1,5 @@
 /* Simulate storage of variables into target memory.
-   Copyright (C) 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2007-2013 Free Software Foundation, Inc.
    Contributed by Paul Thomas and Brooks Moses
 
 This file is part of GCC.
@@ -121,13 +120,17 @@ gfc_target_expr_size (gfc_expr *e)
     case BT_HOLLERITH:
       return e->representation.length;
     case BT_DERIVED:
+    case BT_CLASS:
       {
 	/* Determine type size without clobbering the typespec for ISO C
 	   binding types.  */
 	gfc_typespec ts;
+	HOST_WIDE_INT size;
 	ts = e->ts;
 	type = gfc_typenode_for_spec (&ts);
-	return int_size_in_bytes (type);
+	size = int_size_in_bytes (type);
+	gcc_assert (size >= 0);
+	return size;
       }
     default:
       gfc_internal_error ("Invalid expression in gfc_target_expr_size.");
@@ -140,7 +143,7 @@ gfc_target_expr_size (gfc_expr *e)
    return the number of bytes of the buffer that have been
    used.  */
 
-static int
+static unsigned HOST_WIDE_INT
 encode_array (gfc_expr *expr, unsigned char *buffer, size_t buffer_size)
 {
   mpz_t array_size;
@@ -217,13 +220,14 @@ gfc_encode_character (int kind, int length, const gfc_char_t *string,
 }
 
 
-static int
+static unsigned HOST_WIDE_INT
 encode_derived (gfc_expr *source, unsigned char *buffer, size_t buffer_size)
 {
   gfc_constructor *c;
   gfc_component *cmp;
   int ptr;
   tree type;
+  HOST_WIDE_INT size;
 
   type = gfc_typenode_for_spec (&source->ts);
 
@@ -239,19 +243,24 @@ encode_derived (gfc_expr *source, unsigned char *buffer, size_t buffer_size)
 	    + TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(cmp->backend_decl))/8;
 
       if (c->expr->expr_type == EXPR_NULL)
- 	memset (&buffer[ptr], 0,
-		int_size_in_bytes (TREE_TYPE (cmp->backend_decl)));
+	{
+	  size = int_size_in_bytes (TREE_TYPE (cmp->backend_decl));
+	  gcc_assert (size >= 0);
+	  memset (&buffer[ptr], 0, size);
+	}
       else
 	gfc_target_encode_expr (c->expr, &buffer[ptr],
 				buffer_size - ptr);
     }
 
-  return int_size_in_bytes (type);
+  size = int_size_in_bytes (type);
+  gcc_assert (size >= 0);
+  return size;
 }
 
 
 /* Write a constant expression in binary form to a buffer.  */
-int
+unsigned HOST_WIDE_INT
 gfc_target_encode_expr (gfc_expr *source, unsigned char *buffer,
 			size_t buffer_size)
 {
@@ -307,6 +316,17 @@ gfc_target_encode_expr (gfc_expr *source, unsigned char *buffer,
 	}
 
     case BT_DERIVED:
+      if (source->ts.u.derived->ts.f90_type == BT_VOID)
+	{
+	  gfc_constructor *c;
+	  gcc_assert (source->expr_type == EXPR_STRUCTURE);
+	  c = gfc_constructor_first (source->value.constructor);
+	  gcc_assert (c->expr->expr_type == EXPR_CONSTANT
+		      && c->expr->ts.type == BT_INTEGER);
+	  return encode_integer (gfc_index_integer_kind, c->expr->value.integer,
+				 buffer, buffer_size);
+	}
+
       return encode_derived (source, buffer, buffer_size);
     default:
       gfc_internal_error ("Invalid expression in gfc_target_encode_expr.");
@@ -395,8 +415,7 @@ gfc_interpret_logical (int kind, unsigned char *buffer, size_t buffer_size,
 {
   tree t = native_interpret_expr (gfc_get_logical_type (kind), buffer,
 				  buffer_size);
-  *logical = double_int_zero_p (tree_to_double_int (t))
-	     ? 0 : 1;
+  *logical = tree_to_double_int (t).is_zero () ? 0 : 1;
   return size_logical (kind);
 }
 
@@ -564,9 +583,13 @@ gfc_target_interpret_expr (unsigned char *buffer, size_t buffer_size,
         gfc_interpret_character (buffer, buffer_size, result);
       break;
 
+    case BT_CLASS:
+      result->ts = CLASS_DATA (result)->ts;
+      /* Fall through.  */
     case BT_DERIVED:
       result->representation.length = 
         gfc_interpret_derived (buffer, buffer_size, result);
+      gcc_assert (result->representation.length >= 0);
       break;
 
     default:
@@ -678,7 +701,7 @@ gfc_merge_initializers (gfc_typespec ts, gfc_expr *e, unsigned char *data,
 	{
 	  size_t elt_size = gfc_target_expr_size (c->expr);
 
-	  if (c->offset)
+	  if (mpz_cmp_si (c->offset, 0) != 0)
 	    len = elt_size * (size_t)mpz_get_si (c->offset);
 
 	  len = len + gfc_merge_initializers (ts, c->expr, &data[len],

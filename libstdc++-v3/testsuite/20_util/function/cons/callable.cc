@@ -1,7 +1,7 @@
 // { dg-options "-std=gnu++0x" }
 // { dg-do compile }
 
-// Copyright (C) 2012 Free Software Foundation, Inc.
+// Copyright (C) 2012-2013 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -19,7 +19,6 @@
 // <http://www.gnu.org/licenses/>.
 
 #include <functional>
-#include <testsuite_hooks.h>
 
 void* f(std::function<void()>) { return nullptr; }
 int f(std::function<void(int)>) { return 1; }

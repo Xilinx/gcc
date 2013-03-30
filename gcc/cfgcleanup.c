@@ -1,7 +1,5 @@
 /* Control flow optimization code for GNU compiler.
-   Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -481,13 +479,15 @@ try_forward_edges (int mode, basic_block b)
 		  int new_locus = single_succ_edge (target)->goto_locus;
 		  int locus = goto_locus;
 
-		  if (new_locus && locus && !locator_eq (new_locus, locus))
+		  if (new_locus != UNKNOWN_LOCATION
+		      && locus != UNKNOWN_LOCATION
+		      && new_locus != locus)
 		    new_target = NULL;
 		  else
 		    {
 		      rtx last;
 
-		      if (new_locus)
+		      if (new_locus != UNKNOWN_LOCATION)
 			locus = new_locus;
 
 		      last = BB_END (target);
@@ -495,13 +495,15 @@ try_forward_edges (int mode, basic_block b)
 			last = prev_nondebug_insn (last);
 
 		      new_locus = last && INSN_P (last)
-				  ? INSN_LOCATOR (last) : 0;
+				  ? INSN_LOCATION (last) : 0;
 
-		      if (new_locus && locus && !locator_eq (new_locus, locus))
+		      if (new_locus != UNKNOWN_LOCATION
+			  && locus != UNKNOWN_LOCATION
+			  && new_locus != locus)
 			new_target = NULL;
 		      else
 			{
-			  if (new_locus)
+			  if (new_locus != UNKNOWN_LOCATION)
 			    locus = new_locus;
 
 			  goto_locus = locus;
@@ -1134,6 +1136,28 @@ old_insns_match_p (int mode ATTRIBUTE_UNUSED, rtx i1, rtx i2)
 			CALL_INSN_FUNCTION_USAGE (i2))
 	  || SIBLING_CALL_P (i1) != SIBLING_CALL_P (i2))
 	return dir_none;
+
+      /* For address sanitizer, never crossjump __asan_report_* builtins,
+	 otherwise errors might be reported on incorrect lines.  */
+      if (flag_asan)
+	{
+	  rtx call = get_call_rtx_from (i1);
+	  if (call && GET_CODE (XEXP (XEXP (call, 0), 0)) == SYMBOL_REF)
+	    {
+	      rtx symbol = XEXP (XEXP (call, 0), 0);
+	      if (SYMBOL_REF_DECL (symbol)
+		  && TREE_CODE (SYMBOL_REF_DECL (symbol)) == FUNCTION_DECL)
+		{
+		  if ((DECL_BUILT_IN_CLASS (SYMBOL_REF_DECL (symbol))
+		       == BUILT_IN_NORMAL)
+		      && DECL_FUNCTION_CODE (SYMBOL_REF_DECL (symbol))
+			 >= BUILT_IN_ASAN_REPORT_LOAD1
+		      && DECL_FUNCTION_CODE (SYMBOL_REF_DECL (symbol))
+			 <= BUILT_IN_ASAN_REPORT_STORE16)
+		    return dir_none;
+		}
+	    }
+	}
     }
 
 #ifdef STACK_REGS
@@ -1698,9 +1722,15 @@ outgoing_edges_match (int mode, basic_block bb1, basic_block bb2)
 	}
     }
 
+  rtx last1 = BB_END (bb1);
+  rtx last2 = BB_END (bb2);
+  if (DEBUG_INSN_P (last1))
+    last1 = prev_nondebug_insn (last1);
+  if (DEBUG_INSN_P (last2))
+    last2 = prev_nondebug_insn (last2);
   /* First ensure that the instructions match.  There may be many outgoing
      edges so this test is generally cheaper.  */
-  if (old_insns_match_p (mode, BB_END (bb1), BB_END (bb2)) != dir_both)
+  if (old_insns_match_p (mode, last1, last2) != dir_both)
     return false;
 
   /* Search the outgoing edges, ensure that the counts do match, find possible
@@ -1709,9 +1739,13 @@ outgoing_edges_match (int mode, basic_block bb1, basic_block bb2)
   if (EDGE_COUNT (bb1->succs) != EDGE_COUNT (bb2->succs))
     return false;
 
+  bool nonfakeedges = false;
   FOR_EACH_EDGE (e1, ei, bb1->succs)
     {
       e2 = EDGE_SUCC (bb2, ei.index);
+
+      if ((e1->flags & EDGE_FAKE) == 0)
+	nonfakeedges = true;
 
       if (e1->flags & EDGE_EH)
 	nehedges1++;
@@ -1728,6 +1762,18 @@ outgoing_edges_match (int mode, basic_block bb1, basic_block bb2)
   /* If number of edges of various types does not match, fail.  */
   if (nehedges1 != nehedges2
       || (fallthru1 != 0) != (fallthru2 != 0))
+    return false;
+
+  /* If !ACCUMULATE_OUTGOING_ARGS, bb1 (and bb2) have no successors
+     and the last real insn doesn't have REG_ARGS_SIZE note, don't
+     attempt to optimize, as the two basic blocks might have different
+     REG_ARGS_SIZE depths.  For noreturn calls and unconditional
+     traps there should be REG_ARG_SIZE notes, they could be missing
+     for __builtin_unreachable () uses though.  */
+  if (!nonfakeedges
+      && !ACCUMULATE_OUTGOING_ARGS
+      && (!INSN_P (last1)
+          || !find_reg_note (last1, REG_ARGS_SIZE, NULL)))
     return false;
 
   /* fallthru edges must be forwarded to the same destination.  */
@@ -2812,12 +2858,12 @@ delete_unreachable_blocks (void)
 		delete_basic_block (b);
 	      else
 		{
-		  VEC (basic_block, heap) *h
+		  vec<basic_block> h
 		    = get_all_dominated_blocks (CDI_DOMINATORS, b);
 
-		  while (VEC_length (basic_block, h))
+		  while (h.length ())
 		    {
-		      b = VEC_pop (basic_block, h);
+		      b = h.pop ();
 
 		      prev_bb = b->prev_bb;
 
@@ -2826,7 +2872,7 @@ delete_unreachable_blocks (void)
 		      delete_basic_block (b);
 		    }
 
-		  VEC_free (basic_block, heap, h);
+		  h.release ();
 		}
 
 	      changed = true;
@@ -2971,14 +3017,11 @@ cleanup_cfg (int mode)
       && (changed
 	  || (mode & CLEANUP_CFG_CHANGED)))
     {
-      bitmap changed_bbs;
       timevar_push (TV_REPAIR_LOOPS);
       /* The above doesn't preserve dominance info if available.  */
       gcc_assert (!dom_info_available_p (CDI_DOMINATORS));
       calculate_dominance_info (CDI_DOMINATORS);
-      changed_bbs = BITMAP_ALLOC (NULL);
-      fix_loop_structure (changed_bbs);
-      BITMAP_FREE (changed_bbs);
+      fix_loop_structure (NULL);
       free_dominance_info (CDI_DOMINATORS);
       timevar_pop (TV_REPAIR_LOOPS);
     }
@@ -3004,6 +3047,7 @@ struct rtl_opt_pass pass_jump =
  {
   RTL_PASS,
   "jump",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,					/* gate */
   execute_jump,				/* execute */
   NULL,					/* sub */
@@ -3030,6 +3074,7 @@ struct rtl_opt_pass pass_jump2 =
  {
   RTL_PASS,
   "jump2",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,					/* gate */
   execute_jump2,			/* execute */
   NULL,					/* sub */

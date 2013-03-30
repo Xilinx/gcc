@@ -49,7 +49,7 @@ package body Ada.Calendar is
    --  on various targets, a system independent model is incorporated into
    --  Ada.Calendar. The idea behind the design is to encapsulate all target
    --  dependent machinery in a single package, thus providing a uniform
-   --  interface to all existing and any potential children.
+   --  interface to all existing and potential children.
 
    --     package Ada.Calendar
    --        procedure Split (5 parameters) -------+
@@ -141,7 +141,7 @@ package body Ada.Calendar is
    --  UTC, it must be increased to include all leap seconds.
 
    Ada_High_And_Leaps : constant OS_Time :=
-                          Ada_High + OS_Time (Leap_Seconds_Count) * Mili;
+     Ada_High + OS_Time (Leap_Seconds_Count) * Mili;
 
    --  Two constants used in the calculations of elapsed leap seconds.
    --  End_Of_Time is later than Ada_High in time zone -28. Start_Of_Time
@@ -221,9 +221,9 @@ package body Ada.Calendar is
       --  The bound of type Duration expressed as time
 
       Dur_High : constant OS_Time :=
-                   OS_Time (To_Relative_Time (Duration'Last));
+        OS_Time (To_Relative_Time (Duration'Last));
       Dur_Low  : constant OS_Time :=
-                   OS_Time (To_Relative_Time (Duration'First));
+        OS_Time (To_Relative_Time (Duration'First));
 
       Res_M : OS_Time;
 
@@ -1017,7 +1017,7 @@ package body Ada.Calendar is
             Timbuf : out Unsigned_Word_Array;
             Timadr : Time);
 
-         pragma Interface (External, Numtim);
+         pragma Import (External, Numtim);
 
          pragma Import_Valued_Procedure
            (Numtim, "SYS$NUMTIM",
@@ -1134,7 +1134,7 @@ package body Ada.Calendar is
             Input_Time     : Unsigned_Word_Array;
             Resultant_Time : out Time);
 
-         pragma Interface (External, Cvt_Vectim);
+         pragma Import (External, Cvt_Vectim);
 
          pragma Import_Valued_Procedure
            (Cvt_Vectim, "LIB$CVT_VECTIM",

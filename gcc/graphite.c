@@ -1,6 +1,5 @@
 /* Gimple Represented as Polyhedra.
-   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2006-2013 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@inria.fr>.
 
 This file is part of GCC.
@@ -97,7 +96,7 @@ print_global_statistics (FILE* file)
 	  n_p_loops += bb->count;
 	}
 
-      if (VEC_length (edge, bb->succs) > 1)
+      if (EDGE_COUNT (bb->succs) > 1)
 	{
 	  n_conditions++;
 	  n_p_conditions += bb->count;
@@ -149,7 +148,7 @@ print_graphite_scop_statistics (FILE* file, scop_p scop)
       n_bbs++;
       n_p_bbs += bb->count;
 
-      if (VEC_length (edge, bb->succs) > 1)
+      if (EDGE_COUNT (bb->succs) > 1)
 	{
 	  n_conditions++;
 	  n_p_conditions += bb->count;
@@ -183,13 +182,13 @@ print_graphite_scop_statistics (FILE* file, scop_p scop)
 /* Print statistics for SCOPS to FILE.  */
 
 static void
-print_graphite_statistics (FILE* file, VEC (scop_p, heap) *scops)
+print_graphite_statistics (FILE* file, vec<scop_p> scops)
 {
   int i;
 
   scop_p scop;
 
-  FOR_EACH_VEC_ELT (scop_p, scops, i, scop)
+  FOR_EACH_VEC_ELT (scops, i, scop)
     print_graphite_scop_statistics (file, scop);
 }
 
@@ -255,7 +254,7 @@ graphite_transform_loops (void)
   int i;
   scop_p scop;
   bool need_cfg_cleanup_p = false;
-  VEC (scop_p, heap) *scops = NULL;
+  vec<scop_p> scops = vNULL;
   htab_t bb_pbb_mapping;
   isl_ctx *ctx;
 
@@ -280,7 +279,7 @@ graphite_transform_loops (void)
 
   bb_pbb_mapping = htab_create (10, bb_pbb_map_hash, eq_bb_pbb_map, free);
 
-  FOR_EACH_VEC_ELT (scop_p, scops, i, scop)
+  FOR_EACH_VEC_ELT (scops, i, scop)
     if (dbg_cnt (graphite_scop))
       {
 	scop->ctx = ctx;

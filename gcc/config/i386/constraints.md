@@ -1,5 +1,5 @@
 ;; Constraint definitions for IA-32 and x86-64.
-;; Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2006-2013 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -19,7 +19,7 @@
 
 ;;; Unused letters:
 ;;;     B     H           T
-;;;           h  k          v
+;;;           h jk          v
 
 ;; Integer register constraints.
 ;; It is not necessary to define 'r' here.
@@ -93,6 +93,7 @@
 ;;  p	Integer register when TARGET_PARTIAL_REG_STALL is disabled
 ;;  d	Integer register when integer DFmode moves are enabled
 ;;  x	Integer register when integer XFmode moves are enabled
+;;  f	x87 register when 80387 floating point arithmetic is enabled
 
 (define_register_constraint "Yz" "TARGET_SSE ? SSE_FIRST_REG : NO_REGS"
  "First SSE register (@code{%xmm0}).")
@@ -115,14 +116,17 @@
  "@internal Any integer register when zero extensions with AND are disabled.")
 
 (define_register_constraint "Yd"
- "(TARGET_64BIT
-   || (TARGET_INTEGER_DFMODE_MOVES && optimize_function_for_speed_p (cfun)))
+ "TARGET_INTEGER_DFMODE_MOVES && optimize_function_for_speed_p (cfun)
   ? GENERAL_REGS : NO_REGS"
  "@internal Any integer register when integer DFmode moves are enabled.")
 
 (define_register_constraint "Yx"
  "optimize_function_for_speed_p (cfun) ? GENERAL_REGS : NO_REGS"
  "@internal Any integer register when integer XFmode moves are enabled.")
+
+(define_register_constraint "Yf"
+ "(ix86_fpmath & FPMATH_387) ? FLOAT_REGS : NO_REGS"
+ "@internal Any x87 register when 80387 FP arithmetic is enabled.")
 
 (define_constraint "z"
   "@internal Constant call address operand."
@@ -132,11 +136,6 @@
   "@internal Call memory operand."
   (and (not (match_test "TARGET_X32"))
        (match_operand 0 "memory_operand")))
-
-(define_address_constraint "j"
-  "@internal Address operand that can be zero extended in LEA instruction."
-  (and (not (match_code "const_int"))
-       (match_operand 0 "address_operand")))
 
 ;; Integer constant constraints.
 (define_constraint "I"

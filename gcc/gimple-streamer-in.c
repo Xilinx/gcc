@@ -1,6 +1,6 @@
 /* Routines for reading GIMPLE from a file stream.
 
-   Copyright 2011 Free Software Foundation, Inc.
+   Copyright (C) 2011-2013 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@google.com>
 
 This file is part of GCC.
@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "data-streamer.h"
 #include "tree-streamer.h"
 #include "gimple-streamer.h"
+#include "value-prof.h"
 
 /* Read a PHI function for basic block BB in function FN.  DATA_IN is
    the file being read.  IB is the input block to use for reading.  */
@@ -42,10 +43,9 @@ input_phi (struct lto_input_block *ib, basic_block bb, struct data_in *data_in,
   gimple result;
 
   ix = streamer_read_uhwi (ib);
-  phi_result = VEC_index (tree, SSANAMES (fn), ix);
+  phi_result = (*SSANAMES (fn))[ix];
   len = EDGE_COUNT (bb->preds);
   result = create_phi_node (phi_result, bb);
-  SSA_NAME_DEF_STMT (phi_result) = result;
 
   /* We have to go through a lookup process here because the preds in the
      reconstructed graph are generally in a different order than they
@@ -54,7 +54,8 @@ input_phi (struct lto_input_block *ib, basic_block bb, struct data_in *data_in,
     {
       tree def = stream_read_tree (ib, data_in);
       int src_index = streamer_read_uhwi (ib);
-      location_t arg_loc = lto_input_location (ib, data_in);
+      bitpack_d bp = streamer_read_bitpack (ib);
+      location_t arg_loc = stream_input_location (&bp, data_in);
       basic_block sbb = BASIC_BLOCK_FOR_FUNCTION (fn, src_index);
 
       edge e = NULL;
@@ -86,6 +87,7 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
   unsigned HOST_WIDE_INT num_ops;
   size_t i;
   struct bitpack_d bp;
+  bool has_hist;
 
   code = lto_tag_to_gimple_code (tag);
 
@@ -97,10 +99,11 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
   if (is_gimple_assign (stmt))
     stmt->gsbase.nontemporal_move = bp_unpack_value (&bp, 1);
   stmt->gsbase.has_volatile_ops = bp_unpack_value (&bp, 1);
+  has_hist = bp_unpack_value (&bp, 1);
   stmt->gsbase.subcode = bp_unpack_var_len_unsigned (&bp);
 
   /* Read location information.  */
-  gimple_set_location (stmt, lto_input_location (ib, data_in));
+  gimple_set_location (stmt, stream_input_location (&bp, data_in));
 
   /* Read lexical block reference.  */
   gimple_set_block (stmt, stream_read_tree (ib, data_in));
@@ -143,22 +146,23 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
     case GIMPLE_DEBUG:
       for (i = 0; i < num_ops; i++)
 	{
-	  tree op = stream_read_tree (ib, data_in);
+	  tree *opp, op = stream_read_tree (ib, data_in);
 	  gimple_set_op (stmt, i, op);
 	  if (!op)
 	    continue;
 
-	  /* Fixup FIELD_DECLs in COMPONENT_REFs, they are not handled
-	     by decl merging.  */
-	  if (TREE_CODE (op) == ADDR_EXPR)
-	    op = TREE_OPERAND (op, 0);
-	  while (handled_component_p (op))
+	  opp = gimple_op_ptr (stmt, i);
+	  if (TREE_CODE (*opp) == ADDR_EXPR)
+	    opp = &TREE_OPERAND (*opp, 0);
+	  while (handled_component_p (*opp))
 	    {
-	      if (TREE_CODE (op) == COMPONENT_REF)
+	      if (TREE_CODE (*opp) == COMPONENT_REF)
 		{
+		  /* Fixup FIELD_DECLs in COMPONENT_REFs, they are not handled
+		     by decl merging.  */
 		  tree field, type, tem;
 		  tree closest_match = NULL_TREE;
-		  field = TREE_OPERAND (op, 1);
+		  field = TREE_OPERAND (*opp, 1);
 		  type = DECL_CONTEXT (field);
 		  for (tem = TYPE_FIELDS (type); tem; tem = TREE_CHAIN (tem))
 		    {
@@ -186,12 +190,12 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 		      if (warning_at (gimple_location (stmt), 0,
 				      "use of type %<%E%> with two mismatching "
 				      "declarations at field %<%E%>",
-				      type, TREE_OPERAND (op, 1)))
+				      type, TREE_OPERAND (*opp, 1)))
 			{
 			  if (TYPE_FIELDS (type))
 			    inform (DECL_SOURCE_LOCATION (TYPE_FIELDS (type)),
 				    "original type declared here");
-			  inform (DECL_SOURCE_LOCATION (TREE_OPERAND (op, 1)),
+			  inform (DECL_SOURCE_LOCATION (TREE_OPERAND (*opp, 1)),
 				  "field in mismatching type declared here");
 			  if (TYPE_NAME (TREE_TYPE (field))
 			      && (TREE_CODE (TYPE_NAME (TREE_TYPE (field)))
@@ -208,16 +212,44 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 				    "type of mismatching field declared here");
 			}
 		      /* And finally fixup the types.  */
-		      TREE_OPERAND (op, 0)
+		      TREE_OPERAND (*opp, 0)
 			= build1 (VIEW_CONVERT_EXPR, type,
-				  TREE_OPERAND (op, 0));
+				  TREE_OPERAND (*opp, 0));
 		    }
 		  else
-		    TREE_OPERAND (op, 1) = tem;
+		    TREE_OPERAND (*opp, 1) = tem;
+		}
+	      else if ((TREE_CODE (*opp) == ARRAY_REF
+			|| TREE_CODE (*opp) == ARRAY_RANGE_REF)
+		       && (TREE_CODE (TREE_TYPE (TREE_OPERAND (*opp, 0)))
+			   != ARRAY_TYPE))
+		{
+		  /* And ARRAY_REFs to objects that had mismatched types
+		     during symbol merging to avoid ICEs.  */
+		  TREE_OPERAND (*opp, 0)
+		    = build1 (VIEW_CONVERT_EXPR,
+			      build_array_type (TREE_TYPE (*opp), NULL_TREE),
+			      TREE_OPERAND (*opp, 0));
 		}
 
-	      op = TREE_OPERAND (op, 0);
+	      opp = &TREE_OPERAND (*opp, 0);
 	    }
+	  /* At LTO output time we wrap all global decls in MEM_REFs to
+	     allow seamless replacement with prevailing decls.  Undo this
+	     here if the prevailing decl allows for this.
+	     ???  Maybe we should simply fold all stmts.  */
+	  if (TREE_CODE (*opp) == MEM_REF
+	      && TREE_CODE (TREE_OPERAND (*opp, 0)) == ADDR_EXPR
+	      && integer_zerop (TREE_OPERAND (*opp, 1))
+	      && (TREE_THIS_VOLATILE (*opp)
+		  == TREE_THIS_VOLATILE
+		       (TREE_OPERAND (TREE_OPERAND (*opp, 0), 0)))
+	      && !TYPE_REF_CAN_ALIAS_ALL (TREE_TYPE (TREE_OPERAND (*opp, 1)))
+	      && (TREE_TYPE (*opp)
+		  == TREE_TYPE (TREE_TYPE (TREE_OPERAND (*opp, 1))))
+	      && (TREE_TYPE (*opp)
+		  == TREE_TYPE (TREE_OPERAND (TREE_OPERAND (*opp, 0), 0))))
+	    *opp = TREE_OPERAND (TREE_OPERAND (*opp, 0), 0);
 	}
       if (is_gimple_call (stmt))
 	{
@@ -271,6 +303,8 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 
   /* Mark the statement modified so its operand vectors can be filled in.  */
   gimple_set_modified (stmt, true);
+  if (has_hist)
+    stream_in_histogram_value (ib, stmt);
 
   return stmt;
 }
@@ -295,9 +329,8 @@ input_bb (struct lto_input_block *ib, enum LTO_tags tag,
   index = streamer_read_uhwi (ib);
   bb = BASIC_BLOCK_FOR_FUNCTION (fn, index);
 
-  bb->count = (streamer_read_hwi (ib) * count_materialization_scale
+  bb->count = (streamer_read_gcov_count (ib) * count_materialization_scale
 	       + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
-  bb->loop_depth = streamer_read_hwi (ib);
   bb->frequency = streamer_read_hwi (ib);
   bb->flags = streamer_read_hwi (ib);
 
@@ -310,8 +343,6 @@ input_bb (struct lto_input_block *ib, enum LTO_tags tag,
   while (tag)
     {
       gimple stmt = input_gimple_stmt (ib, data_in, fn, tag);
-      if (!is_gimple_debug (stmt))
-	find_referenced_vars_in (stmt);
       gsi_insert_after (&bsi, stmt, GSI_NEW_STMT);
 
       /* After the statement, expect a 0 delimiter or the EH region
@@ -332,8 +363,7 @@ input_bb (struct lto_input_block *ib, enum LTO_tags tag,
   tag = streamer_read_record_start (ib);
   while (tag)
     {
-      gimple phi = input_phi (ib, bb, data_in, fn);
-      find_referenced_vars_in (phi);
+      input_phi (ib, bb, data_in, fn);
       tag = streamer_read_record_start (ib);
     }
 }

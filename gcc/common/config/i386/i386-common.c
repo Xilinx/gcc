@@ -1,7 +1,5 @@
 /* IA-32 common hooks.
-   Copyright (C) 1988, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 1988-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -49,12 +47,20 @@ along with GCC; see the file COPYING3.  If not see
 #define OPTION_MASK_ISA_SSE4_2_SET \
   (OPTION_MASK_ISA_SSE4_2 | OPTION_MASK_ISA_SSE4_1_SET)
 #define OPTION_MASK_ISA_AVX_SET \
-  (OPTION_MASK_ISA_AVX | OPTION_MASK_ISA_SSE4_2_SET)
+  (OPTION_MASK_ISA_AVX | OPTION_MASK_ISA_SSE4_2_SET \
+   | OPTION_MASK_ISA_XSAVE_SET)
 #define OPTION_MASK_ISA_FMA_SET \
   (OPTION_MASK_ISA_FMA | OPTION_MASK_ISA_AVX_SET)
 #define OPTION_MASK_ISA_AVX2_SET \
   (OPTION_MASK_ISA_AVX2 | OPTION_MASK_ISA_AVX_SET)
+#define OPTION_MASK_ISA_FXSR_SET OPTION_MASK_ISA_FXSR
+#define OPTION_MASK_ISA_XSAVE_SET OPTION_MASK_ISA_XSAVE
+#define OPTION_MASK_ISA_XSAVEOPT_SET \
+  (OPTION_MASK_ISA_XSAVEOPT | OPTION_MASK_ISA_XSAVE)
 #define OPTION_MASK_ISA_RTM_SET OPTION_MASK_ISA_RTM
+#define OPTION_MASK_ISA_PRFCHW_SET OPTION_MASK_ISA_PRFCHW
+#define OPTION_MASK_ISA_RDSEED_SET OPTION_MASK_ISA_RDSEED
+#define OPTION_MASK_ISA_ADX_SET OPTION_MASK_ISA_ADX
 
 /* SSE4 includes both SSE4.1 and SSE4.2. -msse4 should be the same
    as -msse4.2.  */
@@ -119,10 +125,17 @@ along with GCC; see the file COPYING3.  If not see
 #define OPTION_MASK_ISA_AVX_UNSET \
   (OPTION_MASK_ISA_AVX | OPTION_MASK_ISA_FMA_UNSET \
    | OPTION_MASK_ISA_FMA4_UNSET | OPTION_MASK_ISA_F16C_UNSET \
-   | OPTION_MASK_ISA_AVX2_UNSET)
+   | OPTION_MASK_ISA_AVX2_UNSET | OPTION_MASK_ISA_XSAVE_UNSET)
 #define OPTION_MASK_ISA_FMA_UNSET OPTION_MASK_ISA_FMA
 #define OPTION_MASK_ISA_AVX2_UNSET OPTION_MASK_ISA_AVX2
+#define OPTION_MASK_ISA_FXSR_UNSET OPTION_MASK_ISA_FXSR
+#define OPTION_MASK_ISA_XSAVE_UNSET \
+  (OPTION_MASK_ISA_XSAVE | OPTION_MASK_ISA_XSAVEOPT_UNSET)
+#define OPTION_MASK_ISA_XSAVEOPT_UNSET OPTION_MASK_ISA_XSAVEOPT
 #define OPTION_MASK_ISA_RTM_UNSET OPTION_MASK_ISA_RTM
+#define OPTION_MASK_ISA_PRFCHW_UNSET OPTION_MASK_ISA_PRFCHW
+#define OPTION_MASK_ISA_RDSEED_UNSET OPTION_MASK_ISA_RDSEED
+#define OPTION_MASK_ISA_ADX_UNSET OPTION_MASK_ISA_ADX
 
 /* SSE4 includes both SSE4.1 and SSE4.2.  -mno-sse4 should the same
    as -mno-sse4.1. */
@@ -565,6 +578,84 @@ ix86_handle_option (struct gcc_options *opts,
 	{
 	  opts->x_ix86_isa_flags &= ~OPTION_MASK_ISA_F16C_UNSET;
 	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_F16C_UNSET;
+	}
+      return true;
+
+    case OPT_mfxsr:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_FXSR_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_FXSR_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags &= ~OPTION_MASK_ISA_FXSR_UNSET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_FXSR_UNSET;
+	}
+      return true;
+
+    case OPT_mxsave:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_XSAVE_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_XSAVE_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags &= ~OPTION_MASK_ISA_XSAVE_UNSET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_XSAVE_UNSET;
+	}
+      return true;
+
+    case OPT_mxsaveopt:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_XSAVEOPT_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_XSAVEOPT_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags &= ~OPTION_MASK_ISA_XSAVEOPT_UNSET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_XSAVEOPT_UNSET;
+	}
+      return true;
+
+    case OPT_mrdseed:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_RDSEED_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_RDSEED_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags &= ~OPTION_MASK_ISA_RDSEED_UNSET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_RDSEED_UNSET;
+	}
+      return true;
+
+    case OPT_mprfchw:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_PRFCHW_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_PRFCHW_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags &= ~OPTION_MASK_ISA_PRFCHW_UNSET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_PRFCHW_UNSET;
+	}
+      return true;
+
+    case OPT_madx:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_ADX_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_ADX_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags &= ~OPTION_MASK_ISA_ADX_UNSET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_ADX_UNSET;
 	}
       return true;
 

@@ -1,5 +1,4 @@
-/* Copyright (C) 2012
-   Free Software Foundation, Inc.
+/* Copyright (C) 2012-2013 Free Software Foundation, Inc.
    Contributed by Georg-Johann Lay (avr@gjlay.de)
 
    This file is part of GCC.
@@ -18,18 +17,52 @@
    along with GCC; see the file COPYING3.  If not see
    <http://www.gnu.org/licenses/>.  */
 
+#include <stdlib.h>
+#include <stdio.h>
+
+#define IN_GEN_AVR_MMCU_TEXI
+
+#include "avr-arch.h"
 #include "avr-devices.c"
 
 static const char*
 mcu_name[sizeof avr_mcu_types / sizeof avr_mcu_types[0]];
 
+static int letter (char c)
+{
+  return c >= 'a' && c <= 'z';
+}
+
+static int digit (char c)
+{
+  return c >= '0' && c <= '9';
+}
+
 static int
 comparator (const void *va, const void *vb)
 {
-  const char* const *a = (const char* const*) va;
-  const char* const *b = (const char* const*) vb;
+  const char *a = *(const char* const*) va;
+  const char *b = *(const char* const*) vb;
 
-  return strcmp (*a, *b);
+  while (*a && *b)
+    {
+      /* Make letters smaller than digits so that `atmega16a' follows
+         `atmega16' without `atmega161' etc. between them.  */
+      
+      if (letter (*a) && digit (*b))
+        return -1;
+
+      if (digit (*a) && letter (*b))
+        return 1;
+
+      if (*a != *b)
+        return *a - *b;
+      
+      a++;
+      b++;
+    }
+
+  return *a - *b;
 } 
 
 static void
@@ -50,17 +83,18 @@ print_mcus (size_t n_mcus)
 
 int main (void)
 {
-  enum avr_arch arch = 0;
+  enum avr_arch arch = ARCH_UNKNOWN;
   size_t i, n_mcus = 0;
-  const struct mcu_type_s *mcu;
+  const avr_mcu_t *mcu;
 
-  printf ("@c Copyright (C) 2012 Free Software Foundation, Inc.\n");
+  printf ("@c Copyright (C) 2012-2013 Free Software Foundation, Inc.\n");
   printf ("@c This is part of the GCC manual.\n");
   printf ("@c For copying conditions, see the file "
           "gcc/doc/include/fdl.texi.\n\n");
 
   printf ("@c This file is generated automatically using\n");
   printf ("@c gcc/config/avr/gen-avr-mmcu-texi.c from:\n");
+  printf ("@c    gcc/config/avr/avr-arch.h\n");
   printf ("@c    gcc/config/avr/avr-devices.c\n");
   printf ("@c    gcc/config/avr/avr-mcus.def\n\n");
 

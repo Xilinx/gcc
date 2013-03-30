@@ -1,5 +1,5 @@
 ;; ARM Thumb-2 Machine Description
-;; Copyright (C) 2007, 2008, 2010 Free Software Foundation, Inc.
+;; Copyright (C) 2007-2013 Free Software Foundation, Inc.
 ;; Written by CodeSourcery, LLC.
 ;;
 ;; This file is part of GCC.
@@ -141,7 +141,8 @@
    eor%?\\t%0, %1, %1, asr #31\;sub%?\\t%0, %0, %1, asr #31"
   [(set_attr "conds" "clob,*")
    (set_attr "shift" "1")
-   ;; predicable can't be set based on the variant, so left as no
+   (set_attr "predicable" "no, yes")
+   (set_attr "ce_count" "2")
    (set_attr "length" "10,8")]
 )
 
@@ -155,7 +156,8 @@
    eor%?\\t%0, %1, %1, asr #31\;rsb%?\\t%0, %0, %1, asr #31"
   [(set_attr "conds" "clob,*")
    (set_attr "shift" "1")
-   ;; predicable can't be set based on the variant, so left as no
+   (set_attr "predicable" "no, yes")
+   (set_attr "ce_count" "2")
    (set_attr "length" "10,8")]
 )
 
@@ -180,9 +182,9 @@
    ldr%?\\t%0, %1
    str%?\\t%1, %0
    str%?\\t%1, %0"
-  [(set_attr "type" "*,*,*,*,load1,load1,store1,store1")
+  [(set_attr "type" "*,*,simple_alu_imm,*,load1,load1,store1,store1")
    (set_attr "predicable" "yes")
-   (set_attr "pool_range" "*,*,*,*,1020,4096,*,*")
+   (set_attr "pool_range" "*,*,*,*,1018,4094,*,*")
    (set_attr "neg_pool_range" "*,*,*,*,0,0,*,*")]
 )
 
@@ -217,7 +219,7 @@
    ldr%(h%)\\t%0, %1\\t%@ movhi"
   [(set_attr "type" "*,*,store1,load1")
    (set_attr "predicable" "yes")
-   (set_attr "pool_range" "*,*,*,4096")
+   (set_attr "pool_range" "*,*,*,4094")
    (set_attr "neg_pool_range" "*,*,*,250")]
 )
 
@@ -494,13 +496,13 @@
   if (GET_CODE (operands[5]) == LT
       && (operands[4] == const0_rtx))
     {
-      if (which_alternative != 1 && GET_CODE (operands[1]) == REG)
+      if (which_alternative != 1 && REG_P (operands[1]))
 	{
 	  if (operands[2] == const0_rtx)
 	    return \"and\\t%0, %1, %3, asr #31\";
 	  return \"ands\\t%0, %1, %3, asr #32\;it\\tcc\;movcc\\t%0, %2\";
 	}
-      else if (which_alternative != 0 && GET_CODE (operands[2]) == REG)
+      else if (which_alternative != 0 && REG_P (operands[2]))
 	{
 	  if (operands[1] == const0_rtx)
 	    return \"bic\\t%0, %2, %3, asr #31\";
@@ -513,13 +515,13 @@
   if (GET_CODE (operands[5]) == GE
       && (operands[4] == const0_rtx))
     {
-      if (which_alternative != 1 && GET_CODE (operands[1]) == REG)
+      if (which_alternative != 1 && REG_P (operands[1]))
 	{
 	  if (operands[2] == const0_rtx)
 	    return \"bic\\t%0, %1, %3, asr #31\";
 	  return \"bics\\t%0, %1, %3, asr #32\;it\\tcs\;movcs\\t%0, %2\";
 	}
-      else if (which_alternative != 0 && GET_CODE (operands[2]) == REG)
+      else if (which_alternative != 0 && REG_P (operands[2]))
 	{
 	  if (operands[1] == const0_rtx)
 	    return \"and\\t%0, %2, %3, asr #31\";
@@ -528,7 +530,7 @@
       /* The only case that falls through to here is when both ops 1 & 2
 	 are constants.  */
     }
-  if (GET_CODE (operands[4]) == CONST_INT
+  if (CONST_INT_P (operands[4])
       && !const_ok_for_arm (INTVAL (operands[4])))
     output_asm_insn (\"cmn\\t%3, #%n4\", operands);
   else
@@ -568,9 +570,9 @@
   "@
    sxtb%?\\t%0, %1
    ldr%(sb%)\\t%0, %1"
-  [(set_attr "type" "alu_shift,load_byte")
+  [(set_attr "type" "simple_alu_shift,load_byte")
    (set_attr "predicable" "yes")
-   (set_attr "pool_range" "*,4096")
+   (set_attr "pool_range" "*,4094")
    (set_attr "neg_pool_range" "*,250")]
 )
 
@@ -581,9 +583,9 @@
   "@
    uxth%?\\t%0, %1
    ldr%(h%)\\t%0, %1"
-  [(set_attr "type" "alu_shift,load_byte")
+  [(set_attr "type" "simple_alu_shift,load_byte")
    (set_attr "predicable" "yes")
-   (set_attr "pool_range" "*,4096")
+   (set_attr "pool_range" "*,4094")
    (set_attr "neg_pool_range" "*,250")]
 )
 
@@ -594,9 +596,9 @@
   "@
    uxtb%(%)\\t%0, %1
    ldr%(b%)\\t%0, %1\\t%@ zero_extendqisi2"
-  [(set_attr "type" "alu_shift,load_byte")
+  [(set_attr "type" "simple_alu_shift,load_byte")
    (set_attr "predicable" "yes")
-   (set_attr "pool_range" "*,4096")
+   (set_attr "pool_range" "*,4094")
    (set_attr "neg_pool_range" "*,250")]
 )
 
@@ -680,7 +682,7 @@
    (clobber (reg:CC CC_REGNUM))]
   "TARGET_THUMB2 && reload_completed
    && ((GET_CODE(operands[3]) != ROTATE && GET_CODE(operands[3]) != ROTATERT)
-       || REG_P(operands[2]))"
+       || REG_P (operands[2]))"
   "* return arm_output_shift(operands, 2);"
   [(set_attr "predicable" "yes")
    (set_attr "shift" "1")
@@ -709,7 +711,7 @@
   "*
     HOST_WIDE_INT val;
 
-    if (GET_CODE (operands[2]) == CONST_INT)
+    if (CONST_INT_P (operands[2]))
       val = INTVAL(operands[2]);
     else
       val = 0;
@@ -773,7 +775,7 @@
   "*
     HOST_WIDE_INT val;
 
-    if (GET_CODE (operands[2]) == CONST_INT)
+    if (CONST_INT_P (operands[2]))
       val = INTVAL (operands[2]);
     else
       val = 0;
@@ -790,14 +792,14 @@
 (define_insn "*thumb2_addsi3_compare0_scratch"
   [(set (reg:CC_NOOV CC_REGNUM)
 	(compare:CC_NOOV
-	  (plus:SI (match_operand:SI 0 "s_register_operand" "l,  r")
-		   (match_operand:SI 1 "arm_add_operand"    "lPv,rIL"))
+	  (plus:SI (match_operand:SI 0 "s_register_operand" "l,l,  r,r")
+		   (match_operand:SI 1 "arm_add_operand"    "Pv,l,IL,r"))
 	  (const_int 0)))]
   "TARGET_THUMB2"
   "*
     HOST_WIDE_INT val;
 
-    if (GET_CODE (operands[1]) == CONST_INT)
+    if (CONST_INT_P (operands[1]))
       val = INTVAL (operands[1]);
     else
       val = 0;
@@ -808,7 +810,8 @@
       return \"cmn\\t%0, %1\";
   "
   [(set_attr "conds" "set")
-   (set_attr "length" "2,4")]
+   (set_attr "length" "2,2,4,4")
+   (set_attr "type"   "simple_alu_imm,*,simple_alu_imm,*")]
 )
 
 (define_insn "*thumb2_mulsi_short"
@@ -996,7 +999,8 @@
    (use (match_operand 1 "" ""))      ; iterations; zero if unknown
    (use (match_operand 2 "" ""))      ; max iterations
    (use (match_operand 3 "" ""))      ; loop level
-   (use (match_operand 4 "" ""))]     ; label
+   (use (match_operand 4 "" ""))      ; label
+   (use (match_operand 5 "" ""))]     ; flag: 1 if loop entered at top, else 0
   "TARGET_32BIT"
   "
  {

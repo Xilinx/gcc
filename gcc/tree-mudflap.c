@@ -1,6 +1,5 @@
 /* Mudflap: narrow-pointer bounds-checking by tree rewriting.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2002-2013 Free Software Foundation, Inc.
    Contributed by Frank Ch. Eigler <fche@redhat.com>
    and Graydon Hoare <graydon@redhat.com>
 
@@ -471,11 +470,11 @@ mf_decl_cache_locals (void)
 
   /* Build the cache vars.  */
   mf_cache_shift_decl_l
-    = mf_mark (make_rename_temp (TREE_TYPE (mf_cache_shift_decl),
+    = mf_mark (create_tmp_reg (TREE_TYPE (mf_cache_shift_decl),
                                "__mf_lookup_shift_l"));
 
   mf_cache_mask_decl_l
-    = mf_mark (make_rename_temp (TREE_TYPE (mf_cache_mask_decl),
+    = mf_mark (create_tmp_reg (TREE_TYPE (mf_cache_mask_decl),
                                "__mf_lookup_mask_l"));
 
   /* Build initialization nodes for the cache vars.  We just load the
@@ -562,9 +561,9 @@ mf_build_check_statement_for (tree base, tree limit,
     add_bb_to_loop (then_bb, cond_bb->loop_father);
 
   /* Build our local variables.  */
-  mf_elem = make_rename_temp (mf_cache_structptr_type, "__mf_elem");
-  mf_base = make_rename_temp (mf_uintptr_type, "__mf_base");
-  mf_limit = make_rename_temp (mf_uintptr_type, "__mf_limit");
+  mf_elem = create_tmp_reg (mf_cache_structptr_type, "__mf_elem");
+  mf_base = create_tmp_reg (mf_uintptr_type, "__mf_base");
+  mf_limit = create_tmp_reg (mf_uintptr_type, "__mf_limit");
 
   /* Build: __mf_base = (uintptr_t) <base address expression>.  */
   seq = NULL;
@@ -645,7 +644,7 @@ mf_build_check_statement_for (tree base, tree limit,
   t = build2 (TRUTH_OR_EXPR, boolean_type_node, t, u);
   t = force_gimple_operand (t, &stmts, false, NULL_TREE);
   gimple_seq_add_seq (&seq, stmts);
-  cond = make_rename_temp (boolean_type_node, "__mf_unlikely_cond");
+  cond = create_tmp_reg (boolean_type_node, "__mf_unlikely_cond");
   g = gimple_build_assign  (cond, t);
   gimple_set_location (g, location);
   gimple_seq_add_stmt (&seq, g);
@@ -877,6 +876,9 @@ mf_xform_derefs_1 (gimple_stmt_iterator *iter, tree *tp,
       break;
 
     case MEM_REF:
+      if (addr_expr_of_non_mem_decl_p (TREE_OPERAND (t, 0)))
+	return;
+
       addr = fold_build_pointer_plus_loc (location, TREE_OPERAND (t, 0),
 					  TREE_OPERAND (t, 1));
       base = addr;
@@ -886,6 +888,9 @@ mf_xform_derefs_1 (gimple_stmt_iterator *iter, tree *tp,
       break;
 
     case TARGET_MEM_REF:
+      if (addr_expr_of_non_mem_decl_p (TMR_BASE (t)))
+	return;
+
       addr = tree_mem_ref_addr (ptr_type_node, t);
       base = addr;
       limit = fold_build_pointer_plus_hwi_loc (location,
@@ -1223,7 +1228,7 @@ mf_marked_p (tree t)
    delayed until program finish time.  If they're still incomplete by
    then, warnings are emitted.  */
 
-static GTY (()) VEC(tree,gc) *deferred_static_decls;
+static GTY (()) vec<tree, va_gc> *deferred_static_decls;
 
 /* A list of statements for calling __mf_register() at startup time.  */
 static GTY (()) tree enqueued_call_stmt_chain;
@@ -1260,7 +1265,7 @@ mudflap_enqueue_decl (tree obj)
   if (DECL_P (obj) && DECL_EXTERNAL (obj) && mf_artificial (obj))
     return;
 
-  VEC_safe_push (tree, gc, deferred_static_decls, obj);
+  vec_safe_push (deferred_static_decls, obj);
 }
 
 
@@ -1315,7 +1320,7 @@ mudflap_finish_file (void)
     {
       size_t i;
       tree obj;
-      FOR_EACH_VEC_ELT (tree, deferred_static_decls, i, obj)
+      FOR_EACH_VEC_ELT (*deferred_static_decls, i, obj)
         {
           gcc_assert (DECL_P (obj));
 
@@ -1328,6 +1333,16 @@ mudflap_finish_file (void)
              from other compilation units.  */
           if (! TREE_PUBLIC (obj) && ! TREE_ADDRESSABLE (obj))
             continue;
+
+	  /* If we're neither emitting nor referencing the symbol,
+	     don't register it.  We have to register external symbols
+	     if they happen to be in other files not compiled with
+	     mudflap (say system libraries), and we must not register
+	     internal symbols that we don't emit or they'll become
+	     dangling references or force symbols to be emitted that
+	     didn't have to.  */
+	  if (!symtab_get_node (obj))
+	    continue;
 
           if (! COMPLETE_TYPE_P (TREE_TYPE (obj)))
             {
@@ -1342,7 +1357,7 @@ mudflap_finish_file (void)
                                  mf_varname_tree (obj));
         }
 
-      VEC_truncate (tree, deferred_static_decls, 0);
+      deferred_static_decls->truncate (0);
     }
 
   /* Append all the enqueued registration calls.  */
@@ -1368,6 +1383,7 @@ struct gimple_opt_pass pass_mudflap_1 =
  {
   GIMPLE_PASS,
   "mudflap1",                           /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_mudflap,                         /* gate */
   execute_mudflap_function_decls,       /* execute */
   NULL,                                 /* sub */
@@ -1387,6 +1403,7 @@ struct gimple_opt_pass pass_mudflap_2 =
  {
   GIMPLE_PASS,
   "mudflap2",                           /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_mudflap,                         /* gate */
   execute_mudflap_function_ops,         /* execute */
   NULL,                                 /* sub */

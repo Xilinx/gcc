@@ -1,5 +1,5 @@
 /* Implementation of the IALL intrinsic
-   Copyright 2010 Free Software Foundation, Inc.
+   Copyright (C) 2010-2013 Free Software Foundation, Inc.
    Contributed by Tobias Burnus <burnus@net-b.de>
 
 This file is part of the GNU Fortran runtime library (libgfortran).
@@ -323,18 +323,13 @@ miall_i1 (gfc_array_i1 * const restrict retarray,
       {
 
   result = 0;
-	if (len <= 0)
-	  *dest = 0;
-	else
+	for (n = 0; n < len; n++, src += delta, msrc += mdelta)
 	  {
-	    for (n = 0; n < len; n++, src += delta, msrc += mdelta)
-	      {
 
   if (*msrc)
     result &= *src;
-	      }
-	    *dest = result;
 	  }
+	*dest = result;
       }
       /* Advance to the next element.  */
       count[0]++;

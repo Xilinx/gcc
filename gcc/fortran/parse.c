@@ -1,7 +1,5 @@
 /* Main parser.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2000-2013 Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
@@ -76,7 +74,7 @@ match_word (const char *str, match (*subr) (void), locus *old_locus)
 }
 
 
-/* Load symbols from all USE statements encounted in this scoping unit.  */
+/* Load symbols from all USE statements encountered in this scoping unit.  */
 
 static void
 use_modules (void)
@@ -1168,7 +1166,10 @@ check_statement_label (gfc_statement st)
     case ST_END_ASSOCIATE:
     case_executable:
     case_exec_markers:
-      type = ST_LABEL_TARGET;
+      if (st == ST_ENDDO || st == ST_CONTINUE)
+	type = ST_LABEL_DO_TARGET;
+      else
+	type = ST_LABEL_TARGET;
       break;
 
     case ST_FORMAT:
@@ -2192,7 +2193,8 @@ endType:
       if (c->attr.allocatable
 	  || (c->ts.type == BT_CLASS && c->attr.class_ok
 	      && CLASS_DATA (c)->attr.allocatable)
-	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.alloc_comp))
+	  || (c->ts.type == BT_DERIVED && !c->attr.pointer
+	      && c->ts.u.derived->attr.alloc_comp))
 	{
 	  allocatable = true;
 	  sym->attr.alloc_comp = 1;
@@ -2360,7 +2362,6 @@ parse_interface (void)
   gfc_interface_info save;
   gfc_state_data s1, s2;
   gfc_statement st;
-  locus proc_locus;
 
   accept_statement (ST_INTERFACE);
 
@@ -2449,7 +2450,9 @@ loop:
   accept_statement (st);
   prog_unit = gfc_new_block;
   prog_unit->formal_ns = gfc_current_ns;
-  proc_locus = gfc_current_locus;
+  if (prog_unit == prog_unit->formal_ns->proc_name
+      && prog_unit->ns != prog_unit->formal_ns)
+    prog_unit->refs++;
 
 decl:
   /* Read data declaration statements.  */
@@ -2490,7 +2493,8 @@ decl:
 	&& strcmp (current_interface.ns->proc_name->name,
 		   prog_unit->name) == 0)
     gfc_error ("INTERFACE procedure '%s' at %L has the same name as the "
-	       "enclosing procedure", prog_unit->name, &proc_locus);
+	       "enclosing procedure", prog_unit->name,
+	       &current_interface.ns->proc_name->declared_at);
 
   goto loop;
 
@@ -3268,7 +3272,7 @@ parse_critical_block (void)
 	    if (s.ext.end_do_label != NULL
 		&& s.ext.end_do_label != gfc_statement_label)
 	      gfc_error_now ("Statement label in END CRITICAL at %C does not "
-			     "match CRITIAL label");
+			     "match CRITICAL label");
 
 	    if (gfc_statement_label != NULL)
 	      {
@@ -3393,7 +3397,7 @@ parse_associate (void)
 	 however, as it may only be set on the target during resolution.
 	 Still, sometimes it helps to have it right now -- especially
 	 for parsing component references on the associate-name
-	 in case of assication to a derived-type.  */
+	 in case of association to a derived-type.  */
       sym->ts = a->target->ts;
     }
 
@@ -3825,8 +3829,12 @@ parse_executable (gfc_statement st)
 	case ST_NONE:
 	  unexpected_eof ();
 
-	case ST_FORMAT:
 	case ST_DATA:
+	  gfc_notify_std (GFC_STD_F95_OBS, "DATA statement at %C after the "
+			  "first executable statement");
+	  /* Fall through.  */
+
+	case ST_FORMAT:
 	case ST_ENTRY:
 	case_executable:
 	  accept_statement (st);
@@ -3918,7 +3926,6 @@ gfc_fixup_sibling_symbols (gfc_symbol *sym, gfc_namespace *siblings)
   gfc_symtree *st;
   gfc_symbol *old_sym;
 
-  sym->attr.referenced = 1;
   for (ns = siblings; ns; ns = ns->sibling)
     {
       st = gfc_find_symtree (ns->sym_root, sym->name);
@@ -4040,7 +4047,6 @@ parse_contained (int module)
 	  /* Mark this as a contained function, so it isn't replaced
 	     by other module functions.  */
 	  sym->attr.contained = 1;
-	  sym->attr.referenced = 1;
 
 	  /* Set implicit_pure so that it can be reset if any of the
 	     tests for purity fail.  This is used for some optimisation
@@ -4068,6 +4074,7 @@ parse_contained (int module)
 	case ST_END_PROGRAM:
 	case ST_END_SUBROUTINE:
 	  accept_statement (st);
+	  gfc_current_ns->code = s1.head;
 	  break;
 
 	default:
@@ -4284,6 +4291,7 @@ parse_module (void)
 {
   gfc_statement st;
   gfc_gsymbol *s;
+  bool error;
 
   s = gfc_get_gsymbol (gfc_new_block->name);
   if (s->defined || (s->type != GSYM_UNKNOWN && s->type != GSYM_MODULE))
@@ -4297,6 +4305,7 @@ parse_module (void)
 
   st = parse_spec (ST_NONE);
 
+  error = false;
 loop:
   switch (st)
     {
@@ -4315,12 +4324,15 @@ loop:
       gfc_error ("Unexpected %s statement in MODULE at %C",
 		 gfc_ascii_statement (st));
 
+      error = true;
       reject_statement ();
       st = next_statement ();
       goto loop;
     }
 
-  s->ns = gfc_current_ns;
+  /* Make sure not to free the namespace twice on error.  */
+  if (!error)
+    s->ns = gfc_current_ns;
 }
 
 
@@ -4370,8 +4382,7 @@ add_global_program (void)
 }
 
 
-/* Resolve all the program units when whole file scope option
-   is active. */
+/* Resolve all the program units. */
 static void
 resolve_all_program_units (gfc_namespace *gfc_global_ns_list)
 {
@@ -4412,9 +4423,8 @@ clean_up_modules (gfc_gsymbol *gsym)
 }
 
 
-/* Translate all the program units when whole file scope option
-   is active. This could be in a different order to resolution if
-   there are forward references in the file.  */
+/* Translate all the program units. This could be in a different order
+   to resolution if there are forward references in the file.  */
 static void
 translate_all_program_units (gfc_namespace *gfc_global_ns_list,
 			     bool main_in_tu)
@@ -4539,8 +4549,7 @@ loop:
       accept_statement (st);
       add_global_program ();
       parse_progunit (ST_NONE);
-      if (gfc_option.flag_whole_file)
-	goto prog_units;
+      goto prog_units;
       break;
 
     case ST_SUBROUTINE:
@@ -4548,8 +4557,7 @@ loop:
       push_state (&s, COMP_SUBROUTINE, gfc_new_block);
       accept_statement (st);
       parse_progunit (ST_NONE);
-      if (gfc_option.flag_whole_file)
-	goto prog_units;
+      goto prog_units;
       break;
 
     case ST_FUNCTION:
@@ -4557,8 +4565,7 @@ loop:
       push_state (&s, COMP_FUNCTION, gfc_new_block);
       accept_statement (st);
       parse_progunit (ST_NONE);
-      if (gfc_option.flag_whole_file)
-	goto prog_units;
+      goto prog_units;
       break;
 
     case ST_BLOCK_DATA:
@@ -4585,8 +4592,7 @@ loop:
       push_state (&s, COMP_PROGRAM, gfc_new_block);
       main_program_symbol (gfc_current_ns, "MAIN__");
       parse_progunit (st);
-      if (gfc_option.flag_whole_file)
-	goto prog_units;
+      goto prog_units;
       break;
     }
 
@@ -4603,19 +4609,9 @@ loop:
   if (s.state == COMP_MODULE)
     {
       gfc_dump_module (s.sym->name, errors_before == errors);
-      if (!gfc_option.flag_whole_file)
-	{
-	  if (errors == 0)
-	    gfc_generate_module_code (gfc_current_ns);
-	  pop_state ();
-	  gfc_done_2 ();
-	}
-      else
-	{
-	  gfc_current_ns->derived_types = gfc_derived_types;
-	  gfc_derived_types = NULL;
-	  goto prog_units;
-	}
+      gfc_current_ns->derived_types = gfc_derived_types;
+      gfc_derived_types = NULL;
+      goto prog_units;
     }
   else
     {
@@ -4648,9 +4644,6 @@ prog_units:
 
   done:
 
-  if (!gfc_option.flag_whole_file)
-    goto termination;
-
   /* Do the resolution.  */
   resolve_all_program_units (gfc_global_ns_list);
 
@@ -4668,8 +4661,6 @@ prog_units:
 
   /* Do the translation.  */
   translate_all_program_units (gfc_global_ns_list, seen_program);
-
-termination:
 
   gfc_end_source_files ();
   return SUCCESS;

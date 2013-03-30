@@ -1,6 +1,5 @@
 /* Callgraph clones
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012 Free Software Foundation, Inc.
+   Copyright (C) 2003-2013 Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
 This file is part of GCC.
@@ -173,7 +172,7 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
 struct cgraph_node *
 cgraph_clone_node (struct cgraph_node *n, tree decl, gcov_type count, int freq,
 		   bool update_original,
-		   VEC(cgraph_edge_p,heap) *redirect_callers,
+		   vec<cgraph_edge_p> redirect_callers,
 		   bool call_duplication_hook)
 {
   struct cgraph_node *new_node = cgraph_create_empty_node ();
@@ -184,6 +183,7 @@ cgraph_clone_node (struct cgraph_node *n, tree decl, gcov_type count, int freq,
   new_node->symbol.decl = decl;
   symtab_register_node ((symtab_node)new_node);
   new_node->origin = n->origin;
+  new_node->symbol.lto_file_data = n->symbol.lto_file_data;
   if (new_node->origin)
     {
       new_node->next_nested = new_node->origin->nested;
@@ -198,7 +198,7 @@ cgraph_clone_node (struct cgraph_node *n, tree decl, gcov_type count, int freq,
   new_node->count = count;
   new_node->frequency = n->frequency;
   new_node->clone = n->clone;
-  new_node->clone.tree_map = 0;
+  new_node->clone.tree_map = NULL;
   if (n->count)
     {
       if (new_node->count > n->count)
@@ -215,7 +215,7 @@ cgraph_clone_node (struct cgraph_node *n, tree decl, gcov_type count, int freq,
 	n->count = 0;
     }
 
-  FOR_EACH_VEC_ELT (cgraph_edge_p, redirect_callers, i, e)
+  FOR_EACH_VEC_ELT (redirect_callers, i, e)
     {
       /* Redirect calls to the old version node to point to its new
 	 version.  */
@@ -276,8 +276,8 @@ clone_function_name (tree decl, const char *suffix)
    */
 struct cgraph_node *
 cgraph_create_virtual_clone (struct cgraph_node *old_node,
-			     VEC(cgraph_edge_p,heap) *redirect_callers,
-			     VEC(ipa_replace_map_p,gc) *tree_map,
+			     vec<cgraph_edge_p> redirect_callers,
+			     vec<ipa_replace_map_p, va_gc> *tree_map,
 			     bitmap args_to_skip,
 			     const char * suffix)
 {
@@ -319,11 +319,12 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
   TREE_PUBLIC (new_node->symbol.decl) = 0;
   DECL_COMDAT (new_node->symbol.decl) = 0;
   DECL_WEAK (new_node->symbol.decl) = 0;
+  DECL_VIRTUAL_P (new_node->symbol.decl) = 0;
   DECL_STATIC_CONSTRUCTOR (new_node->symbol.decl) = 0;
   DECL_STATIC_DESTRUCTOR (new_node->symbol.decl) = 0;
   new_node->clone.tree_map = tree_map;
   new_node->clone.args_to_skip = args_to_skip;
-  FOR_EACH_VEC_ELT (ipa_replace_map_p, tree_map, i, map)
+  FOR_EACH_VEC_SAFE_ELT (tree_map, i, map)
     {
       tree var = map->new_tree;
       symtab_node ref_node;
@@ -569,7 +570,10 @@ cgraph_remove_node_and_inline_clones (struct cgraph_node *node, struct cgraph_no
   bool found = false;
 
   if (node == forbidden_node)
-    return true;
+    {
+      cgraph_remove_edge (node->callers);
+      return true;
+    }
   for (e = node->callees; e; e = next)
     {
       next = e->next_callee;
@@ -615,7 +619,7 @@ update_call_expr (struct cgraph_node *new_version)
 struct cgraph_node *
 cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
 				 tree new_decl,
-				 VEC(cgraph_edge_p,heap) *redirect_callers,
+				 vec<cgraph_edge_p> redirect_callers,
 				 bitmap bbs_to_copy)
  {
    struct cgraph_node *new_version;
@@ -648,7 +652,7 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
 			  e->lto_stmt_uid, REG_BR_PROB_BASE,
 			  CGRAPH_FREQ_BASE,
 			  true);
-   FOR_EACH_VEC_ELT (cgraph_edge_p, redirect_callers, i, e)
+   FOR_EACH_VEC_ELT (redirect_callers, i, e)
      {
        /* Redirect calls to the old version node to point to its new
 	  version.  */
@@ -682,8 +686,8 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
 
 struct cgraph_node *
 cgraph_function_versioning (struct cgraph_node *old_version_node,
-			    VEC(cgraph_edge_p,heap) *redirect_callers,
-			    VEC (ipa_replace_map_p,gc)* tree_map,
+			    vec<cgraph_edge_p> redirect_callers,
+			    vec<ipa_replace_map_p, va_gc> *tree_map,
 			    bitmap args_to_skip,
 			    bool skip_return,
 			    bitmap bbs_to_copy,
@@ -822,14 +826,12 @@ cgraph_materialize_all_clones (void)
 		        {
 			  unsigned int i;
 		          fprintf (cgraph_dump_file, "   replace map: ");
-			  for (i = 0; i < VEC_length (ipa_replace_map_p,
-			  			      node->clone.tree_map);
-						      i++)
+			  for (i = 0;
+			       i < vec_safe_length (node->clone.tree_map);
+			       i++)
 			    {
 			      struct ipa_replace_map *replace_info;
-			      replace_info = VEC_index (ipa_replace_map_p,
-			      				node->clone.tree_map,
-							i);
+			      replace_info = (*node->clone.tree_map)[i];
 			      print_generic_expr (cgraph_dump_file, replace_info->old_tree, 0);
 			      fprintf (cgraph_dump_file, " -> ");
 			      print_generic_expr (cgraph_dump_file, replace_info->new_tree, 0);

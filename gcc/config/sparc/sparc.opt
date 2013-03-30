@@ -1,6 +1,6 @@
 ; Options for the SPARC port of the compiler
 ;
-; Copyright (C) 2005, 2007, 2010, 2011 Free Software Foundation, Inc.
+; Copyright (C) 2005-2013 Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -72,6 +72,10 @@ Use UltraSPARC Visual Instruction Set version 2.0 extensions
 mvis3
 Target Report Mask(VIS3)
 Use UltraSPARC Visual Instruction Set version 3.0 extensions
+
+mcbcond
+Target Report Mask(CBCOND)
+Use UltraSPARC Compare-and-Branch extensions
 
 mfmaf
 Target Report Mask(FMAF)

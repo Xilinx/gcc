@@ -1,5 +1,5 @@
 # -*- shell-script -*-
-#  Copyright (C) 2012 Free Software Foundation, Inc.
+#  Copyright (C) 2012-2013 Free Software Foundation, Inc.
 #  Contributed by Richard Henderson <rth@redhat.com>.
 #
 #  This file is part of the GNU Atomic Library (libatomic).
@@ -59,7 +59,7 @@ case "${target_cpu}" in
 
   i[3456]86)
 	case " ${CC} ${CFLAGS} " in
-	  *" -m64 "*)
+	  *" -m64 "*|*" -mx32 "*)
 	    ;;
 	  *)
 	    if test -z "$with_arch"; then
@@ -95,6 +95,11 @@ fi
 
 # Other system configury
 case "${target}" in
+  aarch64*)
+	# This is currently not supported in AArch64.
+	UNSUPPORTED=1
+	;;
+
   arm*-*-linux*)
 	# OS support for atomic primitives.
 	config_path="${config_path} linux/arm posix"

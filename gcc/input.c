@@ -1,6 +1,5 @@
 /* Data and functions related to line maps and input files.
-   Copyright (C) 2004, 2007, 2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2004-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -51,6 +50,13 @@ expand_location_1 (source_location loc,
   expanded_location xloc;
   const struct line_map *map;
   enum location_resolution_kind lrk = LRK_MACRO_EXPANSION_POINT;
+  tree block = NULL;
+
+  if (IS_ADHOC_LOC (loc))
+    {
+      block = LOCATION_BLOCK (loc);
+      loc = LOCATION_LOCUS (loc);
+    }
 
   memset (&xloc, 0, sizeof (xloc));
 
@@ -74,6 +80,7 @@ expand_location_1 (source_location loc,
       xloc = linemap_expand_location (line_table, map, loc);
     }
 
+  xloc.data = block;
   if (loc <= BUILTINS_LOCATION)
     xloc.file = loc == UNKNOWN_LOCATION ? NULL : _("<built-in>");
 

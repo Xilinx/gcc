@@ -7,12 +7,19 @@
 
 package http
 
-import "time"
+import (
+	"net"
+	"time"
+)
+
+func NewLoggingConn(baseName string, c net.Conn) net.Conn {
+	return newLoggingConn(baseName, c)
+}
 
 func (t *Transport) IdleConnKeysForTesting() (keys []string) {
 	keys = make([]string, 0)
-	t.lk.Lock()
-	defer t.lk.Unlock()
+	t.idleLk.Lock()
+	defer t.idleLk.Unlock()
 	if t.idleConn == nil {
 		return
 	}
@@ -23,8 +30,8 @@ func (t *Transport) IdleConnKeysForTesting() (keys []string) {
 }
 
 func (t *Transport) IdleConnCountForTesting(cacheKey string) int {
-	t.lk.Lock()
-	defer t.lk.Unlock()
+	t.idleLk.Lock()
+	defer t.idleLk.Unlock()
 	if t.idleConn == nil {
 		return 0
 	}

@@ -1,7 +1,5 @@
 /* Output VMS debug format symbol table information from GCC.
-   Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
    Contributed by Douglas B. Rupp (rupp@gnat.com).
    Updated by Bernard W. Giroud (bgiroud@users.sourceforge.net).
 
@@ -101,11 +99,9 @@ static unsigned int file_info_table_in_use;
 #define FILE_TABLE_INCREMENT 64
 
 typedef char *char_p;
-DEF_VEC_P(char_p);
-DEF_VEC_ALLOC_P(char_p,heap);
 
-static VEC(char_p,heap) *funcnam_table;
-static VEC(unsigned,heap) *funcnum_table;
+static vec<char_p> funcnam_table;
+static vec<unsigned> funcnum_table;
 #define FUNC_TABLE_INITIAL 256
 
 /* Local pointer to the name of the main input file.  Initialized in
@@ -641,7 +637,7 @@ write_rtnbeg (int rtnnum, int dosizeonly)
   DST_ROUTINE_BEGIN rtnbeg;
   DST_PROLOG prolog;
 
-  rtnname = VEC_index (char_p, funcnam_table, rtnnum);
+  rtnname = funcnam_table[rtnnum];
   rtnnamelen = strlen (rtnname);
   rtnentryname = concat (rtnname, "..en", NULL);
 
@@ -714,7 +710,7 @@ write_rtnbeg (int rtnnum, int dosizeonly)
 
       ASM_GENERATE_INTERNAL_LABEL
         (label, FUNC_PROLOG_LABEL,
-	 VEC_index (unsigned, funcnum_table, rtnnum));
+	 funcnum_table[rtnnum]);
       totsize += write_debug_addr (label, "prolog breakpoint addr",
 				   dosizeonly);
     }
@@ -748,10 +744,10 @@ write_rtnend (int rtnnum, int dosizeonly)
 
   ASM_GENERATE_INTERNAL_LABEL
    (label1, FUNC_BEGIN_LABEL,
-    VEC_index (unsigned, funcnum_table, rtnnum));
+    funcnum_table[rtnnum]);
   ASM_GENERATE_INTERNAL_LABEL
    (label2, FUNC_END_LABEL,
-    VEC_index (unsigned, funcnum_table, rtnnum));
+    funcnum_table[rtnnum]);
   totsize += write_debug_delta4 (label2, label1, "routine size", dosizeonly);
 
   return totsize;
@@ -1264,9 +1260,8 @@ vmsdbgout_begin_function (tree decl)
     (*dwarf2_debug_hooks.begin_function) (decl);
 
   /* Add the new entry to the end of the function name table.  */
-  VEC_safe_push (char_p, heap, funcnam_table, xstrdup (name));
-  VEC_safe_push (unsigned, heap, funcnum_table,
-		 current_function_funcdef_no);
+  funcnam_table.safe_push (xstrdup (name));
+  funcnum_table.safe_push (current_function_funcdef_no);
 }
 
 static char fullname_buff [4096];
@@ -1371,7 +1366,7 @@ lookup_filename (const char *file_name)
 
 static void
 vmsdbgout_write_source_line (unsigned line, const char *filename,
-                             int discriminator, bool is_stmt)
+                             int /* discriminator */, bool /* is_stmt */)
 {
   dst_line_info_ref line_info;
 
@@ -1447,8 +1442,8 @@ vmsdbgout_init (const char *filename)
   /* Skip the first entry - file numbers begin at 1.  */
   file_info_table_in_use = 1;
 
-  funcnam_table = VEC_alloc (char_p, heap, FUNC_TABLE_INITIAL);
-  funcnum_table = VEC_alloc (unsigned, heap, FUNC_TABLE_INITIAL);
+  funcnam_table.create (FUNC_TABLE_INITIAL);
+  funcnum_table.create (FUNC_TABLE_INITIAL);
 
   /* Allocate the initial hunk of the line_info_table.  */
   line_info_table = XCNEWVEC (dst_line_info_entry, LINE_INFO_TABLE_INCREMENT);
@@ -1564,7 +1559,7 @@ vmsdbgout_finish (const char *filename ATTRIBUTE_UNUSED)
   ASM_OUTPUT_ALIGN (asm_out_file, 0);
 
   totsize = write_modbeg (1);
-  FOR_EACH_VEC_ELT (unsigned, funcnum_table, i, ifunc)
+  FOR_EACH_VEC_ELT (funcnum_table, i, ifunc)
     {
       totsize += write_rtnbeg (i, 1);
       totsize += write_rtnend (i, 1);
@@ -1572,7 +1567,7 @@ vmsdbgout_finish (const char *filename ATTRIBUTE_UNUSED)
   totsize += write_pclines (1);
 
   write_modbeg (0);
-  FOR_EACH_VEC_ELT (unsigned, funcnum_table, i, ifunc)
+  FOR_EACH_VEC_ELT (funcnum_table, i, ifunc)
     {
       write_rtnbeg (i, 0);
       write_rtnend (i, 0);

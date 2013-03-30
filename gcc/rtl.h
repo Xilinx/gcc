@@ -1,7 +1,5 @@
 /* Register Transfer Language (RTL) definitions for GCC
-   Copyright (C) 1987, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -27,16 +25,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "input.h"
 #include "real.h"
 #include "vec.h"
-#include "vecir.h"
 #include "fixed-value.h"
 #include "alias.h"
 #include "hashtab.h"
 #include "flags.h"
-
-#undef FFS  /* Some systems predefine this symbol; don't let it interfere.  */
-#undef FLOAT /* Likewise.  */
-#undef ABS /* Likewise.  */
-#undef PC /* Likewise.  */
 
 /* Value used by some passes to "recognize" noop moves as valid
  instructions.  */
@@ -55,8 +47,13 @@ enum rtx_code  {
 				   NUM_RTX_CODE.
 				   Assumes default enum value assignment.  */
 
+/* The cast here, saves many elsewhere.  */
 #define NUM_RTX_CODE ((int) LAST_AND_UNUSED_RTX_CODE)
-				/* The cast here, saves many elsewhere.  */
+
+/* Similar, but since generator files get more entries... */
+#ifdef GENERATOR_FILE
+# define NON_GENERATOR_NUM_RTX_CODE ((int) MATCH_OPERAND)
+#endif
 
 /* Register Transfer Language EXPRESSIONS CODE CLASSES */
 
@@ -239,7 +236,7 @@ struct GTY(()) object_block {
 	 !SYMBOL_REF_ANCHOR_P (X)
 	 SYMBOL_REF_BLOCK (X) == [address of this structure]
 	 SYMBOL_REF_BLOCK_OFFSET (X) >= 0.  */
-  VEC(rtx,gc) *objects;
+  vec<rtx, va_gc> *objects;
 
   /* All the anchor SYMBOL_REFs used to address these objects, sorted
      in order of increasing offset, and then increasing TLS model.
@@ -249,7 +246,7 @@ struct GTY(()) object_block {
 	 SYMBOL_REF_ANCHOR_P (X)
 	 SYMBOL_REF_BLOCK (X) == [address of this structure]
 	 SYMBOL_REF_BLOCK_OFFSET (X) >= 0.  */
-  VEC(rtx,gc) *anchors;
+  vec<rtx, va_gc> *anchors;
 };
 
 /* RTL expression ("rtx").  */
@@ -267,7 +264,8 @@ struct GTY((chain_next ("RTX_NEXT (&%h)"),
      1 in a CALL_INSN if it is a sibling call.
      1 in a SET that is for a return.
      In a CODE_LABEL, part of the two-bit alternate entry field.
-     1 in a CONCAT is VAL_EXPR_IS_COPIED in var-tracking.c.  */
+     1 in a CONCAT is VAL_EXPR_IS_COPIED in var-tracking.c.
+     1 in a VALUE is SP_BASED_VALUE_P in cselib.c.  */
   unsigned int jump : 1;
   /* In a CODE_LABEL, part of the two-bit alternate entry field.
      1 in a MEM if it cannot trap.
@@ -282,7 +280,8 @@ struct GTY((chain_next ("RTX_NEXT (&%h)"),
      1 in a NOTE, or EXPR_LIST for a const call.
      1 in a JUMP_INSN of an annulling branch.
      1 in a CONCAT is VAL_EXPR_IS_CLOBBERED in var-tracking.c.
-     1 in a preserved VALUE is PRESERVED_VALUE_P in cselib.c.  */
+     1 in a preserved VALUE is PRESERVED_VALUE_P in cselib.c.
+     1 in a clobber temporarily created for LRA.  */
   unsigned int unchanging : 1;
   /* 1 in a MEM or ASM_OPERANDS expression if the memory reference is volatile.
      1 in an INSN, CALL_INSN, JUMP_INSN, CODE_LABEL, BARRIER, or NOTE
@@ -364,6 +363,7 @@ struct GTY((chain_next ("RTX_NEXT (&%h)"),
  */
 #define RTX_PREV(X) ((INSN_P (X)       			\
                       || NOTE_P (X)       		\
+                      || JUMP_TABLE_DATA_P (X)		\
                       || BARRIER_P (X)        		\
                       || LABEL_P (X))    		\
                      && PREV_INSN (X) != NULL           \
@@ -398,12 +398,45 @@ struct GTY((variable_size)) rtvec_def {
 /* Predicate yielding nonzero iff X is an rtx for a memory location.  */
 #define MEM_P(X) (GET_CODE (X) == MEM)
 
+/* Match CONST_*s that can represent compile-time constant integers.  */
+#define CASE_CONST_SCALAR_INT \
+   case CONST_INT: \
+   case CONST_DOUBLE
+
+/* Match CONST_*s for which pointer equality corresponds to value equality.  */
+#define CASE_CONST_UNIQUE \
+   case CONST_INT: \
+   case CONST_DOUBLE: \
+   case CONST_FIXED
+
+/* Match all CONST_* rtxes.  */
+#define CASE_CONST_ANY \
+   case CONST_INT: \
+   case CONST_DOUBLE: \
+   case CONST_FIXED: \
+   case CONST_VECTOR
+
 /* Predicate yielding nonzero iff X is an rtx for a constant integer.  */
 #define CONST_INT_P(X) (GET_CODE (X) == CONST_INT)
+
+/* Predicate yielding nonzero iff X is an rtx for a constant fixed-point.  */
+#define CONST_FIXED_P(X) (GET_CODE (X) == CONST_FIXED)
 
 /* Predicate yielding true iff X is an rtx for a double-int
    or floating point constant.  */
 #define CONST_DOUBLE_P(X) (GET_CODE (X) == CONST_DOUBLE)
+
+/* Predicate yielding true iff X is an rtx for a double-int.  */
+#define CONST_DOUBLE_AS_INT_P(X) \
+  (GET_CODE (X) == CONST_DOUBLE && GET_MODE (X) == VOIDmode)
+
+/* Predicate yielding true iff X is an rtx for a integer const.  */
+#define CONST_SCALAR_INT_P(X) \
+  (CONST_INT_P (X) || CONST_DOUBLE_AS_INT_P (X))
+
+/* Predicate yielding true iff X is an rtx for a double-int.  */
+#define CONST_DOUBLE_AS_FLOAT_P(X) \
+  (GET_CODE (X) == CONST_DOUBLE && GET_MODE (X) != VOIDmode)
 
 /* Predicate yielding nonzero iff X is a label insn.  */
 #define LABEL_P(X) (GET_CODE (X) == CODE_LABEL)
@@ -437,9 +470,7 @@ struct GTY((variable_size)) rtvec_def {
 #define BARRIER_P(X) (GET_CODE (X) == BARRIER)
 
 /* Predicate yielding nonzero iff X is a data for a jump table.  */
-#define JUMP_TABLE_DATA_P(INSN) \
-  (JUMP_P (INSN) && (GET_CODE (PATTERN (INSN)) == ADDR_VEC || \
-		     GET_CODE (PATTERN (INSN)) == ADDR_DIFF_VEC))
+#define JUMP_TABLE_DATA_P(INSN) (GET_CODE (INSN) == JUMP_TABLE_DATA)
 
 /* Predicate yielding nonzero iff X is a return or simple_return.  */
 #define ANY_RETURN_P(X) \
@@ -734,6 +765,7 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #endif
 
 #define XINT(RTX, N)	(RTL_CHECK2 (RTX, N, 'i', 'n').rt_int)
+#define XUINT(RTX, N)   (RTL_CHECK2 (RTX, N, 'i', 'n').rt_uint)
 #define XSTR(RTX, N)	(RTL_CHECK2 (RTX, N, 's', 'S').rt_str)
 #define XEXP(RTX, N)	(RTL_CHECK2 (RTX, N, 'e', 'u').rt_rtx)
 #define XVEC(RTX, N)	(RTL_CHECK2 (RTX, N, 'E', 'V').rt_rtvec)
@@ -797,13 +829,14 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 /* The body of an insn.  */
 #define PATTERN(INSN)	XEXP (INSN, 4)
 
-#define INSN_LOCATOR(INSN) XINT (INSN, 5)
+#define INSN_LOCATION(INSN) XUINT (INSN, 5)
+
+#define INSN_HAS_LOCATION(INSN) ((LOCATION_LOCUS (INSN_LOCATION (INSN)))\
+  != UNKNOWN_LOCATION)
+
 /* LOCATION of an RTX if relevant.  */
 #define RTL_LOCATION(X) (INSN_P (X) ? \
-			 locator_location (INSN_LOCATOR (X)) \
-			 : UNKNOWN_LOCATION)
-/* LOCATION of current INSN.  */
-#define CURR_INSN_LOCATION (locator_location (curr_insn_locator ()))
+			 INSN_LOCATION (X) : UNKNOWN_LOCATION)
 
 /* Code number of instruction, from when it was recognized.
    -1 means this instruction has not been recognized yet.  */
@@ -815,8 +848,8 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 
 /* 1 if RTX is an insn that has been deleted.  */
 #define INSN_DELETED_P(RTX)						\
-  (RTL_FLAG_CHECK7("INSN_DELETED_P", (RTX), DEBUG_INSN, INSN,		\
-		   CALL_INSN, JUMP_INSN,				\
+  (RTL_FLAG_CHECK8("INSN_DELETED_P", (RTX), DEBUG_INSN, INSN,		\
+		   CALL_INSN, JUMP_INSN, JUMP_TABLE_DATA,		\
 		   CODE_LABEL, BARRIER, NOTE)->volatil)
 
 /* 1 if RTX is a call to a const function.  Built from ECF_CONST and
@@ -835,7 +868,7 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 
 /* 1 if RTX is a call to a looping const or pure function.  Built from
    ECF_LOOPING_CONST_OR_PURE and DECL_LOOPING_CONST_OR_PURE_P.  */
-#define RTL_LOOPING_CONST_OR_PURE_CALL_P(RTX)					\
+#define RTL_LOOPING_CONST_OR_PURE_CALL_P(RTX)				\
   (RTL_FLAG_CHECK1("CONST_OR_PURE_CALL_P", (RTX), CALL_INSN)->call)
 
 /* 1 if RTX is a call_insn for a sibling call.  */
@@ -926,9 +959,8 @@ extern const char * const reg_note_name[];
 #define NOTE_KIND(INSN) XCINT (INSN, 5, NOTE)
 
 /* Nonzero if INSN is a note marking the beginning of a basic block.  */
-#define NOTE_INSN_BASIC_BLOCK_P(INSN)			\
-  (GET_CODE (INSN) == NOTE				\
-   && NOTE_KIND (INSN) == NOTE_INSN_BASIC_BLOCK)
+#define NOTE_INSN_BASIC_BLOCK_P(INSN) \
+  (NOTE_P (INSN) && NOTE_KIND (INSN) == NOTE_INSN_BASIC_BLOCK)
 
 /* Variable declaration and the location of a variable.  */
 #define PAT_VAR_LOCATION_DECL(PAT) (XCTREE ((PAT), 0, VAR_LOCATION))
@@ -1029,7 +1061,7 @@ enum label_kind
 /* Retrieve the kind of LABEL.  */
 #define LABEL_KIND(LABEL) __extension__					\
 ({ __typeof (LABEL) const _label = (LABEL);				\
-   if (GET_CODE (_label) != CODE_LABEL)					\
+   if (! LABEL_P (_label))						\
      rtl_check_failed_flag ("LABEL_KIND", _label, __FILE__, __LINE__,	\
 			    __FUNCTION__);				\
    (enum label_kind) ((_label->jump << 1) | _label->call); })
@@ -1038,7 +1070,7 @@ enum label_kind
 #define SET_LABEL_KIND(LABEL, KIND) do {				\
    __typeof (LABEL) const _label = (LABEL);				\
    const unsigned int _kind = (KIND);					\
-   if (GET_CODE (_label) != CODE_LABEL)					\
+   if (! LABEL_P (_label))						\
      rtl_check_failed_flag ("SET_LABEL_KIND", _label, __FILE__, __LINE__, \
 			    __FUNCTION__);				\
    _label->jump = ((_kind >> 1) & 1);					\
@@ -1205,6 +1237,77 @@ costs_add_n_insns (struct full_rtx_costs *c, int n)
   c->size += COSTS_N_INSNS (n);
 }
 
+/* Information about an address.  This structure is supposed to be able
+   to represent all supported target addresses.  Please extend it if it
+   is not yet general enough.  */
+struct address_info {
+  /* The mode of the value being addressed, or VOIDmode if this is
+     a load-address operation with no known address mode.  */
+  enum machine_mode mode;
+
+  /* The address space.  */
+  addr_space_t as;
+
+  /* A pointer to the top-level address.  */
+  rtx *outer;
+
+  /* A pointer to the inner address, after all address mutations
+     have been stripped from the top-level address.  It can be one
+     of the following:
+
+     - A {PRE,POST}_{INC,DEC} of *BASE.  SEGMENT, INDEX and DISP are null.
+
+     - A {PRE,POST}_MODIFY of *BASE.  In this case either INDEX or DISP
+       points to the step value, depending on whether the step is variable
+       or constant respectively.  SEGMENT is null.
+
+     - A plain sum of the form SEGMENT + BASE + INDEX + DISP,
+       with null fields evaluating to 0.  */
+  rtx *inner;
+
+  /* Components that make up *INNER.  Each one may be null or nonnull.
+     When nonnull, their meanings are as follows:
+
+     - *SEGMENT is the "segment" of memory to which the address refers.
+       This value is entirely target-specific and is only called a "segment"
+       because that's its most typical use.  It contains exactly one UNSPEC,
+       pointed to by SEGMENT_TERM.  The contents of *SEGMENT do not need
+       reloading.
+
+     - *BASE is a variable expression representing a base address.
+       It contains exactly one REG, SUBREG or MEM, pointed to by BASE_TERM.
+
+     - *INDEX is a variable expression representing an index value.
+       It may be a scaled expression, such as a MULT.  It has exactly
+       one REG, SUBREG or MEM, pointed to by INDEX_TERM.
+
+     - *DISP is a constant, possibly mutated.  DISP_TERM points to the
+       unmutated RTX_CONST_OBJ.  */
+  rtx *segment;
+  rtx *base;
+  rtx *index;
+  rtx *disp;
+
+  rtx *segment_term;
+  rtx *base_term;
+  rtx *index_term;
+  rtx *disp_term;
+
+  /* In a {PRE,POST}_MODIFY address, this points to a second copy
+     of BASE_TERM, otherwise it is null.  */
+  rtx *base_term2;
+
+  /* ADDRESS if this structure describes an address operand, MEM if
+     it describes a MEM address.  */
+  enum rtx_code addr_outer_code;
+
+  /* If BASE is nonnull, this is the code of the rtx that contains it.  */
+  enum rtx_code base_outer_code;
+
+  /* True if this is an RTX_AUTOINC address.  */
+  bool autoinc_p;
+};
+
 extern void init_rtlanal (void);
 extern int rtx_cost (rtx, enum rtx_code, int, bool);
 extern int address_cost (rtx, enum machine_mode, addr_space_t, bool);
@@ -1228,6 +1331,14 @@ extern bool constant_pool_constant_p (rtx);
 extern bool truncated_to_mode (enum machine_mode, const_rtx);
 extern int low_bitmask_len (enum machine_mode, unsigned HOST_WIDE_INT);
 extern void split_double (rtx, rtx *, rtx *);
+extern rtx *strip_address_mutations (rtx *, enum rtx_code * = 0);
+extern void decompose_address (struct address_info *, rtx *,
+			       enum machine_mode, addr_space_t, enum rtx_code);
+extern void decompose_lea_address (struct address_info *, rtx *);
+extern void decompose_mem_address (struct address_info *, rtx);
+extern void update_address (struct address_info *);
+extern HOST_WIDE_INT get_index_scale (const struct address_info *);
+extern enum rtx_code get_index_code (const struct address_info *);
 
 #ifndef GENERATOR_FILE
 /* Return the cost of SET X.  SPEED_P is true if optimizing for speed
@@ -1769,6 +1880,7 @@ extern rtx emit_debug_insn (rtx);
 extern rtx emit_jump_insn (rtx);
 extern rtx emit_call_insn (rtx);
 extern rtx emit_label (rtx);
+extern rtx emit_jump_table_data (rtx);
 extern rtx emit_barrier (void);
 extern rtx emit_note (enum insn_note);
 extern rtx emit_note_copy (rtx);
@@ -1802,12 +1914,8 @@ extern rtx prev_cc0_setter (rtx);
 /* In emit-rtl.c  */
 extern int insn_line (const_rtx);
 extern const char * insn_file (const_rtx);
-extern location_t locator_location (int);
-extern int locator_line (int);
-extern const char * locator_file (int);
-extern bool locator_eq (int, int);
-extern int prologue_locator, epilogue_locator;
 extern tree insn_scope (const_rtx);
+extern location_t prologue_location, epilogue_location;
 
 /* In jump.c */
 extern enum rtx_code reverse_condition (enum rtx_code);
@@ -1902,6 +2010,7 @@ extern bool nonzero_address_p (const_rtx);
 extern int rtx_unstable_p (const_rtx);
 extern bool rtx_varies_p (const_rtx, bool);
 extern bool rtx_addr_varies_p (const_rtx, bool);
+extern rtx get_call_rtx_from (rtx);
 extern HOST_WIDE_INT get_integer_term (const_rtx);
 extern rtx get_related_value (const_rtx);
 extern bool offset_within_block_p (const_rtx, HOST_WIDE_INT);
@@ -2327,6 +2436,9 @@ extern rtx gen_rtx_MEM (enum machine_mode, rtx);
 /* REGNUM never really appearing in the INSN stream.  */
 #define INVALID_REGNUM			(~(unsigned int) 0)
 
+/* REGNUM for which no debug information can be generated.  */
+#define IGNORED_DWARF_REGNUM            (INVALID_REGNUM - 1)
+
 extern rtx output_constant_def (tree, int);
 extern rtx lookup_constant_def (tree);
 
@@ -2342,6 +2454,9 @@ extern int epilogue_completed;
    Required by some machines to handle any generated moves differently.  */
 
 extern int reload_in_progress;
+
+/* Set to 1 while in lra.  */
+extern int lra_in_progress;
 
 /* This macro indicates whether you may create a new
    pseudo-register.  */
@@ -2455,12 +2570,10 @@ extern unsigned int extended_count (const_rtx, enum machine_mode, int);
 extern rtx remove_death (unsigned int, rtx);
 extern void dump_combine_stats (FILE *);
 extern void dump_combine_total_stats (FILE *);
+extern rtx make_compound_operation (rtx, enum rtx_code);
 
 /* In cfgcleanup.c  */
 extern void delete_dead_jumptables (void);
-
-/* In sched-vis.c.  */
-extern void dump_insn_slim (FILE *, const_rtx x);
 
 /* In sched-rgn.c.  */
 extern void schedule_insns (void);
@@ -2473,6 +2586,8 @@ extern void sel_sched_fix_param (const char *param, const char *val);
 
 /* In print-rtl.c */
 extern const char *print_rtx_head;
+extern void debug (const rtx_def &ref);
+extern void debug (const rtx_def *ptr);
 extern void debug_rtx (const_rtx);
 extern void debug_rtx_list (const_rtx, int);
 extern void debug_rtx_range (const_rtx, const_rtx);
@@ -2481,7 +2596,20 @@ extern void print_mem_expr (FILE *, const_tree);
 extern void print_rtl (FILE *, const_rtx);
 extern void print_simple_rtl (FILE *, const_rtx);
 extern int print_rtl_single (FILE *, const_rtx);
+extern int print_rtl_single_with_indent (FILE *, const_rtx, int);
 extern void print_inline_rtx (FILE *, const_rtx, int);
+
+/* Functions in sched-vis.c.  FIXME: Ideally these functions would
+   not be in sched-vis.c but in rtl.c, because they are not only used
+   by the scheduler anymore but for all "slim" RTL dumping.  */
+extern void dump_value_slim (FILE *, const_rtx, int);
+extern void dump_insn_slim (FILE *, const_rtx);
+extern void dump_rtl_slim (FILE *, const_rtx, const_rtx, int, int);
+extern void print_value (pretty_printer *, const_rtx, int);
+extern void print_pattern (pretty_printer *, const_rtx, int);
+extern void print_insn (pretty_printer *, const_rtx, int);
+extern void rtl_dump_bb_for_graph (pretty_printer *, basic_block);
+extern const char *str_pattern_slim (const_rtx);
 
 /* In function.c */
 extern void reposition_prologue_and_epilogue_notes (void);
@@ -2585,6 +2713,7 @@ extern void init_alias_analysis (void);
 extern void end_alias_analysis (void);
 extern void vt_equate_reg_base_value (const_rtx, const_rtx);
 extern bool memory_modified_in_insn_p (const_rtx, const_rtx);
+extern bool memory_must_be_modified_in_insn_p (const_rtx, const_rtx);
 extern bool may_be_sp_based_p (rtx);
 extern rtx gen_hard_reg_clobber (enum machine_mode, unsigned int);
 extern rtx get_reg_known_value (unsigned int);
@@ -2615,7 +2744,7 @@ extern rtx compare_and_jump_seq (rtx, rtx, enum rtx_code, rtx, int, rtx);
 
 /* In loop-iv.c  */
 extern rtx canon_condition (rtx);
-extern void simplify_using_condition (rtx, rtx *, struct bitmap_head_def *);
+extern void simplify_using_condition (rtx, rtx *, bitmap);
 
 /* In final.c  */
 extern unsigned int compute_alignments (void);
@@ -2643,14 +2772,10 @@ extern const struct rtl_hooks general_rtl_hooks;
 /* Keep this for the nonce.  */
 #define gen_lowpart rtl_hooks.gen_lowpart
 
-extern void insn_locators_alloc (void);
-extern void insn_locators_free (void);
-extern void insn_locators_finalize (void);
-extern void set_curr_insn_source_location (location_t);
-extern location_t get_curr_insn_source_location (void);
-extern void set_curr_insn_block (tree);
-extern tree get_curr_insn_block (void);
-extern int curr_insn_locator (void);
+extern void insn_locations_init (void);
+extern void insn_locations_finalize (void);
+extern void set_curr_insn_location (location_t);
+extern location_t curr_insn_location (void);
 extern bool optimize_insn_for_size_p (void);
 extern bool optimize_insn_for_speed_p (void);
 

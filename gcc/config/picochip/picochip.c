@@ -1,5 +1,5 @@
 /* Subroutines used for code generation on picoChip processors.
-   Copyright (C) 2001, 2008, 2009, 2010, 2011   Free Software Foundation, Inc.
+   Copyright (C) 2001-2013 Free Software Foundation, Inc.
    Contributed by Picochip Ltd. (http://www.picochip.com)
    Maintained by Daniel Towner (daniel.towner@picochip.com) and
    Hariharan Sandanagobalane (hariharan@picochip.com)
@@ -3298,16 +3298,16 @@ picochip_reorg (void)
               if (GET_MODE (insn) == TImode)
               {
                 vliw_start = insn;
-                vliw_insn_location = INSN_LOCATOR (insn);
+                vliw_insn_location = INSN_LOCATION (insn);
               }
               if (JUMP_P (insn) || CALL_P(insn))
               {
-                vliw_insn_location = INSN_LOCATOR (insn);
+                vliw_insn_location = INSN_LOCATION (insn);
                 for (insn1 = vliw_start; insn1 != insn ; insn1 = next_real_insn (insn1))
-                  INSN_LOCATOR (insn1) = vliw_insn_location;
+                  INSN_LOCATION (insn1) = vliw_insn_location;
               }
               /* Tag subsequent instructions with the same location. */
-              INSN_LOCATOR (insn) = vliw_insn_location;
+              INSN_LOCATION (insn) = vliw_insn_location;
 	    }
 	}
 

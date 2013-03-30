@@ -1,6 +1,5 @@
 /* Output routines for Sunplus S+CORE processor
-   Copyright (C) 2005, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2005-2013 Free Software Foundation, Inc.
    Contributed by Sunnorth.
 
    This file is part of GCC.
@@ -119,9 +118,6 @@ struct extern_list *extern_head = 0;
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE          score_option_override
-
-#undef TARGET_LEGITIMIZE_ADDRESS
-#define TARGET_LEGITIMIZE_ADDRESS	score_legitimize_address
 
 #undef  TARGET_SCHED_ISSUE_RATE
 #define TARGET_SCHED_ISSUE_RATE         score_issue_rate
@@ -505,7 +501,6 @@ score_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   /* Run just enough of rest_of_compilation.  This sequence was
      "borrowed" from alpha.c.  */
   insn = get_insns ();
-  insn_locators_alloc ();
   split_all_insns_noflow ();
   shorten_branches (insn);
   final_start_function (insn, file, 1);
@@ -539,30 +534,6 @@ score_split_symbol (rtx temp, rtx addr)
   rtx high = score_force_temporary (temp,
                                      gen_rtx_HIGH (Pmode, copy_rtx (addr)));
   return gen_rtx_LO_SUM (Pmode, high, addr);
-}
-
-/* This function is used to implement LEGITIMIZE_ADDRESS.  If X can
-   be legitimized in a way that the generic machinery might not expect,
-   return the new address.  */
-static rtx
-score_legitimize_address (rtx x)
-{
-  enum score_symbol_type symbol_type;
-
-  if (score_symbolic_constant_p (x, &symbol_type)
-      && symbol_type == SYMBOL_GENERAL)
-    return score_split_symbol (0, x);
-
-  if (GET_CODE (x) == PLUS
-      && GET_CODE (XEXP (x, 1)) == CONST_INT)
-    {
-      rtx reg = XEXP (x, 0);
-      if (!score_valid_base_register_p (reg, 0))
-        reg = copy_to_mode_reg (Pmode, reg);
-      return score_add_offset (reg, INTVAL (XEXP (x, 1)));
-    }
-
-  return x;
 }
 
 /* Fill INFO with information about a single argument.  CUM is the
@@ -1232,7 +1203,8 @@ score_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
 
 /* Implement TARGET_ADDRESS_COST macro.  */
 int
-score_address_cost (rtx addr,
+score_address_cost (rtx addr, enum machine_mode mode ATTRIBUTE_UNUSED,
+		    addr_space_t as ATTRIBUTE_UNUSED,
 		    bool speed ATTRIBUTE_UNUSED)
 {
   return score_address_insns (addr, SImode);

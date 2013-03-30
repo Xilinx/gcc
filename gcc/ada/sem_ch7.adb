@@ -28,6 +28,7 @@
 --  handling of private and full declarations, and the construction of dispatch
 --  tables for tagged types.
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
@@ -260,7 +261,7 @@ package body Sem_Ch7 is
          then
             if Ada_Version = Ada_83 then
                Error_Msg_N
-                 ("optional package body (not allowed in Ada 95)?", N);
+                 ("optional package body (not allowed in Ada 95)??", N);
             else
                Error_Msg_N ("spec of this package does not allow a body", N);
             end if;
@@ -1387,7 +1388,23 @@ package body Sem_Ch7 is
            and then Nkind (Parent (E)) = N_Full_Type_Declaration
            and then Has_Aspects (Parent (E))
          then
-            Build_Invariant_Procedure (E, N);
+            declare
+               ASN : Node_Id;
+
+            begin
+               ASN := First (Aspect_Specifications (Parent (E)));
+               while Present (ASN) loop
+                  if Chars (Identifier (ASN)) = Name_Invariant
+                       or else
+                     Chars (Identifier (ASN)) = Name_Type_Invariant
+                  then
+                     Build_Invariant_Procedure (E, N);
+                     exit;
+                  end if;
+
+                  Next (ASN);
+               end loop;
+            end;
          end if;
 
          Next_Entity (E);
@@ -2143,6 +2160,14 @@ package body Sem_Ch7 is
 
          Set_Freeze_Node (Priv, Freeze_Node (Full));
 
+         --  Propagate information of type invariants, which may be specified
+         --  for the full view.
+
+         if Has_Invariants (Full) and not Has_Invariants (Priv) then
+            Set_Has_Invariants (Priv);
+            Set_Subprograms_For_Type (Priv, Subprograms_For_Type (Full));
+         end if;
+
          if Is_Tagged_Type (Priv)
            and then Is_Tagged_Type (Full)
            and then not Error_Posted (Full)
@@ -2193,7 +2218,7 @@ package body Sem_Ch7 is
             Write_Eol;
          end if;
 
-         --  On  exit from the package scope, we must preserve the visibility
+         --  On exit from the package scope, we must preserve the visibility
          --  established by use clauses in the current scope. Two cases:
 
          --  a) If the entity is an operator, it may be a primitive operator of
@@ -2227,8 +2252,8 @@ package body Sem_Ch7 is
                --  of its parent unit.
 
                if Is_Child_Unit (Id) then
-                  Set_Is_Potentially_Use_Visible (Id,
-                    Is_Visible_Child_Unit (Id));
+                  Set_Is_Potentially_Use_Visible
+                    (Id, Is_Visible_Lib_Unit (Id));
                else
                   Set_Is_Potentially_Use_Visible (Id);
                end if;
@@ -2247,9 +2272,7 @@ package body Sem_Ch7 is
          --  full view is also removed from visibility: it may be exposed when
          --  swapping views in an instantiation.
 
-         if Is_Type (Id)
-           and then Present (Full_View (Id))
-         then
+         if Is_Type (Id) and then Present (Full_View (Id)) then
             Set_Is_Immediately_Visible (Full_View (Id), False);
          end if;
 
@@ -2303,7 +2326,7 @@ package body Sem_Ch7 is
            --  OK if object declaration with the No_Initialization flag set
 
            and then not (Nkind (Parent (Id)) = N_Object_Declaration
-                           and then No_Initialization (Parent (Id)))
+                          and then No_Initialization (Parent (Id)))
          then
             --  If no private declaration is present, we assume the user did
             --  not intend a deferred constant declaration and the problem
@@ -2329,13 +2352,13 @@ package body Sem_Ch7 is
 
             else
                Error_Msg_N
-                  ("missing full declaration for deferred constant (RM 7.4)",
-                     Id);
+                 ("missing full declaration for deferred constant (RM 7.4)",
+                  Id);
 
                if Is_Limited_Type (Etype (Id)) then
                   Error_Msg_N
                     ("\if variable intended, remove CONSTANT from declaration",
-                    Parent (Id));
+                     Parent (Id));
                end if;
             end if;
          end if;
@@ -2371,9 +2394,7 @@ package body Sem_Ch7 is
 
          Set_Is_Immediately_Visible (Id, False);
 
-         if Is_Private_Base_Type (Id)
-           and then Present (Full_View (Id))
-         then
+         if Is_Private_Base_Type (Id) and then Present (Full_View (Id)) then
             Full := Full_View (Id);
 
             --  If the partial view is not declared in the visible part of the
@@ -2382,8 +2403,8 @@ package body Sem_Ch7 is
             --  no exchange takes place.
 
             if No (Parent (Id))
-              or else List_Containing (Parent (Id))
-                /= Visible_Declarations (Specification (Decl))
+              or else List_Containing (Parent (Id)) /=
+                               Visible_Declarations (Specification (Decl))
             then
                goto Next_Id;
             end if;
@@ -2408,9 +2429,9 @@ package body Sem_Ch7 is
 
             Priv_Elmt := First_Elmt (Private_Dependents (Id));
 
-            --  Swap out the subtypes and derived types of Id that were
-            --  compiled in this scope, or installed previously by
-            --  Install_Private_Declarations.
+            --  Swap out the subtypes and derived types of Id that
+            --  were compiled in this scope, or installed previously
+            --  by Install_Private_Declarations.
 
             --  Before we do the swap, we verify the presence of the Full_View
             --  field which may be empty due to a swap by a previous call to
@@ -2420,7 +2441,6 @@ package body Sem_Ch7 is
                Priv_Sub := Node (Priv_Elmt);
 
                if Present (Full_View (Priv_Sub)) then
-
                   if Scope (Priv_Sub) = P
                      or else not In_Open_Scopes (Scope (Priv_Sub))
                   then
@@ -2590,11 +2610,11 @@ package body Sem_Ch7 is
          --  expander will provide an implicit completion at some point.
 
          elsif (Is_Overloadable (E)
-               and then Ekind (E) /= E_Enumeration_Literal
-               and then Ekind (E) /= E_Operator
-               and then not Is_Abstract_Subprogram (E)
-               and then not Has_Completion (E)
-               and then Comes_From_Source (Parent (E)))
+                 and then Ekind (E) /= E_Enumeration_Literal
+                 and then Ekind (E) /= E_Operator
+                 and then not Is_Abstract_Subprogram (E)
+                 and then not Has_Completion (E)
+                 and then Comes_From_Source (Parent (E)))
 
            or else
              (Ekind (E) = E_Package
@@ -2608,12 +2628,12 @@ package body Sem_Ch7 is
                and then not Is_Generic_Type (E))
 
            or else
-            ((Ekind (E) = E_Task_Type or else
-              Ekind (E) = E_Protected_Type)
+             (Ekind_In (E, E_Task_Type, E_Protected_Type)
                and then not Has_Completion (E))
 
            or else
-             (Ekind (E) = E_Generic_Package and then E /= P
+             (Ekind (E) = E_Generic_Package
+               and then E /= P
                and then not Has_Completion (E)
                and then Unit_Requires_Body (E))
 

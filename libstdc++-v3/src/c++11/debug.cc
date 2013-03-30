@@ -1,7 +1,6 @@
 // Debugging mode support code -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-// 2011, 2012 Free Software Foundation, Inc.
+// Copyright (C) 2003-2013 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -178,7 +177,11 @@ namespace __gnu_debug
     "attempt to compare local iterators from different unordered container"
     " buckets",
     "function requires a non-empty iterator range [%1.name;, %2.name;)",
-    "attempt to self move assign"
+    "attempt to self move assign",
+    "attempt to access container with out-of-bounds bucket index %2;,"
+    " container only holds %3; buckets",
+    "load factor shall be positive",
+    "allocators must be equal"
   };
 
   void

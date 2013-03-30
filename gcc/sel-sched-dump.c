@@ -1,5 +1,5 @@
 /* Instruction scheduling pass.   Log dumping infrastructure.
-   Copyright (C) 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2006-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -91,7 +91,7 @@ restore_dump (void)
 /* Functions for dumping instructions, av sets, and exprs.  */
 
 /* Default flags for dumping insns.  */
-static int dump_insn_rtx_flags = DUMP_INSN_RTX_PATTERN;
+static int dump_insn_rtx_flags = DUMP_INSN_RTX_UID | DUMP_INSN_RTX_PATTERN;
 
 /* Default flags for dumping vinsns.  */
 static int dump_vinsn_flags = (DUMP_VINSN_INSN_RTX | DUMP_VINSN_TYPE
@@ -136,12 +136,7 @@ dump_insn_rtx_1 (rtx insn, int flags)
     sel_print ("%d;", INSN_UID (insn));
 
   if (flags & DUMP_INSN_RTX_PATTERN)
-    {
-      char buf[2048];
-
-      print_insn (buf, insn, 0);
-      sel_print ("%s;", buf);
-    }
+    sel_print ("%s;", str_pattern_slim (PATTERN (insn)));
 
   if (flags & DUMP_INSN_RTX_BBN)
     {
@@ -210,6 +205,42 @@ void
 dump_vinsn (vinsn_t vi)
 {
   dump_vinsn_1 (vi, dump_vinsn_flags);
+}
+
+DEBUG_FUNCTION void
+debug (vinsn_def &ref)
+{
+  switch_dump (stderr);
+  dump_vinsn_1 (&ref, dump_vinsn_flags);
+  sel_print ("\n");
+  restore_dump ();
+}
+
+DEBUG_FUNCTION void
+debug (vinsn_def *ptr)
+{
+  if (ptr)
+    debug (*ptr);
+  else
+    fprintf (stderr, "<nil>\n");
+}
+
+DEBUG_FUNCTION void
+debug_verbose (vinsn_def &ref)
+{
+  switch_dump (stderr);
+  dump_vinsn_1 (&ref, debug_vinsn_flags);
+  sel_print ("\n");
+  restore_dump ();
+}
+
+DEBUG_FUNCTION void
+debug_verbose (vinsn_def *ptr)
+{
+  if (ptr)
+    debug (*ptr);
+  else
+    fprintf (stderr, "<nil>\n");
 }
 
 /* Dump vinsn VI to stderr.  */
@@ -301,6 +332,46 @@ debug_expr (expr_t expr)
   dump_expr_1 (expr, debug_expr_flags);
   sel_print ("\n");
   restore_dump ();
+}
+
+/* Dump expression REF.  */
+
+DEBUG_FUNCTION void
+debug (expr_def &ref)
+{
+  switch_dump (stderr);
+  dump_expr_1 (&ref, 0);
+  sel_print ("\n");
+  restore_dump ();
+}
+
+DEBUG_FUNCTION void
+debug (expr_def *ptr)
+{
+  if (ptr)
+    debug (*ptr);
+  else
+    fprintf (stderr, "<nil>\n");
+}
+
+/* Dump expression REF verbosely.  */
+
+DEBUG_FUNCTION void
+debug_verbose (expr_def &ref)
+{
+  switch_dump (stderr);
+  dump_expr_1 (&ref, DUMP_EXPR_ALL);
+  sel_print ("\n");
+  restore_dump ();
+}
+
+DEBUG_FUNCTION void
+debug_verbose (expr_def *ptr)
+{
+  if (ptr)
+    debug_verbose (*ptr);
+  else
+    fprintf (stderr, "<nil>\n");
 }
 
 /* Dump insn I honoring FLAGS.  */
@@ -465,7 +536,7 @@ dump_insn_vector (rtx_vec_t succs)
   int i;
   rtx succ;
 
-  FOR_EACH_VEC_ELT (rtx, succs, i, succ)
+  FOR_EACH_VEC_ELT (succs, i, succ)
     if (succ)
       dump_insn (succ);
     else
@@ -502,7 +573,7 @@ sel_print_insn (const_rtx insn, int aligned ATTRIBUTE_UNUSED)
 
   /* '+' before insn means it is a new cycle start and it's not been
      scheduled yet.  '>' - has been scheduled.  */
-  if (s_i_d && INSN_LUID (insn) > 0)
+  if (s_i_d.exists () && INSN_LUID (insn) > 0)
     if (GET_MODE (insn) == TImode)
       sprintf (buf, "%s %4d",
                INSN_SCHED_TIMES (insn) > 0 ? "> " : "< ",
@@ -522,6 +593,7 @@ sel_print_insn (const_rtx insn, int aligned ATTRIBUTE_UNUSED)
 
 
 /* Functions for pretty printing of CFG.  */
+/* FIXME: Using pretty-print here could simplify this stuff.  */
 
 /* Replace all occurencies of STR1 to STR2 in BUF.
    The BUF must be large enough to hold the result.  */
@@ -564,7 +636,8 @@ replace_str_in_buf (char *buf, const char *str1, const char *str2)
   while (p);
 }
 
-/* Replace characters in BUF that have special meaning in .dot file.  */
+/* Replace characters in BUF that have special meaning in .dot file.
+   Similar to pp_write_text_as_dot_label_to_stream.  */
 static void
 sel_prepare_string_for_dot_label (char *buf)
 {
@@ -606,7 +679,7 @@ sel_dump_cfg_insn (insn_t insn, int flags)
 {
   int insn_flags = DUMP_INSN_UID | DUMP_INSN_PATTERN;
 
-  if (sched_luids != NULL && INSN_LUID (insn) > 0)
+  if (sched_luids.exists () && INSN_LUID (insn) > 0)
     {
       if (flags & SEL_DUMP_CFG_INSN_SEQNO)
 	insn_flags |= DUMP_INSN_SEQNO | DUMP_INSN_SCHED_CYCLE | DUMP_INSN_EXPR;
@@ -919,6 +992,25 @@ debug_blist (blist_t bnds)
   dump_blist (bnds);
   sel_print ("\n");
   restore_dump ();
+}
+
+/* Dump a rtx vector REF.  */
+DEBUG_FUNCTION void
+debug (vec<rtx> &ref)
+{
+  switch_dump (stderr);
+  dump_insn_vector (ref);
+  sel_print ("\n");
+  restore_dump ();
+}
+
+DEBUG_FUNCTION void
+debug (vec<rtx> *ptr)
+{
+  if (ptr)
+    debug (*ptr);
+  else
+    fprintf (stderr, "<nil>\n");
 }
 
 /* Dump an insn vector SUCCS.  */

@@ -1,6 +1,5 @@
 /* Subroutines used for code generation on Vitesse IQ2000 processors
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2003-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -152,7 +151,8 @@ static void iq2000_setup_incoming_varargs (cumulative_args_t,
 					   enum machine_mode, tree, int *,
 					   int);
 static bool iq2000_rtx_costs          (rtx, int, int, int, int *, bool);
-static int  iq2000_address_cost       (rtx, bool);
+static int  iq2000_address_cost       (rtx, enum machine_mode, addr_space_t,
+				       bool);
 static section *iq2000_select_section (tree, int, unsigned HOST_WIDE_INT);
 static rtx  iq2000_legitimize_address (rtx, rtx, enum machine_mode);
 static bool iq2000_pass_by_reference  (cumulative_args_t, enum machine_mode,
@@ -381,8 +381,7 @@ iq2000_fill_delay_slot (const char *ret, enum delay_type type, rtx operands[],
   /* Make sure that we don't put nop's after labels.  */
   next_insn = NEXT_INSN (cur_insn);
   while (next_insn != 0
-	 && (GET_CODE (next_insn) == NOTE
-	     || GET_CODE (next_insn) == CODE_LABEL))
+	 && (NOTE_P (next_insn) || LABEL_P (next_insn)))
     next_insn = NEXT_INSN (next_insn);
 
   dslots_load_total += num_nops;
@@ -391,7 +390,7 @@ iq2000_fill_delay_slot (const char *ret, enum delay_type type, rtx operands[],
       || operands == 0
       || cur_insn == 0
       || next_insn == 0
-      || GET_CODE (next_insn) == CODE_LABEL
+      || LABEL_P (next_insn)
       || (set_reg = operands[0]) == 0)
     {
       dslots_number_nops = 0;
@@ -779,7 +778,8 @@ iq2000_move_1word (rtx operands[], rtx insn, int unsignedp)
 /* Provide the costs of an addressing mode that contains ADDR.  */
 
 static int
-iq2000_address_cost (rtx addr, bool speed)
+iq2000_address_cost (rtx addr, enum machine_mode mode, addr_space_t as,
+		     bool speed)
 {
   switch (GET_CODE (addr))
     {
@@ -830,7 +830,7 @@ iq2000_address_cost (rtx addr, bool speed)
 	  case LABEL_REF:
 	  case HIGH:
 	  case LO_SUM:
-	    return iq2000_address_cost (plus1, speed) + 1;
+	    return iq2000_address_cost (plus1, mode, as, speed) + 1;
 
 	  default:
 	    break;
@@ -1076,7 +1076,7 @@ gen_conditional_branch (rtx operands[], enum machine_mode mode)
   emit_jump_insn (gen_rtx_SET (VOIDmode, pc_rtx,
 			       gen_rtx_IF_THEN_ELSE (VOIDmode,
 						     gen_rtx_fmt_ee (test_code,
-								     mode,
+								     VOIDmode,
 								     cmp0, cmp1),
 						     label1, label2)));
 }
@@ -1140,7 +1140,7 @@ iq2000_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
 	       "function_adv({gp reg found = %d, arg # = %2d, words = %2d}, %4s, ",
 	       cum->gp_reg_found, cum->arg_number, cum->arg_words,
 	       GET_MODE_NAME (mode));
-      fprintf (stderr, "%p", CONST_CAST2 (void *, const_tree,  type));
+      fprintf (stderr, "%p", (const void *) type);
       fprintf (stderr, ", %d )\n\n", named);
     }
 
@@ -1532,8 +1532,8 @@ final_prescan_insn (rtx insn, rtx opvec[] ATTRIBUTE_UNUSED,
       iq2000_load_reg4 = 0;
     }
 
-  if (   (GET_CODE (insn) == JUMP_INSN
-       || GET_CODE (insn) == CALL_INSN
+  if (   (JUMP_P (insn)
+       || CALL_P (insn)
        || (GET_CODE (PATTERN (insn)) == RETURN))
 	   && NEXT_INSN (PREV_INSN (insn)) == insn)
     {
@@ -1543,7 +1543,7 @@ final_prescan_insn (rtx insn, rtx opvec[] ATTRIBUTE_UNUSED,
     }
   
   if (TARGET_STATS
-      && (GET_CODE (insn) == JUMP_INSN || GET_CODE (insn) == CALL_INSN))
+      && (JUMP_P (insn) || CALL_P (insn)))
     dslots_jump_total ++;
 }
 
@@ -2284,8 +2284,8 @@ iq2000_adjust_insn_length (rtx insn, int length)
   /* A unconditional jump has an unfilled delay slot if it is not part
      of a sequence.  A conditional jump normally has a delay slot.  */
   if (simplejump_p (insn)
-      || (   (GET_CODE (insn) == JUMP_INSN
-	   || GET_CODE (insn) == CALL_INSN)))
+      || (   (JUMP_P (insn)
+	   || CALL_P (insn))))
     length += 4;
 
   return length;

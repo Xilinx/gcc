@@ -1,9 +1,7 @@
 /* This file contains the definitions and documentation for the
    Register Transfer Expressions (rtx's) that make up the
    Register Transfer Language (rtl) used in the Back End of the GNU compiler.
-   Copyright (C) 1987, 1988, 1992, 1994, 1995, 1997, 1998, 1999, 2000, 2004,
-   2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -66,7 +64,8 @@ along with GCC; see the file COPYING3.  If not see
      RTX_BITFIELD_OPS
          an rtx code for a bit-field operation (ZERO_EXTRACT, SIGN_EXTRACT)
      RTX_INSN
-         an rtx code for a machine insn (INSN, JUMP_INSN, CALL_INSN)
+         an rtx code for a machine insn (INSN, JUMP_INSN, CALL_INSN) or
+	 data that will be output as assembly pseudo-ops (DEBUG_INSN)
      RTX_MATCH
          an rtx code for something that matches in insns (e.g, MATCH_DUP)
      RTX_AUTOINC
@@ -138,6 +137,13 @@ DEF_RTL_EXPR(JUMP_INSN, "jump_insn", "iuuBeiie0", RTX_INSN)
    Field ( rtx->u.fld[8] ) is CALL_INSN_FUNCTION_USAGE.
    All other fields ( rtx->u.fld[] ) have exact same meaning as INSN's.  */
 DEF_RTL_EXPR(CALL_INSN, "call_insn", "iuuBeiiee", RTX_INSN)
+
+/* Placeholder for tablejump JUMP_INSNs.  The pattern of this kind
+   of rtx is always either an ADDR_VEC or an ADDR_DIFF_VEC.  These
+   placeholders do not appear as real instructions inside a basic
+   block, but are considered active_insn_p instructions for historical
+   reasons, when jump table data was represented with JUMP_INSNs.  */
+DEF_RTL_EXPR(JUMP_TABLE_DATA, "jump_table_data", "iuuBe0000", RTX_INSN)
 
 /* A marker that indicates that control will not flow through.  */
 DEF_RTL_EXPR(BARRIER, "barrier", "iuu00000", RTX_EXTRA)
@@ -216,8 +222,12 @@ DEF_RTL_EXPR(UNSPEC, "unspec", "Ei", RTX_EXTRA)
 /* Similar, but a volatile operation and one which may trap.  */
 DEF_RTL_EXPR(UNSPEC_VOLATILE, "unspec_volatile", "Ei", RTX_EXTRA)
 
-/* Vector of addresses, stored as full words.  */
-/* Each element is a LABEL_REF to a CODE_LABEL whose address we want.  */
+/* ----------------------------------------------------------------------
+   Table jump addresses.
+   ---------------------------------------------------------------------- */
+
+/* Vector of addresses, stored as full words.
+   Each element is a LABEL_REF to a CODE_LABEL whose address we want.  */
 DEF_RTL_EXPR(ADDR_VEC, "addr_vec", "E", RTX_EXTRA)
 
 /* Vector of address differences X0 - BASE, X1 - BASE, ...
@@ -241,8 +251,7 @@ DEF_RTL_EXPR(ADDR_VEC, "addr_vec", "E", RTX_EXTRA)
 
    The third, fourth and fifth operands are only valid when
    CASE_VECTOR_SHORTEN_MODE is defined, and only in an optimizing
-   compilations.  */
-
+   compilation.  */
 DEF_RTL_EXPR(ADDR_DIFF_VEC, "addr_diff_vec", "eEee0", RTX_EXTRA)
 
 /* Memory prefetch, with attributes supported on some targets.
@@ -322,9 +331,10 @@ DEF_RTL_EXPR(CONST_INT, "const_int", "w", RTX_CONST_OBJ)
 /* fixed-point constant */
 DEF_RTL_EXPR(CONST_FIXED, "const_fixed", "www", RTX_CONST_OBJ)
 
-/* numeric floating point constant.
-   Operands hold the value.  They are all 'w' and there may be from 2 to 6;
-   see real.h.  */
+/* numeric floating point or integer constant.  If the mode is
+   VOIDmode it is an int otherwise it has a floating point mode and a
+   floating point value.  Operands hold the value.  They are all 'w'
+   and there may be from 2 to 6; see real.h.  */
 DEF_RTL_EXPR(CONST_DOUBLE, "const_double", CONST_DOUBLE_FORMAT, RTX_CONST_OBJ)
 
 /* Describes a vector constant.  */
@@ -905,8 +915,9 @@ DEF_RTL_EXPR(DEFINE_PEEPHOLE2, "define_peephole2", "EsES", RTX_EXTRA)
 	This might, for example, create some RTX's and store them in
 	elements of `recog_data.operand' for use by the vector of
 	insn-patterns.
-	(`operands' is an alias here for `recog_data.operand').  */
-DEF_RTL_EXPR(DEFINE_EXPAND, "define_expand", "sEss", RTX_EXTRA)
+	(`operands' is an alias here for `recog_data.operand').
+   5th: optionally, a vector of attributes for this expand.  */
+DEF_RTL_EXPR(DEFINE_EXPAND, "define_expand", "sEssV", RTX_EXTRA)
 
 /* Define a requirement for delay slots.
    1st operand: Condition involving insn attributes that, if true,
@@ -1279,6 +1290,8 @@ DEF_RTL_EXPR (ATTR_FLAG, "attr_flag", "s", RTX_EXTRA)
    true, the second operand will be used as the value of the conditional.  */
 DEF_RTL_EXPR(COND, "cond", "Ee", RTX_EXTRA)
 
+DEF_RTL_EXPR(DEFINE_SUBST, "define_subst", "sEsE", RTX_EXTRA)
+DEF_RTL_EXPR(DEFINE_SUBST_ATTR, "define_subst_attr", "ssss", RTX_EXTRA)
 #endif /* GENERATOR_FILE */
 
 /*

@@ -1,6 +1,5 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009, 2010, 2011  Free Software Foundation, Inc.
+   Copyright (C) 1998-2013 Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
 This file is part of GCC.
@@ -130,7 +129,7 @@ static reg_class_t cris_preferred_reload_class (rtx, reg_class_t);
 static int cris_register_move_cost (enum machine_mode, reg_class_t, reg_class_t);
 static int cris_memory_move_cost (enum machine_mode, reg_class_t, bool);
 static bool cris_rtx_costs (rtx, int, int, int, int *, bool);
-static int cris_address_cost (rtx, bool);
+static int cris_address_cost (rtx, enum machine_mode, addr_space_t, bool);
 static bool cris_pass_by_reference (cumulative_args_t, enum machine_mode,
 				    const_tree, bool);
 static int cris_arg_partial_bytes (cumulative_args_t, enum machine_mode,
@@ -153,6 +152,7 @@ static void cris_trampoline_init (rtx, tree, rtx);
 static rtx cris_function_value(const_tree, const_tree, bool);
 static rtx cris_libcall_value (enum machine_mode, const_rtx);
 static bool cris_function_value_regno_p (const unsigned int);
+static void cris_file_end (void);
 
 /* This is the parsed result of the "-max-stack-stackframe=" option.  If
    it (still) is zero, then there was no such option given.  */
@@ -199,6 +199,8 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 
 #undef TARGET_ASM_FILE_START
 #define TARGET_ASM_FILE_START cris_file_start
+#undef TARGET_ASM_FILE_END
+#define TARGET_ASM_FILE_END cris_file_end
 
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS cris_init_libfuncs
@@ -2146,7 +2148,9 @@ cris_rtx_costs (rtx x, int code, int outer_code, int opno, int *total,
 /* The ADDRESS_COST worker.  */
 
 static int
-cris_address_cost (rtx x, bool speed ATTRIBUTE_UNUSED)
+cris_address_cost (rtx x, enum machine_mode mode ATTRIBUTE_UNUSED,
+		   addr_space_t as ATTRIBUTE_UNUSED,
+		   bool speed ATTRIBUTE_UNUSED)
 {
   /* The metric to use for the cost-macros is unclear.
      The metric used here is (the number of cycles needed) / 2,
@@ -2693,6 +2697,9 @@ cris_asm_output_mi_thunk (FILE *stream,
 			  HOST_WIDE_INT vcall_offset ATTRIBUTE_UNUSED,
 			  tree funcdecl)
 {
+  /* Make sure unwind info is emitted for the thunk if needed.  */
+  final_start_function (emit_barrier (), stream, 1);
+
   if (delta > 0)
     fprintf (stream, "\tadd%s " HOST_WIDE_INT_PRINT_DEC ",$%s\n",
 	     ADDITIVE_SIZE_MODIFIER (delta), delta,
@@ -2730,6 +2737,8 @@ cris_asm_output_mi_thunk (FILE *stream,
       if (TARGET_V32)
 	fprintf (stream, "\tnop\n");
     }
+
+  final_end_function ();
 }
 
 /* Boilerplate emitted at start of file.
@@ -2745,6 +2754,17 @@ cris_file_start (void)
   targetm.asm_file_start_app_off = !(TARGET_PDEBUG || flag_print_asm_name);
 
   default_file_start ();
+}
+
+/* Output that goes at the end of the file, similarly.  */
+
+static void
+cris_file_end (void)
+{
+  /* For CRIS, the default is to assume *no* executable stack, so output
+     an executable-stack-note only when needed.  */
+  if (TARGET_LINUX && trampolines_created)
+    file_end_indicate_exec_stack ();
 }
 
 /* Rename the function calls for integer multiply and divide.  */

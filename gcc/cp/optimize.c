@@ -1,6 +1,5 @@
 /* Perform optimizations on tree structure.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2007, 2008, 2009,
-   2010 Free Software Foundation, Inc.
+   Copyright (C) 1998-2013 Free Software Foundation, Inc.
    Written by Mark Michell (mark@codesourcery.com).
 
 This file is part of GCC.
@@ -128,7 +127,8 @@ build_delete_destructor_body (tree delete_dtor, tree complete_dtor)
 
   /* Call the corresponding complete destructor.  */
   gcc_assert (complete_dtor);
-  call_dtor = build_cxx_call (complete_dtor, 1, &parm);
+  call_dtor = build_cxx_call (complete_dtor, 1, &parm,
+			      tf_warning_or_error);
   add_stmt (call_dtor);
 
   add_stmt (build_stmt (0, LABEL_EXPR, cdtor_label));

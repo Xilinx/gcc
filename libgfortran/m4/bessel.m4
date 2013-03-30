@@ -1,6 +1,6 @@
 `/* Implementation of the BESSEL_JN and BESSEL_YN transformational
    function using a recurrence algorithm.
-   Copyright 2010, 2012 Free Software Foundation, Inc.
+   Copyright (C) 2010-2013 Free Software Foundation, Inc.
    Contributed by Tobias Burnus <burnus@net-b.de>
 
 This file is part of the GNU Fortran runtime library (libgfortran).
@@ -149,7 +149,6 @@ bessel_yn_r'rtype_kind` ('rtype` * const restrict ret, int n1, int n2,
       return;
     }
 
-  ret->base_addr = ret->base_addr;
   last1 = MATHFUNC(yn) (n1, x);
   ret->base_addr[0] = last1;
 

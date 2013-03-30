@@ -40,12 +40,16 @@ typedef int __gcc_CMPtype __attribute__ ((mode (__libgcc_cmp_return__)));
     R##_c = FP_CLS_NAN;						\
   } while (0)
 
+#ifndef _SOFT_FLOAT
 #define FP_EX_INVALID		0x01
 #define FP_EX_DENORM		0x02
 #define FP_EX_DIVZERO		0x04
 #define FP_EX_OVERFLOW		0x08
 #define FP_EX_UNDERFLOW		0x10
 #define FP_EX_INEXACT		0x20
+#define FP_EX_ALL \
+	(FP_EX_INVALID | FP_EX_DENORM | FP_EX_DIVZERO | FP_EX_OVERFLOW \
+	 | FP_EX_UNDERFLOW | FP_EX_INEXACT)
 
 void __sfp_handle_exceptions (int);
 
@@ -55,22 +59,10 @@ void __sfp_handle_exceptions (int);
       __sfp_handle_exceptions (_fex);		\
   } while (0);
 
-#define FP_RND_NEAREST		0
-#define FP_RND_ZERO		0xc00
-#define FP_RND_PINF		0x800
-#define FP_RND_MINF		0x400
-
-#define FP_RND_MASK		0xc00
-
-#define _FP_DECL_EX \
-  unsigned short _fcw __attribute__ ((unused)) = FP_RND_NEAREST
-
-#define FP_INIT_ROUNDMODE				\
-  do {							\
-    __asm__ __volatile__ ("fnstcw\t%0" : "=m" (_fcw));	\
-  } while (0)
+#define FP_TRAPPING_EXCEPTIONS ((_fcw >> FP_EX_SHIFT) & FP_EX_ALL)
 
 #define FP_ROUNDMODE		(_fcw & FP_RND_MASK)
+#endif
 
 #define	__LITTLE_ENDIAN	1234
 #define	__BIG_ENDIAN	4321

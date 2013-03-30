@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler, for CR16.
-   Copyright (C) 2012 Free Software Foundation, Inc.
+   Copyright (C) 2012-2013 Free Software Foundation, Inc.
    Contributed by KPIT Cummins Infosystems Limited.
 
    This file is part of GCC.
@@ -459,10 +459,6 @@ struct cumulative_args
 #define REG_MODE_OK_FOR_BASE_P(X, MODE)	1
 #define REG_OK_FOR_INDEX_P(X)   1
 #endif /* not REG_OK_STRICT.  */
-
-/* Go to LABEL if ADDR (a legitimate address expression) has 
-   an effect that depends on the machine mode it is used for.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 /* Assume best case (branch predicted).  */
 #define BRANCH_COST(speed_p, predictable_p)       2

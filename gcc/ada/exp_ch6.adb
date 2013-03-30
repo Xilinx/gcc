@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1217,8 +1217,8 @@ package body Exp_Ch6 is
                  and then
                    Present (Effective_Extra_Accessibility (Entity (Lhs)))
                then
-                  --  Copyback target is an Ada 2012 stand-alone object
-                  --  of an anonymous access type
+                  --  Copyback target is an Ada 2012 stand-alone object of an
+                  --  anonymous access type.
 
                   pragma Assert (Ada_Version >= Ada_2012);
 
@@ -1450,7 +1450,7 @@ package body Exp_Ch6 is
            and then Is_Valued_Procedure (Scope (Formal))
          then
             Error_Msg_N
-              ("by_reference actual may be misaligned?", Actual);
+              ("by_reference actual may be misaligned??", Actual);
             return False;
 
          else
@@ -1527,8 +1527,9 @@ package body Exp_Ch6 is
               and then In_Open_Scopes (Entity (Actual))
             then
                if Scope (Subp) /= Entity (Actual) then
-                  Error_Msg_N ("operation outside protected type may not "
-                    & "call back its protected operations?", Actual);
+                  Error_Msg_N
+                    ("operation outside protected type may not "
+                     & "call back its protected operations??", Actual);
                end if;
 
                Rewrite (Actual,
@@ -2002,8 +2003,7 @@ package body Exp_Ch6 is
                          (Loc, Sloc (Body_To_Inline (Spec)))
             then
                Error_Msg_NE
-                 ("cannot inline& (body not seen yet)?",
-                  Call_Node, Subp);
+                 ("cannot inline& (body not seen yet)??", Call_Node, Subp);
 
             else
                declare
@@ -2122,7 +2122,7 @@ package body Exp_Ch6 is
 
                if not In_Same_Extended_Unit (Call_Node, Subp) then
                   Cannot_Inline
-                    ("cannot inline& (body not seen yet)", Call_Node, Subp,
+                    ("cannot inline& (body not seen yet)?", Call_Node, Subp,
                      Is_Serious => True);
 
                elsif In_Open_Scopes (Subp) then
@@ -2136,7 +2136,7 @@ package body Exp_Ch6 is
                     and then Optimization_Level = 0
                   then
                      Error_Msg_N
-                       ("call to recursive subprogram cannot be inlined?",
+                       ("call to recursive subprogram cannot be inlined?p?",
                         N);
 
                   --  Do not emit error compiling runtime packages
@@ -2145,7 +2145,7 @@ package body Exp_Ch6 is
                     (Unit_File_Name (Get_Source_Unit (Subp)))
                   then
                      Error_Msg_N
-                       ("call to recursive subprogram cannot be inlined?",
+                       ("call to recursive subprogram cannot be inlined??",
                         N);
 
                   else
@@ -2391,10 +2391,6 @@ package body Exp_Ch6 is
       then
          Expand_Put_Call_With_Symbol (Call_Node);
       end if;
-
-      --  Remove the dimensions of every parameters in call
-
-      Remove_Dimension_In_Call (N);
 
       --  Ignore if previous error
 
@@ -3050,7 +3046,7 @@ package body Exp_Ch6 is
                   Set_Last_Assignment (Ent, Sav);
                   Set_Is_Known_Valid (Ent, False);
 
-                  --  For all other cases, just kill the current values
+               --  For all other cases, just kill the current values
 
                else
                   Kill_Current_Values (Ent);
@@ -3205,7 +3201,7 @@ package body Exp_Ch6 is
          end;
       end if;
 
-      --  If we are expanding a rhs of an assignment we need to check if tag
+      --  If we are expanding the RHS of an assignment we need to check if tag
       --  propagation is needed. You might expect this processing to be in
       --  Analyze_Assignment but has to be done earlier (bottom-up) because the
       --  assignment might be transformed to a declaration for an unconstrained
@@ -3403,6 +3399,14 @@ package body Exp_Ch6 is
       --  the various expansion activities for actuals is carried out.
 
       Expand_Actuals (Call_Node, Subp);
+
+      --  Verify that the actuals do not share storage. This check must be done
+      --  on the caller side rather that inside the subprogram to avoid issues
+      --  of parameter passing.
+
+      if Check_Aliasing_Of_Parameters then
+         Apply_Parameter_Aliasing_Checks (Call_Node, Subp);
+      end if;
 
       --  If the subprogram is a renaming, or if it is inherited, replace it in
       --  the call with the name of the actual subprogram being called. If this
@@ -3786,7 +3790,8 @@ package body Exp_Ch6 is
                     and then In_Same_Extended_Unit (Sloc (Spec), Loc)
                   then
                      Cannot_Inline
-                      ("cannot inline& (body not seen yet)?", Call_Node, Subp);
+                       ("cannot inline& (body not seen yet)?",
+                        Call_Node, Subp);
                   end if;
                end if;
             end Inlined_Subprogram;
@@ -4031,42 +4036,6 @@ package body Exp_Ch6 is
    -------------------------------
 
    procedure Expand_Ctrl_Function_Call (N : Node_Id) is
-      function Enclosing_Context return Node_Id;
-      --  Find the enclosing context where the function call appears
-
-      -----------------------
-      -- Enclosing_Context --
-      -----------------------
-
-      function Enclosing_Context return Node_Id is
-         Context : Node_Id;
-
-      begin
-         Context := Parent (N);
-         while Present (Context) loop
-
-            if Nkind (Context) = N_Conditional_Expression then
-               exit;
-
-            --  Stop the search when reaching any statement because we have
-            --  gone too far up the tree.
-
-            elsif Nkind (Context) = N_Procedure_Call_Statement
-              or else Nkind (Context) in N_Statement_Other_Than_Procedure_Call
-            then
-               exit;
-            end if;
-
-            Context := Parent (Context);
-         end loop;
-
-         return Context;
-      end Enclosing_Context;
-
-      --  Local variables
-
-      Context : constant Node_Id := Enclosing_Context;
-
    begin
       --  Optimization, if the returned value (which is on the sec-stack) is
       --  returned again, no need to copy/readjust/finalize, we can just pass
@@ -4088,13 +4057,12 @@ package body Exp_Ch6 is
 
       Remove_Side_Effects (N);
 
-      --  The function call is part of a conditional expression alternative.
-      --  The temporary result must live as long as the conditional expression
-      --  itself, otherwise it will be finalized too early. Mark the transient
-      --  as processed to avoid untimely finalization.
+      --  When the temporary function result appears inside a case or an if
+      --  expression, its lifetime must be extended to match that of the
+      --  context. If not, the function result would be finalized prematurely
+      --  and the evaluation of the expression could yield the wrong result.
 
-      if Present (Context)
-        and then Nkind (Context) = N_Conditional_Expression
+      if Within_Case_Or_If_Expression (N)
         and then Nkind (N) = N_Explicit_Dereference
       then
          Set_Is_Processed_Transient (Entity (Prefix (N)));
@@ -4210,14 +4178,10 @@ package body Exp_Ch6 is
          Ret : Node_Id;
 
       begin
-         if Is_Entity_Name (N)
-           and then Present (Entity (N))
-         then
+         if Is_Entity_Name (N) and then Present (Entity (N)) then
             E := Entity (N);
 
-            if Is_Formal (E)
-              and then Scope (E) = Subp
-            then
+            if Is_Formal (E) and then Scope (E) = Subp then
                A := Renamed_Object (E);
 
                --  Rewrite the occurrence of the formal into an occurrence of
@@ -4637,7 +4601,7 @@ package body Exp_Ch6 is
       --  subprograms this must be done explicitly.
 
       if In_Open_Scopes (Subp) then
-         Error_Msg_N ("call to recursive subprogram cannot be inlined?", N);
+         Error_Msg_N ("call to recursive subprogram cannot be inlined??", N);
          Set_Is_Inlined (Subp, False);
          return;
 
@@ -4772,31 +4736,31 @@ package body Exp_Ch6 is
             else
                pragma Assert
                  (Nkind
-                    (First
-                       (Statements (Handled_Statement_Sequence (Orig_Bod))))
+                   (First
+                     (Statements (Handled_Statement_Sequence (Orig_Bod))))
                   = N_Block_Statement);
 
                declare
                   Blk_Stmt    : constant Node_Id :=
                     First
                       (Statements
-                           (Handled_Statement_Sequence (Orig_Bod)));
+                        (Handled_Statement_Sequence (Orig_Bod)));
                   First_Stmt  : constant Node_Id :=
                     First
                       (Statements
-                           (Handled_Statement_Sequence (Blk_Stmt)));
+                        (Handled_Statement_Sequence (Blk_Stmt)));
                   Second_Stmt : constant Node_Id := Next (First_Stmt);
 
                begin
                   pragma Assert
                     (Nkind (First_Stmt) = N_Procedure_Call_Statement
-                       and then Nkind (Second_Stmt) = Sinfo.N_Return_Statement
-                       and then No (Next (Second_Stmt)));
+                      and then Nkind (Second_Stmt) = N_Simple_Return_Statement
+                      and then No (Next (Second_Stmt)));
 
                   Bod :=
                     Copy_Generic_Node
                       (First
-                         (Statements (Handled_Statement_Sequence (Orig_Bod))),
+                        (Statements (Handled_Statement_Sequence (Orig_Bod))),
                        Empty, Instantiating => True);
                   Blk := Bod;
 
@@ -4835,8 +4799,8 @@ package body Exp_Ch6 is
          Ret_Type := Etype (Subp);
       end if;
 
-      --  Create temporaries for the actuals that are expressions, or that
-      --  are scalars and require copying to preserve semantics.
+      --  Create temporaries for the actuals that are expressions, or that are
+      --  scalars and require copying to preserve semantics.
 
       F := First_Formal (Subp);
       A := First_Actual (N);
@@ -4850,9 +4814,7 @@ package body Exp_Ch6 is
          --  prevent spurious warnings about overwriting for assignments to the
          --  formal in the inlined code.
 
-         if Is_Entity_Name (A)
-           and then Ekind (F) /= E_In_Parameter
-         then
+         if Is_Entity_Name (A) and then Ekind (F) /= E_In_Parameter then
             Set_Last_Assignment (Entity (A), Empty);
          end if;
 
@@ -4888,9 +4850,9 @@ package body Exp_Ch6 is
                (not Is_Scalar_Type (Etype (A))
                  or else Ekind (Entity (A)) = E_Enumeration_Literal))
 
-         --  When the actual is an identifier and the corresponding formal
-         --  is used only once in the original body, the formal can be
-         --  substituted directly with the actual parameter.
+         --  When the actual is an identifier and the corresponding formal is
+         --  used only once in the original body, the formal can be substituted
+         --  directly with the actual parameter.
 
            or else (Nkind (A) = N_Identifier
              and then Formal_Is_Used_Once (F))
@@ -4936,8 +4898,8 @@ package body Exp_Ch6 is
 
             Set_Sloc (New_A, Sloc (N));
 
-            --  If the actual has a by-reference type, it cannot be copied, so
-            --  its value is captured in a renaming declaration. Otherwise
+            --  If the actual has a by-reference type, it cannot be copied,
+            --  so its value is captured in a renaming declaration. Otherwise
             --  declare a local constant initialized with the actual.
 
             --  We also use a renaming declaration for expressions of an array
@@ -5122,8 +5084,8 @@ package body Exp_Ch6 is
          --  Remove the return statement
 
          pragma Assert
-           (Nkind (Last (Statements (Handled_Statement_Sequence (Blk))))
-            = Sinfo.N_Return_Statement);
+           (Nkind (Last (Statements (Handled_Statement_Sequence (Blk)))) =
+                                                   N_Simple_Return_Statement);
 
          Remove (Last (Statements (Handled_Statement_Sequence (Blk))));
       end if;
@@ -5161,8 +5123,8 @@ package body Exp_Ch6 is
          end if;
       end if;
 
-      --  Analyze Blk with In_Inlined_Body set, to avoid spurious errors on
-      --  conflicting private views that Gigi would ignore. If this is a
+      --  Analyze Blk with In_Inlined_Body set, to avoid spurious errors
+      --  on conflicting private views that Gigi would ignore. If this is a
       --  predefined unit, analyze with checks off, as is done in the non-
       --  inlined run-time units.
 
@@ -6222,6 +6184,7 @@ package body Exp_Ch6 is
       if Present (Expression (N))
         and then Nkind (Expression (N)) = N_Empty
       then
+         Check_Error_Detected;
          return;
       end if;
 
@@ -7476,7 +7439,7 @@ package body Exp_Ch6 is
       elsif Ada_Version >= Ada_2005
         and then Tagged_Type_Expansion
         and then Is_Class_Wide_Type (R_Type)
-        and then not Scope_Suppress (Accessibility_Check)
+        and then not Scope_Suppress.Suppress (Accessibility_Check)
         and then
           (Is_Class_Wide_Type (Etype (Exp))
             or else Nkind_In (Exp, N_Type_Conversion,
@@ -9113,6 +9076,96 @@ package body Exp_Ch6 is
          Set_Etype (Defining_Identifier (Object_Decl), Result_Subt);
       end if;
    end Make_Build_In_Place_Call_In_Object_Declaration;
+
+   --------------------------------------------
+   -- Make_CPP_Constructor_Call_In_Allocator --
+   --------------------------------------------
+
+   procedure Make_CPP_Constructor_Call_In_Allocator
+     (Allocator     : Node_Id;
+      Function_Call : Node_Id)
+   is
+      Loc         : constant Source_Ptr := Sloc (Function_Call);
+      Acc_Type    : constant Entity_Id := Etype (Allocator);
+      Function_Id : constant Entity_Id := Entity (Name (Function_Call));
+      Result_Subt : constant Entity_Id := Available_View (Etype (Function_Id));
+
+      New_Allocator     : Node_Id;
+      Return_Obj_Access : Entity_Id;
+      Tmp_Obj           : Node_Id;
+
+   begin
+      pragma Assert (Nkind (Allocator) = N_Allocator
+                       and then Nkind (Function_Call) = N_Function_Call);
+      pragma Assert (Convention (Function_Id) = Convention_CPP
+                       and then Is_Constructor (Function_Id));
+      pragma Assert (Is_Constrained (Underlying_Type (Result_Subt)));
+
+      --  Replace the initialized allocator of form "new T'(Func (...))" with
+      --  an uninitialized allocator of form "new T", where T is the result
+      --  subtype of the called function. The call to the function is handled
+      --  separately further below.
+
+      New_Allocator :=
+        Make_Allocator (Loc,
+          Expression => New_Reference_To (Result_Subt, Loc));
+      Set_No_Initialization (New_Allocator);
+
+      --  Copy attributes to new allocator. Note that the new allocator
+      --  logically comes from source if the original one did, so copy the
+      --  relevant flag. This ensures proper treatment of the restriction
+      --  No_Implicit_Heap_Allocations in this case.
+
+      Set_Storage_Pool      (New_Allocator, Storage_Pool      (Allocator));
+      Set_Procedure_To_Call (New_Allocator, Procedure_To_Call (Allocator));
+      Set_Comes_From_Source (New_Allocator, Comes_From_Source (Allocator));
+
+      Rewrite (Allocator, New_Allocator);
+
+      --  Create a new access object and initialize it to the result of the
+      --  new uninitialized allocator. Note: we do not use Allocator as the
+      --  Related_Node of Return_Obj_Access in call to Make_Temporary below
+      --  as this would create a sort of infinite "recursion".
+
+      Return_Obj_Access := Make_Temporary (Loc, 'R');
+      Set_Etype (Return_Obj_Access, Acc_Type);
+
+      --  Generate:
+      --    Rnnn : constant ptr_T := new (T);
+      --    Init (Rnn.all,...);
+
+      Tmp_Obj :=
+        Make_Object_Declaration (Loc,
+          Defining_Identifier => Return_Obj_Access,
+          Constant_Present    => True,
+          Object_Definition   => New_Reference_To (Acc_Type, Loc),
+          Expression          => Relocate_Node (Allocator));
+      Insert_Action (Allocator, Tmp_Obj);
+
+      Insert_List_After_And_Analyze (Tmp_Obj,
+        Build_Initialization_Call (Loc,
+          Id_Ref =>
+            Make_Explicit_Dereference (Loc,
+              Prefix => New_Reference_To (Return_Obj_Access, Loc)),
+          Typ => Etype (Function_Id),
+          Constructor_Ref => Function_Call));
+
+      --  Finally, replace the allocator node with a reference to the result of
+      --  the function call itself (which will effectively be an access to the
+      --  object created by the allocator).
+
+      Rewrite (Allocator, New_Reference_To (Return_Obj_Access, Loc));
+
+      --  Ada 2005 (AI-251): If the type of the allocator is an interface then
+      --  generate an implicit conversion to force displacement of the "this"
+      --  pointer.
+
+      if Is_Interface (Designated_Type (Acc_Type)) then
+         Rewrite (Allocator, Convert_To (Acc_Type, Relocate_Node (Allocator)));
+      end if;
+
+      Analyze_And_Resolve (Allocator, Acc_Type);
+   end Make_CPP_Constructor_Call_In_Allocator;
 
    -----------------------------------
    -- Needs_BIP_Finalization_Master --

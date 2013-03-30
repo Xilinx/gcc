@@ -1,6 +1,5 @@
 /* Dead store elimination
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2004-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -356,6 +355,7 @@ struct gimple_opt_pass pass_dse =
  {
   GIMPLE_PASS,
   "dse",			/* name */
+  OPTGROUP_NONE,                /* optinfo_flags */
   gate_dse,			/* gate */
   tree_ssa_dse,			/* execute */
   NULL,				/* sub */

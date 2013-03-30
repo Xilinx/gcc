@@ -1,7 +1,5 @@
 /* Definitions of target machine for GCC for IA-32.
-   Copyright (C) 1988, 1992, 1994, 1995, 1996, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 1988-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -91,13 +89,13 @@ extern void ix86_fixup_binary_operands_no_copy (enum rtx_code,
 						enum machine_mode, rtx[]);
 extern void ix86_expand_binary_operator (enum rtx_code,
 					 enum machine_mode, rtx[]);
+extern void ix86_expand_vector_logical_operator (enum rtx_code,
+						 enum machine_mode, rtx[]);
 extern bool ix86_binary_operator_ok (enum rtx_code, enum machine_mode, rtx[]);
-extern bool ix86_lea_outperforms (rtx, unsigned int, unsigned int,
-				  unsigned int, unsigned int);
 extern bool ix86_avoid_lea_for_add (rtx, rtx[]);
 extern bool ix86_use_lea_for_mov (rtx, rtx[]);
 extern bool ix86_avoid_lea_for_addr (rtx, rtx[]);
-extern void ix86_split_lea_for_addr (rtx[], enum machine_mode);
+extern void ix86_split_lea_for_addr (rtx, rtx[], enum machine_mode);
 extern bool ix86_lea_for_add_ok (rtx, rtx[]);
 extern bool ix86_vec_interleave_v2df_operator_ok (rtx operands[3], bool high);
 extern bool ix86_dep_by_shift_count (const_rtx set_insn, const_rtx use_insn);
@@ -167,8 +165,16 @@ extern bool ix86_secondary_memory_needed (enum reg_class, enum reg_class,
 					  enum machine_mode, int);
 extern bool ix86_cannot_change_mode_class (enum machine_mode,
 					   enum machine_mode, enum reg_class);
+
 extern int ix86_mode_needed (int, rtx);
-extern void emit_i387_cw_initialization (int);
+extern int ix86_mode_after (int, int, rtx);
+extern int ix86_mode_entry (int);
+extern int ix86_mode_exit (int);
+
+#ifdef HARD_CONST
+extern void ix86_emit_mode_set (int, int, HARD_REG_SET);
+#endif
+
 extern void x86_order_regs_for_local_alloc (void);
 extern void x86_function_profiler (FILE *, int);
 extern void x86_emit_floatuns (rtx [2]);
@@ -282,7 +288,7 @@ struct ix86_address
 };
 
 extern int ix86_decompose_address (rtx, struct ix86_address *);
-extern int memory_address_length (rtx addr);
+extern int memory_address_length (rtx, bool);
 extern void x86_output_aligned_bss (FILE *, tree, const char *,
 				    unsigned HOST_WIDE_INT, int);
 extern void x86_elf_aligned_common (FILE *, const char *,

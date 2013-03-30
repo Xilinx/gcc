@@ -1,7 +1,7 @@
 /* ARM NEON intrinsics include file. This file is generated automatically
    using neon-gen.ml.  Please do not edit manually.
 
-   Copyright (C) 2006, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2006-2013 Free Software Foundation, Inc.
    Contributed by CodeSourcery.
 
    This file is part of GCC.
@@ -1350,6 +1350,118 @@ vqdmlsl_s32 (int64x2_t __a, int32x2_t __b, int32x2_t __c)
   return (int64x2_t)__builtin_neon_vqdmlslv2si (__a, __b, __c, 1);
 }
 
+#ifdef __ARM_FEATURE_FMA
+__extension__ static __inline float32x2_t __attribute__ ((__always_inline__))
+vfma_f32 (float32x2_t __a, float32x2_t __b, float32x2_t __c)
+{
+  return (float32x2_t)__builtin_neon_vfmav2sf (__a, __b, __c, 3);
+}
+
+#endif
+#ifdef __ARM_FEATURE_FMA
+__extension__ static __inline float32x4_t __attribute__ ((__always_inline__))
+vfmaq_f32 (float32x4_t __a, float32x4_t __b, float32x4_t __c)
+{
+  return (float32x4_t)__builtin_neon_vfmav4sf (__a, __b, __c, 3);
+}
+
+#endif
+#ifdef __ARM_FEATURE_FMA
+__extension__ static __inline float32x2_t __attribute__ ((__always_inline__))
+vfms_f32 (float32x2_t __a, float32x2_t __b, float32x2_t __c)
+{
+  return (float32x2_t)__builtin_neon_vfmsv2sf (__a, __b, __c, 3);
+}
+
+#endif
+#ifdef __ARM_FEATURE_FMA
+__extension__ static __inline float32x4_t __attribute__ ((__always_inline__))
+vfmsq_f32 (float32x4_t __a, float32x4_t __b, float32x4_t __c)
+{
+  return (float32x4_t)__builtin_neon_vfmsv4sf (__a, __b, __c, 3);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x2_t __attribute__ ((__always_inline__))
+vrndn_f32 (float32x2_t __a)
+{
+  return (float32x2_t)__builtin_neon_vrintnv2sf (__a);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x4_t __attribute__ ((__always_inline__))
+vrndqn_f32 (float32x4_t __a)
+{
+  return (float32x4_t)__builtin_neon_vrintnv4sf (__a);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x2_t __attribute__ ((__always_inline__))
+vrnda_f32 (float32x2_t __a)
+{
+  return (float32x2_t)__builtin_neon_vrintav2sf (__a);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x4_t __attribute__ ((__always_inline__))
+vrndqa_f32 (float32x4_t __a)
+{
+  return (float32x4_t)__builtin_neon_vrintav4sf (__a);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x2_t __attribute__ ((__always_inline__))
+vrndp_f32 (float32x2_t __a)
+{
+  return (float32x2_t)__builtin_neon_vrintpv2sf (__a);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x4_t __attribute__ ((__always_inline__))
+vrndqp_f32 (float32x4_t __a)
+{
+  return (float32x4_t)__builtin_neon_vrintpv4sf (__a);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x2_t __attribute__ ((__always_inline__))
+vrndm_f32 (float32x2_t __a)
+{
+  return (float32x2_t)__builtin_neon_vrintmv2sf (__a);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x4_t __attribute__ ((__always_inline__))
+vrndqm_f32 (float32x4_t __a)
+{
+  return (float32x4_t)__builtin_neon_vrintmv4sf (__a);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x2_t __attribute__ ((__always_inline__))
+vrnd_f32 (float32x2_t __a)
+{
+  return (float32x2_t)__builtin_neon_vrintzv2sf (__a);
+}
+
+#endif
+#if __ARM_ARCH >= 8
+__extension__ static __inline float32x4_t __attribute__ ((__always_inline__))
+vrndq_f32 (float32x4_t __a)
+{
+  return (float32x4_t)__builtin_neon_vrintzv4sf (__a);
+}
+
+#endif
 __extension__ static __inline int8x8_t __attribute__ ((__always_inline__))
 vsub_s8 (int8x8_t __a, int8x8_t __b)
 {

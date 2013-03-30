@@ -1,5 +1,4 @@
-/* Copyright (C) 2005, 2006, 2007, 2008, 2009, 2011
-   Free Software Foundation, Inc.
+/* Copyright (C) 2005-2013 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU OpenMP Library (libgomp).
@@ -232,6 +231,15 @@ gomp_free_thread (void *arg __attribute__((unused)))
 	  gomp_barrier_wait (&pool->threads_dock);
 	  /* Now it is safe to destroy the barrier and free the pool.  */
 	  gomp_barrier_destroy (&pool->threads_dock);
+
+#ifdef HAVE_SYNC_BUILTINS
+	  __sync_fetch_and_add (&gomp_managed_threads,
+				1L - pool->threads_used);
+#else
+	  gomp_mutex_lock (&gomp_remaining_threads_lock);
+	  gomp_managed_threads -= pool->threads_used - 1L;
+	  gomp_mutex_unlock (&gomp_remaining_threads_lock);
+#endif
 	}
       free (pool->threads);
       if (pool->last_team)

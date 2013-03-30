@@ -1,6 +1,5 @@
 /* Loop header copying on trees.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2004-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -143,10 +142,6 @@ copy_loop_headers (void)
       return 0;
     }
 
-#ifdef ENABLE_CHECKING
-  verify_loop_structure ();
-#endif
-
   bbs = XNEWVEC (basic_block, n_basic_blocks);
   copied_bbs = XNEWVEC (basic_block, n_basic_blocks);
   bbs_size = n_basic_blocks;
@@ -201,6 +196,7 @@ copy_loop_headers (void)
 
       entry = loop_preheader_edge (loop);
 
+      propagate_threaded_block_debug_into (exit->dest, entry->dest);
       if (!gimple_duplicate_sese_region (entry, exit, bbs, n_bbs, copied_bbs))
 	{
 	  fprintf (dump_file, "Duplication failed.\n");
@@ -245,6 +241,7 @@ copy_loop_headers (void)
       split_edge (loop_latch_edge (loop));
     }
 
+  update_ssa (TODO_update_ssa);
   free (bbs);
   free (copied_bbs);
 
@@ -263,6 +260,7 @@ struct gimple_opt_pass pass_ch =
  {
   GIMPLE_PASS,
   "ch",					/* name */
+  OPTGROUP_LOOP,                        /* optinfo_flags */
   gate_ch,				/* gate */
   copy_loop_headers,			/* execute */
   NULL,					/* sub */

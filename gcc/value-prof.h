@@ -1,6 +1,5 @@
 /* Definitions for transformations based on profile information for values.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2003-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -34,7 +33,8 @@ enum hist_type
   HIST_TYPE_INDIR_CALL,   /* Tries to identify the function that is (almost)
 			    called in indirect call */
   HIST_TYPE_AVERAGE,	/* Compute average value (sum of all values).  */
-  HIST_TYPE_IOR		/* Used to compute expected alignment.  */
+  HIST_TYPE_IOR,	/* Used to compute expected alignment.  */
+  HIST_TYPE_MAX
 };
 
 #define COUNTER_FOR_HIST_TYPE(TYPE) ((int) (TYPE) + GCOV_FIRST_VALUE_COUNTER)
@@ -67,10 +67,8 @@ struct histogram_value_t
 typedef struct histogram_value_t *histogram_value;
 typedef const struct histogram_value_t *const_histogram_value;
 
-DEF_VEC_P(histogram_value);
-DEF_VEC_ALLOC_P(histogram_value,heap);
 
-typedef VEC(histogram_value,heap) *histogram_values;
+typedef vec<histogram_value> histogram_values;
 
 extern void gimple_find_values_to_profile (histogram_values *);
 extern bool gimple_value_profile_transformations (void);
@@ -101,6 +99,8 @@ extern void gimple_gen_const_delta_profiler (histogram_value,
 					     unsigned, unsigned);
 extern void gimple_gen_average_profiler (histogram_value, unsigned, unsigned);
 extern void gimple_gen_ior_profiler (histogram_value, unsigned, unsigned);
+extern void stream_out_histogram_value (struct output_block *, histogram_value);
+extern void stream_in_histogram_value (struct lto_input_block *, gimple);
 
 /* In profile.c.  */
 extern void init_branch_prob (void);

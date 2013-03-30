@@ -1,6 +1,5 @@
 ;; Patterns for the Intel Wireless MMX technology architecture.
-;; Copyright (C) 2003, 2004, 2005, 2007, 2008, 2010, 2012
-;; Free Software Foundation, Inc.
+;; Copyright (C) 2003-2013 Free Software Foundation, Inc.
 ;; Contributed by Red Hat.
 
 ;; This file is part of GCC.
@@ -19,12 +18,12 @@
 ;; along with GCC; see the file COPYING3.  If not see
 ;; <http://www.gnu.org/licenses/>.
 
-;; Register numbers
+;; Register numbers. Need to sync with FIRST_IWMMXT_GR_REGNUM in arm.h
 (define_constants
-  [(WCGR0           43)
-   (WCGR1           44)
-   (WCGR2           45)
-   (WCGR3           46)
+  [(WCGR0           96)
+   (WCGR1           97)
+   (WCGR2           98)
+   (WCGR3           99)
   ]
 )
 

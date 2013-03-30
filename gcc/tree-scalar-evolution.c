@@ -1,6 +1,5 @@
 /* Scalar evolution detector.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2003-2013 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <s.pop@laposte.net>
 
 This file is part of GCC.
@@ -873,7 +872,7 @@ get_loop_exit_condition (const struct loop *loop)
 
 static void
 get_exit_conditions_rec (struct loop *loop,
-			 VEC(gimple,heap) **exit_conditions)
+			 vec<gimple> *exit_conditions)
 {
   if (!loop)
     return;
@@ -887,7 +886,7 @@ get_exit_conditions_rec (struct loop *loop,
       gimple loop_condition = get_loop_exit_condition (loop);
 
       if (loop_condition)
-	VEC_safe_push (gimple, heap, *exit_conditions, loop_condition);
+	exit_conditions->safe_push (loop_condition);
     }
 }
 
@@ -895,7 +894,7 @@ get_exit_conditions_rec (struct loop *loop,
    initializes the EXIT_CONDITIONS array.  */
 
 static void
-select_loops_exit_conditions (VEC(gimple,heap) **exit_conditions)
+select_loops_exit_conditions (vec<gimple> *exit_conditions)
 {
   struct loop *function_body = current_loops->tree_root;
 
@@ -2147,8 +2146,8 @@ loop_closed_phi_def (tree var)
   return NULL_TREE;
 }
 
-static tree instantiate_scev_r (basic_block, struct loop *, tree, bool,
-				htab_t, int);
+static tree instantiate_scev_r (basic_block, struct loop *, struct loop *,
+				tree, bool, htab_t, int);
 
 /* Analyze all the parameters of the chrec, between INSTANTIATE_BELOW
    and EVOLUTION_LOOP, that were left under a symbolic form.
@@ -2166,7 +2165,8 @@ static tree instantiate_scev_r (basic_block, struct loop *, tree, bool,
 
 static tree
 instantiate_scev_name (basic_block instantiate_below,
-		       struct loop *evolution_loop, tree chrec,
+		       struct loop *evolution_loop, struct loop *inner_loop,
+		       tree chrec,
 		       bool fold_conversions, htab_t cache, int size_expr)
 {
   tree res;
@@ -2225,7 +2225,8 @@ instantiate_scev_name (basic_block instantiate_below,
 	  loop_p loop = loop_containing_stmt (SSA_NAME_DEF_STMT (chrec));
 	  res = analyze_scalar_evolution (loop, chrec);
 	  res = compute_overall_effect_of_inner_loop (loop, res);
-	  res = instantiate_scev_r (instantiate_below, evolution_loop, res,
+	  res = instantiate_scev_r (instantiate_below, evolution_loop,
+				    inner_loop, res,
 				    fold_conversions, cache, size_expr);
 	}
       else if (!dominated_by_p (CDI_DOMINATORS, instantiate_below,
@@ -2234,8 +2235,16 @@ instantiate_scev_name (basic_block instantiate_below,
     }
 
   else if (res != chrec_dont_know)
-    res = instantiate_scev_r (instantiate_below, evolution_loop, res,
-			      fold_conversions, cache, size_expr);
+    {
+      if (inner_loop
+	  && !flow_loop_nested_p (def_bb->loop_father, inner_loop))
+	/* ???  We could try to compute the overall effect of the loop here.  */
+	res = chrec_dont_know;
+      else
+	res = instantiate_scev_r (instantiate_below, evolution_loop,
+				  inner_loop, res,
+				  fold_conversions, cache, size_expr);
+    }
 
   /* Store the correct value to the cache.  */
   set_instantiated_value (cache, instantiate_below, chrec, res);
@@ -2258,17 +2267,20 @@ instantiate_scev_name (basic_block instantiate_below,
 
 static tree
 instantiate_scev_poly (basic_block instantiate_below,
-		       struct loop *evolution_loop, tree chrec,
+		       struct loop *evolution_loop, struct loop *,
+		       tree chrec,
 		       bool fold_conversions, htab_t cache, int size_expr)
 {
   tree op1;
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
+				 get_chrec_loop (chrec),
 				 CHREC_LEFT (chrec), fold_conversions, cache,
 				 size_expr);
   if (op0 == chrec_dont_know)
     return chrec_dont_know;
 
   op1 = instantiate_scev_r (instantiate_below, evolution_loop,
+			    get_chrec_loop (chrec),
 			    CHREC_RIGHT (chrec), fold_conversions, cache,
 			    size_expr);
   if (op1 == chrec_dont_know)
@@ -2277,19 +2289,8 @@ instantiate_scev_poly (basic_block instantiate_below,
   if (CHREC_LEFT (chrec) != op0
       || CHREC_RIGHT (chrec) != op1)
     {
-      unsigned var = CHREC_VARIABLE (chrec);
-
-      /* When the instantiated stride or base has an evolution in an
-	 innermost loop, return chrec_dont_know, as this is not a
-	 valid SCEV representation.  In the reduced testcase for
-	 PR40281 we would have {0, +, {1, +, 1}_2}_1 that has no
-	 meaning.  */
-      if ((tree_is_chrec (op0) && CHREC_VARIABLE (op0) > var)
-	  || (tree_is_chrec (op1) && CHREC_VARIABLE (op1) > var))
-	return chrec_dont_know;
-
       op1 = chrec_convert_rhs (chrec_type (op0), op1, NULL);
-      chrec = build_polynomial_chrec (var, op0, op1);
+      chrec = build_polynomial_chrec (CHREC_VARIABLE (chrec), op0, op1);
     }
 
   return chrec;
@@ -2311,18 +2312,19 @@ instantiate_scev_poly (basic_block instantiate_below,
 
 static tree
 instantiate_scev_binary (basic_block instantiate_below,
-			 struct loop *evolution_loop, tree chrec, enum tree_code code,
+			 struct loop *evolution_loop, struct loop *inner_loop,
+			 tree chrec, enum tree_code code,
 			 tree type, tree c0, tree c1,
 			 bool fold_conversions, htab_t cache, int size_expr)
 {
   tree op1;
-  tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
+  tree op0 = instantiate_scev_r (instantiate_below, evolution_loop, inner_loop,
 				 c0, fold_conversions, cache,
 				 size_expr);
   if (op0 == chrec_dont_know)
     return chrec_dont_know;
 
-  op1 = instantiate_scev_r (instantiate_below, evolution_loop,
+  op1 = instantiate_scev_r (instantiate_below, evolution_loop, inner_loop,
 			    c1, fold_conversions, cache,
 			    size_expr);
   if (op1 == chrec_dont_know)
@@ -2370,12 +2372,14 @@ instantiate_scev_binary (basic_block instantiate_below,
 
 static tree
 instantiate_array_ref (basic_block instantiate_below,
-		       struct loop *evolution_loop, tree chrec,
+		       struct loop *evolution_loop, struct loop *inner_loop,
+		       tree chrec,
 		       bool fold_conversions, htab_t cache, int size_expr)
 {
   tree res;
   tree index = TREE_OPERAND (chrec, 1);
-  tree op1 = instantiate_scev_r (instantiate_below, evolution_loop, index,
+  tree op1 = instantiate_scev_r (instantiate_below, evolution_loop,
+				 inner_loop, index,
 				 fold_conversions, cache, size_expr);
 
   if (op1 == chrec_dont_know)
@@ -2406,11 +2410,13 @@ instantiate_array_ref (basic_block instantiate_below,
 
 static tree
 instantiate_scev_convert (basic_block instantiate_below,
-			  struct loop *evolution_loop, tree chrec,
+			  struct loop *evolution_loop, struct loop *inner_loop,
+			  tree chrec,
 			  tree type, tree op,
 			  bool fold_conversions, htab_t cache, int size_expr)
 {
-  tree op0 = instantiate_scev_r (instantiate_below, evolution_loop, op,
+  tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
+				 inner_loop, op,
 				 fold_conversions, cache, size_expr);
 
   if (op0 == chrec_dont_know)
@@ -2453,11 +2459,13 @@ instantiate_scev_convert (basic_block instantiate_below,
 
 static tree
 instantiate_scev_not (basic_block instantiate_below,
-		      struct loop *evolution_loop, tree chrec,
+		      struct loop *evolution_loop, struct loop *inner_loop,
+		      tree chrec,
 		      enum tree_code code, tree type, tree op,
 		      bool fold_conversions, htab_t cache, int size_expr)
 {
-  tree op0 = instantiate_scev_r (instantiate_below, evolution_loop, op,
+  tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
+				 inner_loop, op,
 				 fold_conversions, cache, size_expr);
 
   if (op0 == chrec_dont_know)
@@ -2501,24 +2509,25 @@ instantiate_scev_not (basic_block instantiate_below,
 
 static tree
 instantiate_scev_3 (basic_block instantiate_below,
-		    struct loop *evolution_loop, tree chrec,
+		    struct loop *evolution_loop, struct loop *inner_loop,
+		    tree chrec,
 		    bool fold_conversions, htab_t cache, int size_expr)
 {
   tree op1, op2;
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
-				 TREE_OPERAND (chrec, 0),
+				 inner_loop, TREE_OPERAND (chrec, 0),
 				 fold_conversions, cache, size_expr);
   if (op0 == chrec_dont_know)
     return chrec_dont_know;
 
   op1 = instantiate_scev_r (instantiate_below, evolution_loop,
-			    TREE_OPERAND (chrec, 1),
+			    inner_loop, TREE_OPERAND (chrec, 1),
 			    fold_conversions, cache, size_expr);
   if (op1 == chrec_dont_know)
     return chrec_dont_know;
 
   op2 = instantiate_scev_r (instantiate_below, evolution_loop,
-			    TREE_OPERAND (chrec, 2),
+			    inner_loop, TREE_OPERAND (chrec, 2),
 			    fold_conversions, cache, size_expr);
   if (op2 == chrec_dont_know)
     return chrec_dont_know;
@@ -2548,18 +2557,19 @@ instantiate_scev_3 (basic_block instantiate_below,
 
 static tree
 instantiate_scev_2 (basic_block instantiate_below,
-		    struct loop *evolution_loop, tree chrec,
+		    struct loop *evolution_loop, struct loop *inner_loop,
+		    tree chrec,
 		    bool fold_conversions, htab_t cache, int size_expr)
 {
   tree op1;
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
-				 TREE_OPERAND (chrec, 0),
+				 inner_loop, TREE_OPERAND (chrec, 0),
 				 fold_conversions, cache, size_expr);
   if (op0 == chrec_dont_know)
     return chrec_dont_know;
 
   op1 = instantiate_scev_r (instantiate_below, evolution_loop,
-			    TREE_OPERAND (chrec, 1),
+			    inner_loop, TREE_OPERAND (chrec, 1),
 			    fold_conversions, cache, size_expr);
   if (op1 == chrec_dont_know)
     return chrec_dont_know;
@@ -2587,11 +2597,12 @@ instantiate_scev_2 (basic_block instantiate_below,
 
 static tree
 instantiate_scev_1 (basic_block instantiate_below,
-		    struct loop *evolution_loop, tree chrec,
+		    struct loop *evolution_loop, struct loop *inner_loop,
+		    tree chrec,
 		    bool fold_conversions, htab_t cache, int size_expr)
 {
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
-				 TREE_OPERAND (chrec, 0),
+				 inner_loop, TREE_OPERAND (chrec, 0),
 				 fold_conversions, cache, size_expr);
 
   if (op0 == chrec_dont_know)
@@ -2619,7 +2630,8 @@ instantiate_scev_1 (basic_block instantiate_below,
 
 static tree
 instantiate_scev_r (basic_block instantiate_below,
-		    struct loop *evolution_loop, tree chrec,
+		    struct loop *evolution_loop, struct loop *inner_loop,
+		    tree chrec,
 		    bool fold_conversions, htab_t cache, int size_expr)
 {
   /* Give up if the expression is larger than the MAX that we allow.  */
@@ -2634,31 +2646,36 @@ instantiate_scev_r (basic_block instantiate_below,
   switch (TREE_CODE (chrec))
     {
     case SSA_NAME:
-      return instantiate_scev_name (instantiate_below, evolution_loop, chrec,
+      return instantiate_scev_name (instantiate_below, evolution_loop,
+				    inner_loop, chrec,
 				    fold_conversions, cache, size_expr);
 
     case POLYNOMIAL_CHREC:
-      return instantiate_scev_poly (instantiate_below, evolution_loop, chrec,
+      return instantiate_scev_poly (instantiate_below, evolution_loop,
+				    inner_loop, chrec,
 				    fold_conversions, cache, size_expr);
 
     case POINTER_PLUS_EXPR:
     case PLUS_EXPR:
     case MINUS_EXPR:
     case MULT_EXPR:
-      return instantiate_scev_binary (instantiate_below, evolution_loop, chrec,
+      return instantiate_scev_binary (instantiate_below, evolution_loop,
+				      inner_loop, chrec,
 				      TREE_CODE (chrec), chrec_type (chrec),
 				      TREE_OPERAND (chrec, 0),
 				      TREE_OPERAND (chrec, 1),
 				      fold_conversions, cache, size_expr);
 
     CASE_CONVERT:
-      return instantiate_scev_convert (instantiate_below, evolution_loop, chrec,
+      return instantiate_scev_convert (instantiate_below, evolution_loop,
+				       inner_loop, chrec,
 				       TREE_TYPE (chrec), TREE_OPERAND (chrec, 0),
 				       fold_conversions, cache, size_expr);
 
     case NEGATE_EXPR:
     case BIT_NOT_EXPR:
-      return instantiate_scev_not (instantiate_below, evolution_loop, chrec,
+      return instantiate_scev_not (instantiate_below, evolution_loop,
+				   inner_loop, chrec,
 				   TREE_CODE (chrec), TREE_TYPE (chrec),
 				   TREE_OPERAND (chrec, 0),
 				   fold_conversions, cache, size_expr);
@@ -2671,7 +2688,8 @@ instantiate_scev_r (basic_block instantiate_below,
       return chrec_known;
 
     case ARRAY_REF:
-      return instantiate_array_ref (instantiate_below, evolution_loop, chrec,
+      return instantiate_array_ref (instantiate_below, evolution_loop,
+				    inner_loop, chrec,
 				    fold_conversions, cache, size_expr);
 
     default:
@@ -2684,15 +2702,18 @@ instantiate_scev_r (basic_block instantiate_below,
   switch (TREE_CODE_LENGTH (TREE_CODE (chrec)))
     {
     case 3:
-      return instantiate_scev_3 (instantiate_below, evolution_loop, chrec,
+      return instantiate_scev_3 (instantiate_below, evolution_loop,
+				 inner_loop, chrec,
 				 fold_conversions, cache, size_expr);
 
     case 2:
-      return instantiate_scev_2 (instantiate_below, evolution_loop, chrec,
+      return instantiate_scev_2 (instantiate_below, evolution_loop,
+				 inner_loop, chrec,
 				 fold_conversions, cache, size_expr);
 
     case 1:
-      return instantiate_scev_1 (instantiate_below, evolution_loop, chrec,
+      return instantiate_scev_1 (instantiate_below, evolution_loop,
+				 inner_loop, chrec,
 				 fold_conversions, cache, size_expr);
 
     case 0:
@@ -2729,8 +2750,8 @@ instantiate_scev (basic_block instantiate_below, struct loop *evolution_loop,
       fprintf (dump_file, ")\n");
     }
 
-  res = instantiate_scev_r (instantiate_below, evolution_loop, chrec, false,
-			    cache, 0);
+  res = instantiate_scev_r (instantiate_below, evolution_loop,
+			    NULL, chrec, false, cache, 0);
 
   if (dump_file && (dump_flags & TDF_SCEV))
     {
@@ -2753,8 +2774,8 @@ tree
 resolve_mixers (struct loop *loop, tree chrec)
 {
   htab_t cache = htab_create (10, hash_scev_info, eq_scev_info, del_scev_info);
-  tree ret = instantiate_scev_r (block_before_loop (loop), loop, chrec, true,
-				 cache, 0);
+  tree ret = instantiate_scev_r (block_before_loop (loop), loop, NULL,
+				 chrec, true, cache, 0);
   htab_delete (cache);
   return ret;
 }
@@ -2866,14 +2887,14 @@ number_of_exit_cond_executions (struct loop *loop)
    from the EXIT_CONDITIONS array.  */
 
 static void
-number_of_iterations_for_all_loops (VEC(gimple,heap) **exit_conditions)
+number_of_iterations_for_all_loops (vec<gimple> *exit_conditions)
 {
   unsigned int i;
   unsigned nb_chrec_dont_know_loops = 0;
   unsigned nb_static_loops = 0;
   gimple cond;
 
-  FOR_EACH_VEC_ELT (gimple, *exit_conditions, i, cond)
+  FOR_EACH_VEC_ELT (*exit_conditions, i, cond)
     {
       tree res = number_of_latch_executions (loop_containing_stmt (cond));
       if (chrec_contains_undetermined (res))
@@ -3018,7 +3039,7 @@ gather_chrec_stats (tree chrec, struct chrec_stats *stats)
    index.  This allows the parallelization of the loop.  */
 
 static void
-analyze_scalar_evolution_for_all_loop_phi_nodes (VEC(gimple,heap) **exit_conditions)
+analyze_scalar_evolution_for_all_loop_phi_nodes (vec<gimple> *exit_conditions)
 {
   unsigned int i;
   struct chrec_stats stats;
@@ -3027,7 +3048,7 @@ analyze_scalar_evolution_for_all_loop_phi_nodes (VEC(gimple,heap) **exit_conditi
 
   reset_chrecs_counters (&stats);
 
-  FOR_EACH_VEC_ELT (gimple, *exit_conditions, i, cond)
+  FOR_EACH_VEC_ELT (*exit_conditions, i, cond)
     {
       struct loop *loop;
       basic_block bb;
@@ -3039,7 +3060,7 @@ analyze_scalar_evolution_for_all_loop_phi_nodes (VEC(gimple,heap) **exit_conditi
       for (psi = gsi_start_phis (bb); !gsi_end_p (psi); gsi_next (&psi))
 	{
 	  phi = gsi_stmt (psi);
-	  if (is_gimple_reg (PHI_RESULT (phi)))
+	  if (!virtual_operand_p (PHI_RESULT (phi)))
 	    {
 	      chrec = instantiate_parameters
 		        (loop,
@@ -3122,6 +3143,14 @@ scev_initialize (void)
     {
       loop->nb_iterations = NULL_TREE;
     }
+}
+
+/* Return true if SCEV is initialized.  */
+
+bool
+scev_initialized_p (void)
+{
+  return scalar_evolution_info != NULL;
 }
 
 /* Cleans up the information cached by the scalar evolutions analysis
@@ -3230,16 +3259,16 @@ simple_iv (struct loop *wrto_loop, struct loop *use_loop, tree op,
 void
 scev_analysis (void)
 {
-  VEC(gimple,heap) *exit_conditions;
+  vec<gimple> exit_conditions;
 
-  exit_conditions = VEC_alloc (gimple, heap, 37);
+  exit_conditions.create (37);
   select_loops_exit_conditions (&exit_conditions);
 
   if (dump_file && (dump_flags & TDF_STATS))
     analyze_scalar_evolution_for_all_loop_phi_nodes (&exit_conditions);
 
   number_of_iterations_for_all_loops (&exit_conditions);
-  VEC_free (gimple, heap, exit_conditions);
+  exit_conditions.release ();
 }
 
 /* Finalize the scalar evolution analysis.  */
@@ -3328,7 +3357,7 @@ scev_const_prop (void)
 	  phi = gsi_stmt (psi);
 	  name = PHI_RESULT (phi);
 
-	  if (!is_gimple_reg (name))
+	  if (virtual_operand_p (name))
 	    continue;
 
 	  type = TREE_TYPE (name);
@@ -3404,7 +3433,7 @@ scev_const_prop (void)
 	  phi = gsi_stmt (psi);
 	  rslt = PHI_RESULT (phi);
 	  def = PHI_ARG_DEF_FROM_EDGE (phi, exit);
-	  if (!is_gimple_reg (def))
+	  if (virtual_operand_p (def))
 	    {
 	      gsi_next (&psi);
 	      continue;

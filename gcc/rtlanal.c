@@ -1,7 +1,5 @@
 /* Analyze RTL for GNU compiler.
-   Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012 Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -38,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "df.h"
 #include "tree.h"
 #include "emit-rtl.h"  /* FIXME: Can go away once crtl is moved to rtl.h.  */
+#include "addresses.h"
 
 /* Forward declarations */
 static void set_of_1 (rtx, const_rtx, void *);
@@ -97,10 +96,7 @@ rtx_unstable_p (const_rtx x)
       return !MEM_READONLY_P (x) || rtx_unstable_p (XEXP (x, 0));
 
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
       return 0;
@@ -170,10 +166,7 @@ rtx_varies_p (const_rtx x, bool for_alias)
       return !MEM_READONLY_P (x) || rtx_varies_p (XEXP (x, 0), for_alias);
 
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
       return 0;
@@ -397,10 +390,8 @@ nonzero_address_p (const_rtx x)
       return nonzero_address_p (XEXP (x, 0));
 
     case PLUS:
-      if (CONST_INT_P (XEXP (x, 1)))
-        return nonzero_address_p (XEXP (x, 0));
       /* Handle PIC references.  */
-      else if (XEXP (x, 0) == pic_offset_table_rtx
+      if (XEXP (x, 0) == pic_offset_table_rtx
 	       && CONSTANT_P (XEXP (x, 1)))
 	return true;
       return false;
@@ -470,6 +461,22 @@ rtx_addr_varies_p (const_rtx x, bool for_alias)
 	    return 1;
       }
   return 0;
+}
+
+/* Return the CALL in X if there is one.  */
+
+rtx
+get_call_rtx_from (rtx x)
+{
+  if (INSN_P (x))
+    x = PATTERN (x);
+  if (GET_CODE (x) == PARALLEL)
+    x = XVECEXP (x, 0, 0);
+  if (GET_CODE (x) == SET)
+    x = SET_SRC (x);
+  if (GET_CODE (x) == CALL && MEM_P (XEXP (x, 0)))
+    return x;
+  return NULL_RTX;
 }
 
 /* Return the value of the integer term in X, if one is apparent;
@@ -585,10 +592,7 @@ count_occurrences (const_rtx x, const_rtx find, int count_dest)
   switch (code)
     {
     case REG:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CODE_LABEL:
     case PC:
@@ -690,10 +694,7 @@ reg_mentioned_p (const_rtx reg, const_rtx in)
     case PC:
       return 0;
 
-    case CONST_INT:
-    case CONST_VECTOR:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
+    CASE_CONST_ANY:
       /* These are kept unique for a given value.  */
       return 0;
 
@@ -887,10 +888,7 @@ modified_between_p (const_rtx x, const_rtx start, const_rtx end)
 
   switch (code)
     {
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CONST:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -946,10 +944,7 @@ modified_in_p (const_rtx x, const_rtx insn)
 
   switch (code)
     {
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CONST:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -1719,8 +1714,9 @@ dead_or_set_regno_p (const_rtx insn, unsigned int test_regno)
 
   pattern = PATTERN (insn);
 
+  /* If a COND_EXEC is not executed, the value survives.  */
   if (GET_CODE (pattern) == COND_EXEC)
-    pattern = COND_EXEC_CODE (pattern);
+    return 0;
 
   if (GET_CODE (pattern) == SET)
     return covers_regno_p (SET_DEST (pattern), test_regno);
@@ -2084,8 +2080,8 @@ remove_node_from_expr_list (const_rtx node, rtx *listp)
 
 /* Nonzero if X contains any volatile instructions.  These are instructions
    which may cause unpredictable machine state instructions, and thus no
-   instructions should be moved or combined across them.  This includes
-   only volatile asms and UNSPEC_VOLATILE instructions.  */
+   instructions or register uses should be moved or combined across them.
+   This includes only volatile asms and UNSPEC_VOLATILE instructions.  */
 
 int
 volatile_insn_p (const_rtx x)
@@ -2095,11 +2091,8 @@ volatile_insn_p (const_rtx x)
     {
     case LABEL_REF:
     case SYMBOL_REF:
-    case CONST_INT:
     case CONST:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CC0:
     case PC:
     case REG:
@@ -2112,7 +2105,6 @@ volatile_insn_p (const_rtx x)
       return 0;
 
     case UNSPEC_VOLATILE:
- /* case TRAP_IF: This isn't clear yet.  */
       return 1;
 
     case ASM_INPUT:
@@ -2160,11 +2152,8 @@ volatile_refs_p (const_rtx x)
     {
     case LABEL_REF:
     case SYMBOL_REF:
-    case CONST_INT:
     case CONST:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CC0:
     case PC:
     case REG:
@@ -2223,11 +2212,8 @@ side_effects_p (const_rtx x)
     {
     case LABEL_REF:
     case SYMBOL_REF:
-    case CONST_INT:
     case CONST:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CC0:
     case PC:
     case REG:
@@ -2251,7 +2237,6 @@ side_effects_p (const_rtx x)
     case POST_MODIFY:
     case CALL:
     case UNSPEC_VOLATILE:
- /* case TRAP_IF: This isn't clear yet.  */
       return 1;
 
     case MEM:
@@ -2312,10 +2297,7 @@ may_trap_p_1 (const_rtx x, unsigned flags)
   switch (code)
     {
       /* Handle these cases quickly.  */
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case CONST:
@@ -2326,9 +2308,9 @@ may_trap_p_1 (const_rtx x, unsigned flags)
       return 0;
 
     case UNSPEC:
-    case UNSPEC_VOLATILE:
       return targetm.unspec_may_trap_p (x, flags);
 
+    case UNSPEC_VOLATILE:
     case ASM_INPUT:
     case TRAP_IF:
       return 1;
@@ -2420,8 +2402,7 @@ may_trap_p_1 (const_rtx x, unsigned flags)
 
     default:
       /* Any floating arithmetic may trap.  */
-      if (SCALAR_FLOAT_MODE_P (GET_MODE (x))
-	  && flag_trapping_math)
+      if (SCALAR_FLOAT_MODE_P (GET_MODE (x)) && flag_trapping_math)
 	return 1;
     }
 
@@ -2514,10 +2495,7 @@ inequality_comparisons_p (const_rtx x)
     case SCRATCH:
     case PC:
     case CC0:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CONST:
     case LABEL_REF:
     case SYMBOL_REF:
@@ -2570,11 +2548,6 @@ replace_rtx (rtx x, rtx from, rtx to)
 {
   int i, j;
   const char *fmt;
-
-  /* The following prevents loops occurrence when we change MEM in
-     CONST_DOUBLE onto the same CONST_DOUBLE.  */
-  if (x != 0 && GET_CODE (x) == CONST_DOUBLE)
-    return x;
 
   if (x == from)
     return to;
@@ -2765,10 +2738,7 @@ computed_jump_p_1 (const_rtx x)
       return 0;
 
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case REG:
       return 1;
@@ -3505,7 +3475,9 @@ simplify_subreg_regno (unsigned int xregno, enum machine_mode xmode,
   /* Give the backend a chance to disallow the mode change.  */
   if (GET_MODE_CLASS (xmode) != MODE_COMPLEX_INT
       && GET_MODE_CLASS (xmode) != MODE_COMPLEX_FLOAT
-      && REG_CANNOT_CHANGE_MODE_P (xregno, xmode, ymode))
+      && REG_CANNOT_CHANGE_MODE_P (xregno, xmode, ymode)
+      /* We can use mode change in LRA for some transformations.  */
+      && ! lra_in_progress)
     return -1;
 #endif
 
@@ -3518,7 +3490,10 @@ simplify_subreg_regno (unsigned int xregno, enum machine_mode xmode,
       && xregno == ARG_POINTER_REGNUM)
     return -1;
 
-  if (xregno == STACK_POINTER_REGNUM)
+  if (xregno == STACK_POINTER_REGNUM
+      /* We should convert hard stack register in LRA if it is
+	 possible.  */
+      && ! lra_in_progress)
     return -1;
 
   /* Try to get the register offset.  */
@@ -3861,13 +3836,13 @@ address_cost (rtx x, enum machine_mode mode, addr_space_t as, bool speed)
   if (!memory_address_addr_space_p (mode, x, as))
     return 1000;
 
-  return targetm.address_cost (x, speed);
+  return targetm.address_cost (x, mode, as, speed);
 }
 
 /* If the target doesn't override, compute the cost as with arithmetic.  */
 
 int
-default_address_cost (rtx x, bool speed)
+default_address_cost (rtx x, enum machine_mode, addr_space_t, bool speed)
 {
   return rtx_cost (x, MEM, 0, speed);
 }
@@ -5277,7 +5252,7 @@ bool
 constant_pool_constant_p (rtx x)
 {
   x = avoid_constant_pool_reference (x);
-  return GET_CODE (x) == CONST_DOUBLE;
+  return CONST_DOUBLE_P (x);
 }
 
 /* If M is a bitmask that selects a field of low-order bits within an item but
@@ -5391,7 +5366,7 @@ split_double (rtx value, rtx *first, rtx *second)
 	    }
 	}
     }
-  else if (GET_CODE (value) != CONST_DOUBLE)
+  else if (!CONST_DOUBLE_P (value))
     {
       if (WORDS_BIG_ENDIAN)
 	{
@@ -5454,3 +5429,377 @@ split_double (rtx value, rtx *first, rtx *second)
     }
 }
 
+/* Strip outer address "mutations" from LOC and return a pointer to the
+   inner value.  If OUTER_CODE is nonnull, store the code of the innermost
+   stripped expression there.
+
+   "Mutations" either convert between modes or apply some kind of
+   alignment.  */
+
+rtx *
+strip_address_mutations (rtx *loc, enum rtx_code *outer_code)
+{
+  for (;;)
+    {
+      enum rtx_code code = GET_CODE (*loc);
+      if (GET_RTX_CLASS (code) == RTX_UNARY)
+	/* Things like SIGN_EXTEND, ZERO_EXTEND and TRUNCATE can be
+	   used to convert between pointer sizes.  */
+	loc = &XEXP (*loc, 0);
+      else if (code == AND && CONST_INT_P (XEXP (*loc, 1)))
+	/* (and ... (const_int -X)) is used to align to X bytes.  */
+	loc = &XEXP (*loc, 0);
+      else if (code == SUBREG
+               && !OBJECT_P (SUBREG_REG (*loc))
+               && subreg_lowpart_p (*loc))
+	/* (subreg (operator ...) ...) inside and is used for mode
+	   conversion too.  */
+	loc = &SUBREG_REG (*loc);
+      else
+	return loc;
+      if (outer_code)
+	*outer_code = code;
+    }
+}
+
+/* Return true if X must be a base rather than an index.  */
+
+static bool
+must_be_base_p (rtx x)
+{
+  return GET_CODE (x) == LO_SUM;
+}
+
+/* Return true if X must be an index rather than a base.  */
+
+static bool
+must_be_index_p (rtx x)
+{
+  return GET_CODE (x) == MULT || GET_CODE (x) == ASHIFT;
+}
+
+/* Set the segment part of address INFO to LOC, given that INNER is the
+   unmutated value.  */
+
+static void
+set_address_segment (struct address_info *info, rtx *loc, rtx *inner)
+{
+  gcc_checking_assert (GET_CODE (*inner) == UNSPEC);
+
+  gcc_assert (!info->segment);
+  info->segment = loc;
+  info->segment_term = inner;
+}
+
+/* Set the base part of address INFO to LOC, given that INNER is the
+   unmutated value.  */
+
+static void
+set_address_base (struct address_info *info, rtx *loc, rtx *inner)
+{
+  if (GET_CODE (*inner) == LO_SUM)
+    inner = strip_address_mutations (&XEXP (*inner, 0));
+  gcc_checking_assert (REG_P (*inner)
+		       || MEM_P (*inner)
+		       || GET_CODE (*inner) == SUBREG);
+
+  gcc_assert (!info->base);
+  info->base = loc;
+  info->base_term = inner;
+}
+
+/* Set the index part of address INFO to LOC, given that INNER is the
+   unmutated value.  */
+
+static void
+set_address_index (struct address_info *info, rtx *loc, rtx *inner)
+{
+  if ((GET_CODE (*inner) == MULT || GET_CODE (*inner) == ASHIFT)
+      && CONSTANT_P (XEXP (*inner, 1)))
+    inner = strip_address_mutations (&XEXP (*inner, 0));
+  gcc_checking_assert (REG_P (*inner)
+		       || MEM_P (*inner)
+		       || GET_CODE (*inner) == SUBREG);
+
+  gcc_assert (!info->index);
+  info->index = loc;
+  info->index_term = inner;
+}
+
+/* Set the displacement part of address INFO to LOC, given that INNER
+   is the constant term.  */
+
+static void
+set_address_disp (struct address_info *info, rtx *loc, rtx *inner)
+{
+  gcc_checking_assert (CONSTANT_P (*inner));
+
+  gcc_assert (!info->disp);
+  info->disp = loc;
+  info->disp_term = inner;
+}
+
+/* INFO->INNER describes a {PRE,POST}_{INC,DEC} address.  Set up the
+   rest of INFO accordingly.  */
+
+static void
+decompose_incdec_address (struct address_info *info)
+{
+  info->autoinc_p = true;
+
+  rtx *base = &XEXP (*info->inner, 0);
+  set_address_base (info, base, base);
+  gcc_checking_assert (info->base == info->base_term);
+
+  /* These addresses are only valid when the size of the addressed
+     value is known.  */
+  gcc_checking_assert (info->mode != VOIDmode);
+}
+
+/* INFO->INNER describes a {PRE,POST}_MODIFY address.  Set up the rest
+   of INFO accordingly.  */
+
+static void
+decompose_automod_address (struct address_info *info)
+{
+  info->autoinc_p = true;
+
+  rtx *base = &XEXP (*info->inner, 0);
+  set_address_base (info, base, base);
+  gcc_checking_assert (info->base == info->base_term);
+
+  rtx plus = XEXP (*info->inner, 1);
+  gcc_assert (GET_CODE (plus) == PLUS);
+
+  info->base_term2 = &XEXP (plus, 0);
+  gcc_checking_assert (rtx_equal_p (*info->base_term, *info->base_term2));
+
+  rtx *step = &XEXP (plus, 1);
+  rtx *inner_step = strip_address_mutations (step);
+  if (CONSTANT_P (*inner_step))
+    set_address_disp (info, step, inner_step);
+  else
+    set_address_index (info, step, inner_step);
+}
+
+/* Treat *LOC as a tree of PLUS operands and store pointers to the summed
+   values in [PTR, END).  Return a pointer to the end of the used array.  */
+
+static rtx **
+extract_plus_operands (rtx *loc, rtx **ptr, rtx **end)
+{
+  rtx x = *loc;
+  if (GET_CODE (x) == PLUS)
+    {
+      ptr = extract_plus_operands (&XEXP (x, 0), ptr, end);
+      ptr = extract_plus_operands (&XEXP (x, 1), ptr, end);
+    }
+  else
+    {
+      gcc_assert (ptr != end);
+      *ptr++ = loc;
+    }
+  return ptr;
+}
+
+/* Evaluate the likelihood of X being a base or index value, returning
+   positive if it is likely to be a base, negative if it is likely to be
+   an index, and 0 if we can't tell.  Make the magnitude of the return
+   value reflect the amount of confidence we have in the answer.
+
+   MODE, AS, OUTER_CODE and INDEX_CODE are as for ok_for_base_p_1.  */
+
+static int
+baseness (rtx x, enum machine_mode mode, addr_space_t as,
+	  enum rtx_code outer_code, enum rtx_code index_code)
+{
+  /* See whether we can be certain.  */
+  if (must_be_base_p (x))
+    return 3;
+  if (must_be_index_p (x))
+    return -3;
+
+  /* Believe *_POINTER unless the address shape requires otherwise.  */
+  if (REG_P (x) && REG_POINTER (x))
+    return 2;
+  if (MEM_P (x) && MEM_POINTER (x))
+    return 2;
+
+  if (REG_P (x) && HARD_REGISTER_P (x))
+    {
+      /* X is a hard register.  If it only fits one of the base
+	 or index classes, choose that interpretation.  */
+      int regno = REGNO (x);
+      bool base_p = ok_for_base_p_1 (regno, mode, as, outer_code, index_code);
+      bool index_p = REGNO_OK_FOR_INDEX_P (regno);
+      if (base_p != index_p)
+	return base_p ? 1 : -1;
+    }
+  return 0;
+}
+
+/* INFO->INNER describes a normal, non-automodified address.
+   Fill in the rest of INFO accordingly.  */
+
+static void
+decompose_normal_address (struct address_info *info)
+{
+  /* Treat the address as the sum of up to four values.  */
+  rtx *ops[4];
+  size_t n_ops = extract_plus_operands (info->inner, ops,
+					ops + ARRAY_SIZE (ops)) - ops;
+
+  /* If there is more than one component, any base component is in a PLUS.  */
+  if (n_ops > 1)
+    info->base_outer_code = PLUS;
+
+  /* Separate the parts that contain a REG or MEM from those that don't.
+     Record the latter in INFO and leave the former in OPS.  */
+  rtx *inner_ops[4];
+  size_t out = 0;
+  for (size_t in = 0; in < n_ops; ++in)
+    {
+      rtx *loc = ops[in];
+      rtx *inner = strip_address_mutations (loc);
+      if (CONSTANT_P (*inner))
+	set_address_disp (info, loc, inner);
+      else if (GET_CODE (*inner) == UNSPEC)
+	set_address_segment (info, loc, inner);
+      else
+	{
+	  ops[out] = loc;
+	  inner_ops[out] = inner;
+	  ++out;
+	}
+    }
+
+  /* Classify the remaining OPS members as bases and indexes.  */
+  if (out == 1)
+    {
+      /* Assume that the remaining value is a base unless the shape
+	 requires otherwise.  */
+      if (!must_be_index_p (*inner_ops[0]))
+	set_address_base (info, ops[0], inner_ops[0]);
+      else
+	set_address_index (info, ops[0], inner_ops[0]);
+    }
+  else if (out == 2)
+    {
+      /* In the event of a tie, assume the base comes first.  */
+      if (baseness (*inner_ops[0], info->mode, info->as, PLUS,
+		    GET_CODE (*ops[1]))
+	  >= baseness (*inner_ops[1], info->mode, info->as, PLUS,
+		       GET_CODE (*ops[0])))
+	{
+	  set_address_base (info, ops[0], inner_ops[0]);
+	  set_address_index (info, ops[1], inner_ops[1]);
+	}
+      else
+	{
+	  set_address_base (info, ops[1], inner_ops[1]);
+	  set_address_index (info, ops[0], inner_ops[0]);
+	}
+    }
+  else
+    gcc_assert (out == 0);
+}
+
+/* Describe address *LOC in *INFO.  MODE is the mode of the addressed value,
+   or VOIDmode if not known.  AS is the address space associated with LOC.
+   OUTER_CODE is MEM if *LOC is a MEM address and ADDRESS otherwise.  */
+
+void
+decompose_address (struct address_info *info, rtx *loc, enum machine_mode mode,
+		   addr_space_t as, enum rtx_code outer_code)
+{
+  memset (info, 0, sizeof (*info));
+  info->mode = mode;
+  info->as = as;
+  info->addr_outer_code = outer_code;
+  info->outer = loc;
+  info->inner = strip_address_mutations (loc, &outer_code);
+  info->base_outer_code = outer_code;
+  switch (GET_CODE (*info->inner))
+    {
+    case PRE_DEC:
+    case PRE_INC:
+    case POST_DEC:
+    case POST_INC:
+      decompose_incdec_address (info);
+      break;
+
+    case PRE_MODIFY:
+    case POST_MODIFY:
+      decompose_automod_address (info);
+      break;
+
+    default:
+      decompose_normal_address (info);
+      break;
+    }
+}
+
+/* Describe address operand LOC in INFO.  */
+
+void
+decompose_lea_address (struct address_info *info, rtx *loc)
+{
+  decompose_address (info, loc, VOIDmode, ADDR_SPACE_GENERIC, ADDRESS);
+}
+
+/* Describe the address of MEM X in INFO.  */
+
+void
+decompose_mem_address (struct address_info *info, rtx x)
+{
+  gcc_assert (MEM_P (x));
+  decompose_address (info, &XEXP (x, 0), GET_MODE (x),
+		     MEM_ADDR_SPACE (x), MEM);
+}
+
+/* Update INFO after a change to the address it describes.  */
+
+void
+update_address (struct address_info *info)
+{
+  decompose_address (info, info->outer, info->mode, info->as,
+		     info->addr_outer_code);
+}
+
+/* Return the scale applied to *INFO->INDEX_TERM, or 0 if the index is
+   more complicated than that.  */
+
+HOST_WIDE_INT
+get_index_scale (const struct address_info *info)
+{
+  rtx index = *info->index;
+  if (GET_CODE (index) == MULT
+      && CONST_INT_P (XEXP (index, 1))
+      && info->index_term == &XEXP (index, 0))
+    return INTVAL (XEXP (index, 1));
+
+  if (GET_CODE (index) == ASHIFT
+      && CONST_INT_P (XEXP (index, 1))
+      && info->index_term == &XEXP (index, 0))
+    return (HOST_WIDE_INT) 1 << INTVAL (XEXP (index, 1));
+
+  if (info->index == info->index_term)
+    return 1;
+
+  return 0;
+}
+
+/* Return the "index code" of INFO, in the form required by
+   ok_for_base_p_1.  */
+
+enum rtx_code
+get_index_code (const struct address_info *info)
+{
+  if (info->index)
+    return GET_CODE (*info->index);
+
+  if (info->disp)
+    return GET_CODE (*info->disp);
+
+  return SCRATCH;
+}

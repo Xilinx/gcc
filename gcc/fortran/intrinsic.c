@@ -1,8 +1,6 @@
 /* Build up a list of intrinsic subroutines and functions for the
    name-resolution stage.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2000-2013 Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
 This file is part of GCC.
@@ -812,6 +810,57 @@ find_sym (gfc_intrinsic_sym *start, int n, const char *name)
 }
 
 
+gfc_isym_id
+gfc_isym_id_by_intmod (intmod_id from_intmod, int intmod_sym_id)
+{
+  if (from_intmod == INTMOD_ISO_C_BINDING)
+    return (gfc_isym_id) c_interop_kinds_table[intmod_sym_id].value;
+  else if (from_intmod == INTMOD_ISO_FORTRAN_ENV)
+    switch (intmod_sym_id)
+      {
+#define NAMED_SUBROUTINE(a,b,c,d) \
+      case a: \
+	return (gfc_isym_id) c;
+#define NAMED_FUNCTION(a,b,c,d) \
+      case a: \
+	return (gfc_isym_id) c;
+#include "iso-fortran-env.def"
+      default:
+	gcc_unreachable ();
+      }
+  else
+    {
+      gcc_unreachable ();
+    }
+  return (gfc_isym_id) 0;
+}
+
+
+gfc_isym_id
+gfc_isym_id_by_intmod_sym (gfc_symbol *sym)
+{
+  return gfc_isym_id_by_intmod (sym->from_intmod, sym->intmod_sym_id);
+}
+
+
+gfc_intrinsic_sym *
+gfc_intrinsic_subroutine_by_id (gfc_isym_id id)
+{
+  gfc_intrinsic_sym *start = subroutines;
+  int n = nsub;
+
+  while (true)
+    {
+      gcc_assert (n > 0);
+      if (id == start->id)
+	return start;
+
+      start++;
+      n--;
+    }
+}
+
+
 gfc_intrinsic_sym *
 gfc_intrinsic_function_by_id (gfc_isym_id id)
 {
@@ -902,9 +951,9 @@ gfc_intrinsic_actual_ok (const char *name, const bool subroutine_flag)
 }
 
 
-/* Given a symbol, find out if it is (and is to be treated) an intrinsic.  If
-   it's name refers to an intrinsic but this intrinsic is not included in the
-   selected standard, this returns FALSE and sets the symbol's external
+/* Given a symbol, find out if it is (and is to be treated as) an intrinsic.
+   If its name refers to an intrinsic, but this intrinsic is not included in
+   the selected standard, this returns FALSE and sets the symbol's external
    attribute.  */
 
 bool
@@ -913,10 +962,13 @@ gfc_is_intrinsic (gfc_symbol* sym, int subroutine_flag, locus loc)
   gfc_intrinsic_sym* isym;
   const char* symstd;
 
-  /* If INTRINSIC/EXTERNAL state is already known, return.  */
+  /* If INTRINSIC attribute is already known, return.  */
   if (sym->attr.intrinsic)
     return true;
-  if (sym->attr.external)
+
+  /* Check for attributes which prevent the symbol from being INTRINSIC.  */
+  if (sym->attr.external || sym->attr.contained
+      || sym->attr.if_source == IFSRC_IFBODY)
     return false;
 
   if (subroutine_flag)
@@ -2637,15 +2689,42 @@ add_functions (void)
 
   make_generic ("size", GFC_ISYM_SIZE, GFC_STD_F95);
 
+  /* Obtain the stride for a given dimensions; to be used only internally.
+     "make_from_module" makes inaccessible for external users.  */
+  add_sym_2 (GFC_PREFIX ("stride"), GFC_ISYM_STRIDE, CLASS_INQUIRY, ACTUAL_NO,
+	     BT_INTEGER, gfc_index_integer_kind, GFC_STD_GNU,
+	     NULL, NULL, gfc_resolve_stride,
+	     ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL);
+  make_from_module();
+
   add_sym_1 ("sizeof", GFC_ISYM_SIZEOF, CLASS_IMPURE, ACTUAL_NO, BT_INTEGER, ii,
-	     GFC_STD_GNU, gfc_check_sizeof, NULL, NULL,
+	     GFC_STD_GNU, gfc_check_sizeof, gfc_simplify_sizeof, NULL,
 	     x, BT_UNKNOWN, 0, REQUIRED);
 
   make_generic ("sizeof", GFC_ISYM_SIZEOF, GFC_STD_GNU);
 
-  /* C_SIZEOF is part of ISO_C_BINDING.  */
+  /* The following functions are part of ISO_C_BINDING.  */
+  add_sym_2 ("c_associated", GFC_ISYM_C_ASSOCIATED, CLASS_INQUIRY, ACTUAL_NO,
+	     BT_LOGICAL, dl, GFC_STD_F2003, gfc_check_c_associated, NULL, NULL,
+	     "C_PTR_1", BT_VOID, 0, REQUIRED,
+	     "C_PTR_2", BT_VOID, 0, OPTIONAL);
+  make_from_module();
+
+  add_sym_1 ("c_loc", GFC_ISYM_C_LOC, CLASS_INQUIRY, ACTUAL_NO,
+	     BT_VOID, 0, GFC_STD_F2003,
+	     gfc_check_c_loc, NULL, gfc_resolve_c_loc,
+	     x, BT_UNKNOWN, 0, REQUIRED);
+  make_from_module();
+
+  add_sym_1 ("c_funloc", GFC_ISYM_C_FUNLOC, CLASS_INQUIRY, ACTUAL_NO,
+	     BT_VOID, 0, GFC_STD_F2003,
+	     gfc_check_c_funloc, NULL, gfc_resolve_c_funloc,
+	     x, BT_UNKNOWN, 0, REQUIRED);
+  make_from_module();
+
   add_sym_1 ("c_sizeof", GFC_ISYM_C_SIZEOF, CLASS_INQUIRY, ACTUAL_NO,
-	     BT_INTEGER, ii, GFC_STD_F2008, gfc_check_c_sizeof, NULL, NULL,
+	     BT_INTEGER, gfc_index_integer_kind, GFC_STD_F2008,
+	     gfc_check_c_sizeof, gfc_simplify_sizeof, NULL,
 	     x, BT_UNKNOWN, 0, REQUIRED);
   make_from_module();
 
@@ -2703,7 +2782,8 @@ add_functions (void)
 
   add_sym_2 ("storage_size", GFC_ISYM_STORAGE_SIZE, CLASS_INQUIRY, ACTUAL_NO,
 	     BT_INTEGER, di, GFC_STD_F2008,
-	     gfc_check_storage_size, NULL, gfc_resolve_storage_size,
+	     gfc_check_storage_size, gfc_simplify_storage_size,
+	     gfc_resolve_storage_size,
 	     a, BT_UNKNOWN, 0, REQUIRED,
 	     kind, BT_INTEGER, di, OPTIONAL);
   
@@ -2893,6 +2973,8 @@ add_subroutines (void)
 	      "value", BT_INTEGER, di, REQUIRED, INTENT_OUT,
 	      "atom", BT_INTEGER, di, REQUIRED, INTENT_IN);
 
+  add_sym_0s ("backtrace", GFC_ISYM_BACKTRACE, GFC_STD_GNU, NULL);
+
   add_sym_1s ("cpu_time", GFC_ISYM_CPU_TIME, CLASS_IMPURE, BT_UNKNOWN, 0,
 	      GFC_STD_F95, gfc_check_cpu_time, NULL, gfc_resolve_cpu_time,
 	      tm, BT_REAL, dr, REQUIRED, INTENT_OUT);
@@ -3044,6 +3126,22 @@ add_subroutines (void)
 	      sz, BT_INTEGER, di, OPTIONAL, INTENT_OUT,
 	      pt, BT_INTEGER, di, OPTIONAL, INTENT_IN,
 	      gt, BT_INTEGER, di, OPTIONAL, INTENT_OUT);
+
+  /* The following subroutines are part of ISO_C_BINDING.  */
+
+  add_sym_3s ("c_f_pointer", GFC_ISYM_C_F_POINTER, CLASS_IMPURE, BT_UNKNOWN, 0,
+	      GFC_STD_F2003, gfc_check_c_f_pointer, NULL, NULL,
+	      "cptr", BT_VOID, 0, REQUIRED, INTENT_IN,
+	      "fptr", BT_UNKNOWN, 0, REQUIRED, INTENT_OUT,
+	      "shape", BT_INTEGER, di, OPTIONAL, INTENT_IN);
+  make_from_module();
+
+  add_sym_2s ("c_f_procpointer", GFC_ISYM_C_F_PROCPOINTER, CLASS_IMPURE,
+	      BT_UNKNOWN, 0, GFC_STD_F2003, gfc_check_c_f_procpointer,
+	      NULL, NULL,
+	      "cptr", BT_VOID, 0, REQUIRED, INTENT_IN,
+	      "fptr", BT_UNKNOWN, 0, REQUIRED, INTENT_OUT);
+  make_from_module();
 
   /* More G77 compatibility garbage.  */
   add_sym_3s ("alarm", GFC_ISYM_ALARM, CLASS_IMPURE, BT_UNKNOWN, 0, GFC_STD_GNU,
@@ -3643,8 +3741,8 @@ check_arglist (gfc_actual_arglist **ap, gfc_intrinsic_sym *sym,
 				 : NULL);
 
 	  /* No pointer arguments for intrinsics.  */
-	  if (gfc_check_vardef_context (actual->expr, false, false, context)
-		== FAILURE)
+	  if (gfc_check_vardef_context (actual->expr, false, false, false,
+					context) == FAILURE)
 	    return FAILURE;
 	}
     }
@@ -4067,8 +4165,8 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
 
   if (expr->symtree->n.sym->intmod_sym_id)
     {
-      int id = expr->symtree->n.sym->intmod_sym_id;
-      isym = specific = gfc_intrinsic_function_by_id ((gfc_isym_id) id);
+      gfc_isym_id id = gfc_isym_id_by_intmod_sym (expr->symtree->n.sym);
+      isym = specific = gfc_intrinsic_function_by_id (id);
     }
   else
     isym = specific = gfc_find_function (name);
@@ -4094,12 +4192,12 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
 
   gfc_current_intrinsic_where = &expr->where;
 
-  /* Bypass the generic list for min and max.  */
+  /* Bypass the generic list for min, max and ISO_C_Binding's c_loc.  */
   if (isym->check.f1m == gfc_check_min_max)
     {
       init_arglist (isym);
 
-      if (gfc_check_min_max (expr->value.function.actual) == SUCCESS)
+      if (isym->check.f1m (expr->value.function.actual) == SUCCESS)
 	goto got_specific;
 
       if (!error_flag)
@@ -4181,7 +4279,14 @@ gfc_intrinsic_sub_interface (gfc_code *c, int error_flag)
 
   name = c->symtree->n.sym->name;
 
-  isym = gfc_find_subroutine (name);
+  if (c->symtree->n.sym->intmod_sym_id)
+    {
+      gfc_isym_id id;
+      id = gfc_isym_id_by_intmod_sym (c->symtree->n.sym);
+      isym = gfc_intrinsic_subroutine_by_id (id);
+    }
+  else
+    isym = gfc_find_subroutine (name);
   if (isym == NULL)
     return MATCH_NO;
 
@@ -4500,7 +4605,7 @@ gfc_warn_intrinsic_shadow (const gfc_symbol* sym, bool in_module, bool func)
     return;
 
   /* Emit the warning.  */
-  if (in_module)
+  if (in_module || sym->ns->proc_name)
     gfc_warning ("'%s' declared at %L may shadow the intrinsic of the same"
 		 " name.  In order to call the intrinsic, explicit INTRINSIC"
 		 " declarations may be required.",

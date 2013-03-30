@@ -1,6 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012
-   Free Software Foundation, Inc.
+/* Copyright (C) 2002-2013 Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
 
@@ -354,7 +352,10 @@ raw_size (unix_stream * s)
   int ret = fstat (s->fd, &statbuf);
   if (ret == -1)
     return ret;
-  return statbuf.st_size;
+  if (S_ISREG (statbuf.st_mode))
+    return statbuf.st_size;
+  else
+    return 0;
 }
 
 static int
@@ -959,7 +960,7 @@ open_internal4 (char *base, int length, gfc_offset offset)
   s->buffer = base;
   s->buffer_offset = offset;
 
-  s->active = s->file_length = length;
+  s->active = s->file_length = length * sizeof (gfc_char4_t);
 
   s->st.vptr = &mem4_vtable;
 
@@ -1051,6 +1052,9 @@ tempfile_open (const char *tempdir, char **fname)
 {
   int fd;
   const char *slash = "/";
+#if defined(HAVE_UMASK) && defined(HAVE_MKSTEMP)
+  mode_t mode_mask;
+#endif
 
   if (!tempdir)
     return -1;
@@ -1072,7 +1076,16 @@ tempfile_open (const char *tempdir, char **fname)
   snprintf (template, tempdirlen + 23, "%s%sgfortrantmpXXXXXX", 
 	    tempdir, slash);
 
+#ifdef HAVE_UMASK
+  /* Temporarily set the umask such that the file has 0600 permissions.  */
+  mode_mask = umask (S_IXUSR | S_IRWXG | S_IRWXO);
+#endif
+
   fd = mkstemp (template);
+
+#ifdef HAVE_UMASK
+  (void) umask (mode_mask);
+#endif
 
 #else /* HAVE_MKSTEMP */
   fd = -1;

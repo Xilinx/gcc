@@ -157,7 +157,7 @@ end
 ! { dg-final { scan-tree-dump-times "sub_scalar .\\(struct t1 .\\) array_class_t1_alloc._data.base_addr" 1 "original" } }
 ! { dg-final { scan-tree-dump-times "sub_scalar .\\(struct t1 .\\) array_class_t1_ptr._data.base_addr" 1 "original" } }a
 
-! { dg-final { scan-tree-dump-times "sub_array_assumed \\(D" 2 "original" } }
+! { dg-final { scan-tree-dump-times "sub_array_assumed \\(D" 3 "original" } }
 ! { dg-final { scan-tree-dump-times " = _gfortran_internal_pack \\(&parm" 1 "original" } }
 ! { dg-final { scan-tree-dump-times "sub_array_assumed \\(&array_int\\)" 1 "original" } }
 ! { dg-final { scan-tree-dump-times "sub_array_assumed \\(\\(real\\(kind=4\\).0:. . restrict\\) array_real_alloc.base_addr" 1 "original" } }

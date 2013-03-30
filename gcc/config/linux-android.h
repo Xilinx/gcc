@@ -1,6 +1,5 @@
 /* Configuration file for Linux Android targets.
-   Copyright (C) 2008, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2008-2013 Free Software Foundation, Inc.
    Contributed by Doug Kwan (dougkwan@google.com)
    Rewritten by CodeSourcery, Inc.
 
@@ -22,7 +21,7 @@
 
 #define ANDROID_TARGET_OS_CPP_BUILTINS()			\
     do {							\
-	if (OPTION_ANDROID)					\
+	if (TARGET_ANDROID)					\
 	  builtin_define ("__ANDROID__");			\
     } while (0)
 
@@ -58,3 +57,6 @@
 
 #define ANDROID_ENDFILE_SPEC \
   "%{shared: crtend_so%O%s;: crtend_android%O%s}"
+
+#undef TARGET_HAS_IFUNC_P
+#define TARGET_HAS_IFUNC_P linux_android_has_ifunc_p

@@ -1964,11 +1964,11 @@ package body Layout is
          pragma Warnings (Off, SO_Ref);
 
          RM_Siz_Expr : Node_Id := Empty;
-         --  Expression for the evolving RM_Siz value. This is typically a
-         --  conditional expression which involves tests of discriminant values
-         --  that are formed as references to the entity V. At the end of
-         --  scanning all the components, a suitable function is constructed
-         --  in which V is the parameter.
+         --  Expression for the evolving RM_Siz value. This is typically an if
+         --  expression which involves tests of discriminant values that are
+         --  formed as references to the entity V. At the end of scanning all
+         --  the components, a suitable function is constructed in which V is
+         --  the parameter.
 
          -----------------------
          -- Local Subprograms --
@@ -2212,7 +2212,7 @@ package body Layout is
                         end if;
 
                         RM_Siz_Expr :=
-                          Make_Conditional_Expression (Loc,
+                          Make_If_Expression (Loc,
                             Expressions =>
                               New_List
                                 (Dtest, Bits_To_SU (RM_SizV), RM_Siz_Expr));
@@ -2435,7 +2435,7 @@ package body Layout is
                  Convention (E) = Convention_CPP)
             then
                Error_Msg_N
-                 ("?this access type does not correspond to C pointer", E);
+                 ("?x?this access type does not correspond to C pointer", E);
             end if;
 
          --  If the designated type is a limited view it is unanalyzed. We can
@@ -2448,6 +2448,7 @@ package body Layout is
             and then
               Nkind (Type_Definition (Parent (Desig_Type)))
                  = N_Unconstrained_Array_Definition
+            and then not Debug_Flag_6
          then
             Init_Size (E, 2 * System_Address_Size);
 
@@ -2460,15 +2461,14 @@ package body Layout is
          elsif AAMP_On_Target
            and then
              ((Ekind (E) = E_Access_Subprogram_Type
-                and then Present (Enclosing_Subprogram (E)))
-                  or else
-                    (Ekind (E) = E_Anonymous_Access_Subprogram_Type
-                      and then
-                        (not Is_Local_Anonymous_Access (E)
-                          or else Present (Enclosing_Subprogram (E)))))
+                  and then Present (Enclosing_Subprogram (E)))
+                or else
+                  (Ekind (E) = E_Anonymous_Access_Subprogram_Type
+                    and then
+                      (not Is_Local_Anonymous_Access (E)
+                        or else Present (Enclosing_Subprogram (E)))))
          then
             Init_Size (E, 2 * System_Address_Size);
-
          else
             Init_Size (E, System_Address_Size);
          end if;
@@ -2804,7 +2804,7 @@ package body Layout is
       begin
          if Spec > Max then
             Error_Msg_Uint_1 := Spec - Max;
-            Error_Msg_NE ("?^ bits of & unused", SC, E);
+            Error_Msg_NE ("??^ bits of & unused", SC, E);
          end if;
       end Check_Unused_Bits;
 
@@ -2873,15 +2873,61 @@ package body Layout is
       --  Alignment is not known, see if we can set it, taking into account
       --  the setting of the Optimize_Alignment mode.
 
-      --  If Optimize_Alignment is set to Space, then packed records always
-      --  have an alignment of 1. But don't do anything for atomic records
-      --  since we may need higher alignment for indivisible access.
+      --  If Optimize_Alignment is set to Space, then we try to give packed
+      --  records an aligmment of 1, unless there is some reason we can't.
 
       if Optimize_Alignment_Space (E)
         and then Is_Record_Type (E)
         and then Is_Packed (E)
-        and then not Is_Atomic (E)
       then
+         --  No effect for record with atomic components
+
+         if Is_Atomic (E) then
+            Error_Msg_N ("Optimize_Alignment has no effect for &??", E);
+            Error_Msg_N ("\pragma ignored for atomic record??", E);
+            return;
+         end if;
+
+         --  No effect if independent components
+
+         if Has_Independent_Components (E) then
+            Error_Msg_N ("Optimize_Alignment has no effect for &??", E);
+            Error_Msg_N
+              ("\pragma ignored for record with independent components??", E);
+            return;
+         end if;
+
+         --  No effect if any component is atomic or is a by reference type
+
+         declare
+            Ent : Entity_Id;
+         begin
+            Ent := First_Component_Or_Discriminant (E);
+            while Present (Ent) loop
+               if Is_By_Reference_Type (Etype (Ent))
+                 or else Is_Atomic (Etype (Ent))
+                 or else Is_Atomic (Ent)
+               then
+                  Error_Msg_N ("Optimize_Alignment has no effect for &??", E);
+                  Error_Msg_N
+                    ("\pragma is ignored if atomic components present??", E);
+                  return;
+               else
+                  Next_Component_Or_Discriminant (Ent);
+               end if;
+            end loop;
+         end;
+
+         --  Optimize_Alignment has no effect on variable length record
+
+         if not Size_Known_At_Compile_Time (E) then
+            Error_Msg_N ("Optimize_Alignment has no effect for &??", E);
+            Error_Msg_N ("\pragma is ignored for variable length record??", E);
+            return;
+         end if;
+
+         --  All tests passed, we can set alignment to 1
+
          Align := 1;
 
       --  Not a record, or not packed
@@ -3119,6 +3165,19 @@ package body Layout is
 
          if Esize (E) / SSU > Ttypes.Maximum_Alignment then
             S := Ttypes.Maximum_Alignment;
+
+         --  If this is an access type and the target doesn't have strict
+         --  alignment and we are not doing front end layout, then cap the
+         --  alignment to that of a regular access type. This will avoid
+         --  giving fat pointers twice the usual alignment for no practical
+         --  benefit since the misalignment doesn't really matter.
+
+         elsif Is_Access_Type (E)
+           and then not Target_Strict_Alignment
+           and then not Frontend_Layout_On_Target
+         then
+            S := System_Address_Size / SSU;
+
          else
             S := UI_To_Int (Esize (E)) / SSU;
          end if;

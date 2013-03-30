@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -139,6 +139,9 @@ package body Exp_Attr is
    procedure Expand_Pred_Succ (N : Node_Id);
    --  Handles expansion of Pred or Succ attributes for case of non-real
    --  operand with overflow checking required.
+
+   procedure Expand_Update_Attribute (N : Node_Id);
+   --  Handle the expansion of attribute Update
 
    function Get_Index_Subtype (N : Node_Id) return Entity_Id;
    --  Used for Last, Last, and Length, when the prefix is an array type.
@@ -834,6 +837,11 @@ package body Exp_Attr is
       end if;
 
       --  Remaining processing depends on specific attribute
+
+      --  Note: individual sections of the following case statement are
+      --  allowed to assume there is no code after the case statement, and
+      --  are legitimately allowed to execute return statements if they have
+      --  nothing more to do.
 
       case Id is
 
@@ -2112,7 +2120,7 @@ package body Exp_Attr is
                     Defining_Unit_Name => Ent)),
 
               Make_Pragma (Loc,
-                Chars => Name_Import,
+                Chars                        => Name_Import,
                 Pragma_Argument_Associations => New_List (
                   Make_Pragma_Argument_Association (Loc, Expression => Lang),
 
@@ -2948,7 +2956,7 @@ package body Exp_Attr is
       -- Length --
       ------------
 
-      when Attribute_Length => declare
+      when Attribute_Length => Length : declare
          Ityp : Entity_Id;
          Xnum : Uint;
 
@@ -3098,20 +3106,13 @@ package body Exp_Attr is
          else
             Apply_Universal_Integer_Attribute_Checks (N);
          end if;
-      end;
+      end Length;
 
-      ---------------
-      -- Lock_Free --
-      ---------------
+      --  The expansion of this attribute is carried out when the target loop
+      --  is processed. See Expand_Loop_Entry_Attributes for details.
 
-      --  Rewrite the attribute reference with the value of Uses_Lock_Free
-
-      when Attribute_Lock_Free => Lock_Free : declare
-         V : constant Entity_Id := Boolean_Literals (Uses_Lock_Free (Ptyp));
-      begin
-         Rewrite (N, New_Occurrence_Of (V, Loc));
-         Analyze_And_Resolve (N, Standard_Boolean);
-      end Lock_Free;
+      when Attribute_Loop_Entry =>
+         null;
 
       -------------
       -- Machine --
@@ -3332,13 +3333,13 @@ package body Exp_Attr is
          --    Furthermore, (-value - 1) can be expressed as -(value + 1)
          --    which we can compute using the integer base type.
 
-         --  Once this is done we analyze the conditional expression without
-         --  range checks, because we know everything is in range, and we
-         --  want to prevent spurious warnings on either branch.
+         --  Once this is done we analyze the if expression without range
+         --  checks, because we know everything is in range, and we want
+         --  to prevent spurious warnings on either branch.
 
          else
             Rewrite (N,
-              Make_Conditional_Expression (Loc,
+              Make_If_Expression (Loc,
                 Expressions => New_List (
                   Make_Op_Ge (Loc,
                     Left_Opnd  => Duplicate_Subexpr (Arg),
@@ -3392,6 +3393,13 @@ package body Exp_Attr is
          Asn_Stm : Node_Id;
 
       begin
+         --  If assertions are disabled, no need to create the declaration
+         --  that preserves the value.
+
+         if not Assertions_Enabled then
+            return;
+         end if;
+
          --  Find the nearest subprogram body, ignoring _Preconditions
 
          Subp := N;
@@ -3501,7 +3509,7 @@ package body Exp_Attr is
               Right_Opnd => Y_Addr);
 
          Rewrite (N,
-           Make_Conditional_Expression (Loc,
+           Make_If_Expression (Loc,
              New_List (
                Cond,
 
@@ -5142,7 +5150,8 @@ package body Exp_Attr is
       begin
          Rewrite (N,
            Build_To_Any_Call
-             (Convert_To (P_Type,
+             (Loc,
+              Convert_To (P_Type,
               Relocate_Node (First (Exprs))), Decls));
          Insert_Actions (N, Decls);
          Analyze_And_Resolve (N, RTE (RE_Any));
@@ -5230,6 +5239,13 @@ package body Exp_Attr is
 
          Analyze_And_Resolve (N, Typ);
       end UET_Address;
+
+      ------------
+      -- Update --
+      ------------
+
+      when Attribute_Update =>
+         Expand_Update_Attribute (N);
 
       ---------------
       -- VADS_Size --
@@ -5372,6 +5388,13 @@ package body Exp_Attr is
 
          Validity_Checks_On := False;
 
+         --  Retrieve the base type. Handle the case where the base type is a
+         --  private enumeration type.
+
+         if Is_Private_Type (Btyp) and then Present (Full_View (Btyp)) then
+            Btyp := Full_View (Btyp);
+         end if;
+
          --  Floating-point case. This case is handled by the Valid attribute
          --  code in the floating-point attribute run-time library.
 
@@ -5381,7 +5404,6 @@ package body Exp_Attr is
                Ftp : Entity_Id;
 
             begin
-
                case Float_Rep (Btyp) is
 
                   --  For vax fpt types, call appropriate routine in special
@@ -5472,15 +5494,14 @@ package body Exp_Attr is
          --       (X >= type(X)'First and then type(X)'Last <= X)
 
          elsif Is_Enumeration_Type (Ptyp)
-           and then Present (Enum_Pos_To_Rep (Base_Type (Ptyp)))
+           and then Present (Enum_Pos_To_Rep (Btyp))
          then
             Tst :=
               Make_Op_Ge (Loc,
                 Left_Opnd =>
                   Make_Function_Call (Loc,
                     Name =>
-                      New_Reference_To
-                        (TSS (Base_Type (Ptyp), TSS_Rep_To_Pos), Loc),
+                      New_Reference_To (TSS (Btyp, TSS_Rep_To_Pos), Loc),
                     Parameter_Associations => New_List (
                       Pref,
                       New_Occurrence_Of (Standard_False, Loc))),
@@ -5596,6 +5617,22 @@ package body Exp_Attr is
             Rewrite (N, Make_Range_Test);
          end if;
 
+         --  If a predicate is present, then we do the predicate test, even if
+         --  within the predicate function (infinite recursion is warned about
+         --  in Sem_Attr in that case).
+
+         declare
+            Pred_Func : constant Entity_Id := Predicate_Function (Ptyp);
+
+         begin
+            if Present (Pred_Func) then
+               Rewrite (N,
+                 Make_And_Then (Loc,
+                   Left_Opnd  => Relocate_Node (N),
+                   Right_Opnd => Make_Predicate_Call (Ptyp, Pref)));
+            end if;
+         end;
+
          Analyze_And_Resolve (N, Standard_Boolean);
          Validity_Checks_On := Save_Validity_Checks_On;
       end Valid;
@@ -5638,8 +5675,8 @@ package body Exp_Attr is
 
             Analyze_And_Resolve (N, Standard_Boolean);
 
-         --  For record types, we build a big conditional expression, applying
-         --  Valid or Valid_Scalars as appropriate to all relevant components.
+         --  For record types, we build a big if expression, applying Valid or
+         --  Valid_Scalars as appropriate to all relevant components.
 
          elsif (Is_Record_Type (Ptyp) or else Has_Discriminants (Ptyp))
            and then not No_Scalar_Parts (Ptyp)
@@ -6012,6 +6049,7 @@ package body Exp_Attr is
 
       when Attribute_Abort_Signal                 |
            Attribute_Address_Size                 |
+           Attribute_Atomic_Always_Lock_Free      |
            Attribute_Base                         |
            Attribute_Class                        |
            Attribute_Compiler_Version             |
@@ -6029,6 +6067,7 @@ package body Exp_Attr is
            Attribute_Has_Tagged_Values            |
            Attribute_Large                        |
            Attribute_Last_Valid                   |
+           Attribute_Lock_Free                    |
            Attribute_Machine_Emax                 |
            Attribute_Machine_Emin                 |
            Attribute_Machine_Mantissa             |
@@ -6071,6 +6110,11 @@ package body Exp_Attr is
            Attribute_Asm_Output                   =>
          null;
       end case;
+
+   --  Note: as mentioned earlier, individual sections of the above case
+   --  statement assume there is no code after the case statement, and are
+   --  legitimately allowed to execute return statements if they have nothing
+   --  more to do, so DO NOT add code at this point.
 
    exception
       when RE_Not_Available =>
@@ -6124,6 +6168,197 @@ package body Exp_Attr is
              Reason => CE_Overflow_Check_Failed));
       end if;
    end Expand_Pred_Succ;
+
+   -----------------------------
+   -- Expand_Update_Attribute --
+   -----------------------------
+
+   procedure Expand_Update_Attribute (N : Node_Id) is
+      procedure Process_Component_Or_Element_Update
+        (Temp : Entity_Id;
+         Comp : Node_Id;
+         Expr : Node_Id;
+         Typ  : Entity_Id);
+      --  Generate the statements necessary to update a single component or an
+      --  element of the prefix. The code is inserted before the attribute N.
+      --  Temp denotes the entity of the anonymous object created to reflect
+      --  the changes in values. Comp is the component/index expression to be
+      --  updated. Expr is an expression yielding the new value of Comp. Typ
+      --  is the type of the prefix of attribute Update.
+
+      procedure Process_Range_Update
+        (Temp : Entity_Id;
+         Comp : Node_Id;
+         Expr : Node_Id);
+      --  Generate the statements necessary to update a slice of the prefix.
+      --  The code is inserted before the attribute N. Temp denotes the entity
+      --  of the anonymous object created to reflect the changes in values.
+      --  Comp is range of the slice to be updated. Expr is an expression
+      --  yielding the new value of Comp.
+
+      -----------------------------------------
+      -- Process_Component_Or_Element_Update --
+      -----------------------------------------
+
+      procedure Process_Component_Or_Element_Update
+        (Temp : Entity_Id;
+         Comp : Node_Id;
+         Expr : Node_Id;
+         Typ  : Entity_Id)
+      is
+         Loc   : constant Source_Ptr := Sloc (Comp);
+         Exprs : List_Id;
+         LHS   : Node_Id;
+
+      begin
+         --  An array element may be modified by the following relations
+         --  depending on the number of dimensions:
+
+         --     1 => Expr           --  one dimensional update
+         --    (1, ..., N) => Expr  --  multi dimensional update
+
+         --  The above forms are converted in assignment statements where the
+         --  left hand side is an indexed component:
+
+         --    Temp (1) := Expr;          --  one dimensional update
+         --    Temp (1, ..., N) := Expr;  --  multi dimensional update
+
+         if Is_Array_Type (Typ) then
+
+            --  The index expressions of a multi dimensional array update
+            --  appear as an aggregate.
+
+            if Nkind (Comp) = N_Aggregate then
+               Exprs := New_Copy_List_Tree (Expressions (Comp));
+            else
+               Exprs := New_List (Relocate_Node (Comp));
+            end if;
+
+            LHS :=
+              Make_Indexed_Component (Loc,
+                Prefix      => New_Reference_To (Temp, Loc),
+                Expressions => Exprs);
+
+         --  A record component update appears in the following form:
+
+         --    Comp => Expr
+
+         --  The above relation is transformed into an assignment statement
+         --  where the left hand side is a selected component:
+
+         --    Temp.Comp := Expr;
+
+         else pragma Assert (Is_Record_Type (Typ));
+            LHS :=
+              Make_Selected_Component (Loc,
+                Prefix        => New_Reference_To (Temp, Loc),
+                Selector_Name => Relocate_Node (Comp));
+         end if;
+
+         Insert_Action (N,
+           Make_Assignment_Statement (Loc,
+             Name       => LHS,
+             Expression => Relocate_Node (Expr)));
+      end Process_Component_Or_Element_Update;
+
+      --------------------------
+      -- Process_Range_Update --
+      --------------------------
+
+      procedure Process_Range_Update
+        (Temp : Entity_Id;
+         Comp : Node_Id;
+         Expr : Node_Id)
+      is
+         Loc   : constant Source_Ptr := Sloc (Comp);
+         Index : Entity_Id;
+
+      begin
+         --  A range update appears as
+
+         --    (Low .. High => Expr)
+
+         --  The above construct is transformed into a loop that iterates over
+         --  the given range and modifies the corresponding array values to the
+         --  value of Expr:
+
+         --    for Index in Low .. High loop
+         --       Temp (Index) := Expr;
+         --    end loop;
+
+         Index := Make_Temporary (Loc, 'I');
+
+         Insert_Action (N,
+           Make_Loop_Statement (Loc,
+             Iteration_Scheme =>
+               Make_Iteration_Scheme (Loc,
+                 Loop_Parameter_Specification =>
+                   Make_Loop_Parameter_Specification (Loc,
+                     Defining_Identifier         => Index,
+                     Discrete_Subtype_Definition => Relocate_Node (Comp))),
+
+             Statements       => New_List (
+               Make_Assignment_Statement (Loc,
+                 Name       =>
+                   Make_Indexed_Component (Loc,
+                     Prefix      => New_Reference_To (Temp, Loc),
+                     Expressions => New_List (New_Reference_To (Index, Loc))),
+                 Expression => Relocate_Node (Expr))),
+
+             End_Label        => Empty));
+      end Process_Range_Update;
+
+      --  Local variables
+
+      Aggr  : constant Node_Id := First (Expressions (N));
+      Loc   : constant Source_Ptr := Sloc (N);
+      Pref  : constant Node_Id := Prefix (N);
+      Typ   : constant Entity_Id := Etype (Pref);
+      Assoc : Node_Id;
+      Comp  : Node_Id;
+      Expr  : Node_Id;
+      Temp  : Entity_Id;
+
+   --  Start of processing for Expand_Update_Attribute
+
+   begin
+      --  Create the anonymous object that stores the value of the prefix and
+      --  reflects subsequent changes in value. Generate:
+
+      --    Temp : <type of Pref> := Pref;
+
+      Temp := Make_Temporary (Loc, 'T');
+
+      Insert_Action (N,
+        Make_Object_Declaration (Loc,
+          Defining_Identifier => Temp,
+          Object_Definition   => New_Reference_To (Typ, Loc),
+          Expression          => Relocate_Node (Pref)));
+
+      --  Process the update aggregate
+
+      Assoc := First (Component_Associations (Aggr));
+      while Present (Assoc) loop
+         Comp := First (Choices (Assoc));
+         Expr := Expression (Assoc);
+         while Present (Comp) loop
+            if Nkind (Comp) = N_Range then
+               Process_Range_Update (Temp, Comp, Expr);
+            else
+               Process_Component_Or_Element_Update (Temp, Comp, Expr, Typ);
+            end if;
+
+            Next (Comp);
+         end loop;
+
+         Next (Assoc);
+      end loop;
+
+      --  The attribute is replaced by a reference to the anonymous object
+
+      Rewrite (N, New_Reference_To (Temp, Loc));
+      Analyze (N);
+   end Expand_Update_Attribute;
 
    -------------------
    -- Find_Fat_Info --

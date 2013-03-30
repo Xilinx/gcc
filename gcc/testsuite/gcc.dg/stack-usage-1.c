@@ -7,7 +7,9 @@
    function FOO is reported as 256 or 264 in the stack usage (.su) file.
    Then check that this is the actual stack usage in the assembly file.  */
 
-#if defined(__i386__)
+#if defined(__aarch64__)
+#  define SIZE 256 /* No frame pointer for leaf functions (default) */
+#elif defined(__i386__)
 #  define SIZE 248
 #elif defined(__x86_64__)
 #  ifndef _WIN64
@@ -62,6 +64,10 @@
 #  define SIZE 254
 #elif defined (__sh__)
 #  define SIZE 252
+#elif defined (__frv__)
+#  define SIZE 248
+#elif defined (xstormy16)
+#  define SIZE 254
 #else
 #  define SIZE 256
 #endif

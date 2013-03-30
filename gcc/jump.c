@@ -1,7 +1,5 @@
 /* Optimize jump instructions, for GNU compiler.
-   Copyright (C) 1987, 1988, 1989, 1991, 1992, 1993, 1994, 1995, 1996, 1997
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010,
-   2011 Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -146,6 +144,7 @@ struct rtl_opt_pass pass_cleanup_barriers =
  {
   RTL_PASS,
   "barriers",                           /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,                                 /* gate */
   cleanup_barriers,                     /* execute */
   NULL,                                 /* sub */
@@ -275,17 +274,11 @@ mark_all_labels (rtx f)
 	     basic blocks.  If those non-insns represent tablejump data,
 	     they contain label references that we must record.  */
 	  for (insn = BB_HEADER (bb); insn; insn = NEXT_INSN (insn))
-	    if (INSN_P (insn))
-	      {
-		gcc_assert (JUMP_TABLE_DATA_P (insn));
-		mark_jump_label (PATTERN (insn), insn, 0);
-	      }
+	    if (JUMP_TABLE_DATA_P (insn))
+	      mark_jump_label (PATTERN (insn), insn, 0);
 	  for (insn = BB_FOOTER (bb); insn; insn = NEXT_INSN (insn))
-	    if (INSN_P (insn))
-	      {
-		gcc_assert (JUMP_TABLE_DATA_P (insn));
-		mark_jump_label (PATTERN (insn), insn, 0);
-	      }
+	    if (JUMP_TABLE_DATA_P (insn))
+	      mark_jump_label (PATTERN (insn), insn, 0);
 	}
     }
   else
@@ -297,6 +290,8 @@ mark_all_labels (rtx f)
 	    ;
 	  else if (LABEL_P (insn))
 	    prev_nonjump_insn = NULL;
+	  else if (JUMP_TABLE_DATA_P (insn))
+	    mark_jump_label (PATTERN (insn), insn, 0);
 	  else if (NONDEBUG_INSN_P (insn))
 	    {
 	      mark_jump_label (PATTERN (insn), insn, 0);
@@ -1078,8 +1073,6 @@ mark_jump_label_1 (rtx x, rtx insn, bool in_mem, bool is_target)
     case PC:
     case CC0:
     case REG:
-    case CONST_INT:
-    case CONST_DOUBLE:
     case CLOBBER:
     case CALL:
       return;
@@ -1166,8 +1159,8 @@ mark_jump_label_1 (rtx x, rtx insn, bool in_mem, bool is_target)
 	return;
       }
 
-  /* Do walk the labels in a vector, but not the first operand of an
-     ADDR_DIFF_VEC.  Don't set the JUMP_LABEL of a vector.  */
+    /* Do walk the labels in a vector, but not the first operand of an
+       ADDR_DIFF_VEC.  Don't set the JUMP_LABEL of a vector.  */
     case ADDR_VEC:
     case ADDR_DIFF_VEC:
       if (! INSN_DELETED_P (insn))
@@ -1259,9 +1252,9 @@ delete_related_insns (rtx insn)
 	  && GET_CODE (PATTERN (insn)) == SEQUENCE
 	  && CALL_P (XVECEXP (PATTERN (insn), 0, 0))))
     {
-      rtx p = insn;
+      rtx p;
 
-      for (p = NEXT_INSN (p);
+      for (p = next && INSN_DELETED_P (next) ? NEXT_INSN (next) : next;
 	   p && NOTE_P (p);
 	   p = NEXT_INSN (p))
 	if (NOTE_KIND (p) == NOTE_INSN_CALL_ARG_LOCATION)
@@ -1753,8 +1746,7 @@ rtx_renumbered_equal_p (const_rtx x, const_rtx y)
     case CC0:
     case ADDR_VEC:
     case ADDR_DIFF_VEC:
-    case CONST_INT:
-    case CONST_DOUBLE:
+    CASE_CONST_UNIQUE:
       return 0;
 
     case LABEL_REF:
@@ -1818,8 +1810,7 @@ rtx_renumbered_equal_p (const_rtx x, const_rtx y)
 	  if (XINT (x, i) != XINT (y, i))
 	    {
 	      if (((code == ASM_OPERANDS && i == 6)
-		   || (code == ASM_INPUT && i == 1))
-		  && locator_eq (XINT (x, i), XINT (y, i)))
+		   || (code == ASM_INPUT && i == 1)))
 		break;
 	      return 0;
 	    }
@@ -1872,7 +1863,8 @@ true_regnum (const_rtx x)
 {
   if (REG_P (x))
     {
-      if (REGNO (x) >= FIRST_PSEUDO_REGISTER && reg_renumber[REGNO (x)] >= 0)
+      if (REGNO (x) >= FIRST_PSEUDO_REGISTER
+	  && (lra_in_progress || reg_renumber[REGNO (x)] >= 0))
 	return reg_renumber[REGNO (x)];
       return REGNO (x);
     }
@@ -1884,7 +1876,8 @@ true_regnum (const_rtx x)
 	{
 	  struct subreg_info info;
 
-	  subreg_get_info (REGNO (SUBREG_REG (x)),
+	  subreg_get_info (lra_in_progress
+			   ? (unsigned) base : REGNO (SUBREG_REG (x)),
 			   GET_MODE (SUBREG_REG (x)),
 			   SUBREG_BYTE (x), GET_MODE (x), &info);
 

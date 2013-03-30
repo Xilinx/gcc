@@ -1,6 +1,5 @@
 /* Some code common to C++ and ObjC++ front ends.
-   Copyright (C) 2004, 2007, 2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2004-2013 Free Software Foundation, Inc.
    Contributed by Ziemowit Laski  <zlaski@apple.com>
 
 This file is part of GCC.
@@ -63,7 +62,7 @@ cxx_warn_unused_global_decl (const_tree decl)
     return false;
 
   /* Const variables take the place of #defines in C++.  */
-  if (TREE_CODE (decl) == VAR_DECL && TREE_READONLY (decl))
+  if (VAR_P (decl) && TREE_READONLY (decl))
     return false;
 
   return true;
@@ -225,6 +224,25 @@ init_shadowed_var_for_decl (void)
 {
   shadowed_var_for_decl = htab_create_ggc (512, tree_decl_map_hash,
 					   tree_decl_map_eq, 0);
+}
+
+/* Return true if stmt can fall thru.  Used by block_may_fallthru
+   default case.  */
+
+bool
+cxx_block_may_fallthru (const_tree stmt)
+{
+  switch (TREE_CODE (stmt))
+    {
+    case EXPR_STMT:
+      return block_may_fallthru (EXPR_STMT_EXPR (stmt));
+
+    case THROW_EXPR:
+      return false;
+
+    default:
+      return true;
+    }
 }
 
 void

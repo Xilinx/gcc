@@ -1,7 +1,5 @@
 /* Communication between reload.c, reload1.c and the rest of compiler.
-   Copyright (C) 1987, 1991, 1992, 1993, 1994, 1995, 1997, 1998, 1999,
-   2000, 2001, 2003, 2004, 2007, 2008, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -243,23 +241,21 @@ typedef struct reg_equivs
 } reg_equivs_t;
 
 #define reg_equiv_constant(ELT) \
-  VEC_index (reg_equivs_t, reg_equivs, (ELT))->constant
+  (*reg_equivs)[(ELT)].constant
 #define reg_equiv_invariant(ELT) \
-  VEC_index (reg_equivs_t, reg_equivs, (ELT))->invariant
+  (*reg_equivs)[(ELT)].invariant
 #define reg_equiv_memory_loc(ELT) \
-  VEC_index (reg_equivs_t, reg_equivs, (ELT))->memory_loc
+  (*reg_equivs)[(ELT)].memory_loc
 #define reg_equiv_address(ELT) \
-  VEC_index (reg_equivs_t, reg_equivs, (ELT))->address
+  (*reg_equivs)[(ELT)].address
 #define reg_equiv_mem(ELT) \
-  VEC_index (reg_equivs_t, reg_equivs, (ELT))->mem
+  (*reg_equivs)[(ELT)].mem
 #define reg_equiv_alt_mem_list(ELT) \
-  VEC_index (reg_equivs_t, reg_equivs, (ELT))->alt_mem_list
+  (*reg_equivs)[(ELT)].alt_mem_list
 #define reg_equiv_init(ELT) \
-  VEC_index (reg_equivs_t, reg_equivs, (ELT))->init
+  (*reg_equivs)[(ELT)].init
 
-DEF_VEC_O(reg_equivs_t);
-DEF_VEC_ALLOC_O(reg_equivs_t, gc);
-extern VEC(reg_equivs_t,gc) *reg_equivs;
+extern vec<reg_equivs_t, va_gc> *reg_equivs;
 
 /* All the "earlyclobber" operands of the current insn
    are recorded here.  */

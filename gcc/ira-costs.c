@@ -1,6 +1,5 @@
 /* IRA hard register and memory cost calculation for allocnos or pseudos.
-   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2006-2013 Free Software Foundation, Inc.
    Contributed by Vladimir Makarov <vmakarov@redhat.com>.
 
 This file is part of GCC.
@@ -652,7 +651,7 @@ record_reg_classes (int n_alts, int n_ops, rtx *ops,
 
 		case 'E':
 		case 'F':
-		  if (GET_CODE (op) == CONST_DOUBLE
+		  if (CONST_DOUBLE_AS_FLOAT_P (op) 
 		      || (GET_CODE (op) == CONST_VECTOR
 			  && (GET_MODE_CLASS (GET_MODE (op))
 			      == MODE_VECTOR_FLOAT)))
@@ -661,15 +660,13 @@ record_reg_classes (int n_alts, int n_ops, rtx *ops,
 
 		case 'G':
 		case 'H':
-		  if (GET_CODE (op) == CONST_DOUBLE
+		  if (CONST_DOUBLE_AS_FLOAT_P (op) 
 		      && CONST_DOUBLE_OK_FOR_CONSTRAINT_P (op, c, p))
 		    win = 1;
 		  break;
 
 		case 's':
-		  if (CONST_INT_P (op)
-		      || (GET_CODE (op) == CONST_DOUBLE
-			  && GET_MODE (op) == VOIDmode))
+		  if (CONST_SCALAR_INT_P (op)) 
 		    break;
 
 		case 'i':
@@ -679,9 +676,7 @@ record_reg_classes (int n_alts, int n_ops, rtx *ops,
 		  break;
 
 		case 'n':
-		  if (CONST_INT_P (op)
-		      || (GET_CODE (op) == CONST_DOUBLE
-			  && GET_MODE (op) == VOIDmode))
+		  if (CONST_SCALAR_INT_P (op)) 
 		    win = 1;
 		  break;
 
@@ -1072,7 +1067,7 @@ record_address_regs (enum machine_mode mode, addr_space_t as, rtx x,
 
 	/* If the second operand is a constant integer, it doesn't
 	   change what class the first operand must be.  */
-	else if (code1 == CONST_INT || code1 == CONST_DOUBLE)
+	else if (CONST_SCALAR_INT_P (arg1))
 	  record_address_regs (mode, as, arg0, context, PLUS, code1, scale);
 	/* If the second operand is a symbolic constant, the first
 	   operand must be an index register.  */
@@ -1278,8 +1273,7 @@ scan_one_insn (rtx insn)
     return insn;
 
   pat_code = GET_CODE (PATTERN (insn));
-  if (pat_code == USE || pat_code == CLOBBER || pat_code == ASM_INPUT
-      || pat_code == ADDR_VEC || pat_code == ADDR_DIFF_VEC)
+  if (pat_code == USE || pat_code == CLOBBER || pat_code == ASM_INPUT)
     return insn;
 
   counted_mem = false;
@@ -2052,9 +2046,10 @@ ira_costs (void)
   ira_free (total_allocno_costs);
 }
 
-/* Entry function which defines classes for pseudos.  */
+/* Entry function which defines classes for pseudos.
+   Set pseudo_classes_defined_p only if DEFINE_PSEUDO_CLASSES is true.  */
 void
-ira_set_pseudo_classes (FILE *dump_file)
+ira_set_pseudo_classes (bool define_pseudo_classes, FILE *dump_file)
 {
   allocno_p = false;
   internal_flag_ira_verbose = flag_ira_verbose;
@@ -2063,7 +2058,9 @@ ira_set_pseudo_classes (FILE *dump_file)
   initiate_regno_cost_classes ();
   find_costs_and_classes (dump_file);
   finish_regno_cost_classes ();
-  pseudo_classes_defined_p = true;
+  if (define_pseudo_classes)
+    pseudo_classes_defined_p = true;
+
   finish_costs ();
 }
 

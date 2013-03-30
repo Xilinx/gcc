@@ -1,6 +1,5 @@
 /* Define control flow data structures for the CFG.
-   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -31,24 +30,24 @@ along with GCC; see the file COPYING3.  If not see
    flow graph is manipulated by various optimizations.  A signed type
    makes those easy to detect.  */
 typedef HOST_WIDEST_INT gcov_type;
+typedef unsigned HOST_WIDEST_INT gcov_type_unsigned;
 
 /* Control flow edge information.  */
-struct GTY(()) edge_def {
+struct GTY((user)) edge_def {
   /* The two blocks at the ends of the edge.  */
   basic_block src;
   basic_block dest;
 
   /* Instructions queued on the edge.  */
   union edge_def_insns {
-    gimple_seq GTY ((tag ("true"))) g;
-    rtx GTY ((tag ("false"))) r;
-  } GTY ((desc ("current_ir_type () == IR_GIMPLE"))) insns;
+    gimple_seq g;
+    rtx r;
+  } insns;
 
   /* Auxiliary info specific to a pass.  */
-  PTR GTY ((skip (""))) aux;
+  PTR aux;
 
-  /* Location of any goto implicit in the edge and associated BLOCK.  */
-  tree goto_block;
+  /* Location of any goto implicit in the edge.  */
   location_t goto_locus;
 
   /* The index number corresponding to this edge in the edge vector
@@ -61,9 +60,11 @@ struct GTY(()) edge_def {
 				   in profile.c  */
 };
 
-DEF_VEC_P(edge);
-DEF_VEC_ALLOC_P(edge,gc);
-DEF_VEC_ALLOC_P(edge,heap);
+
+/* Garbage collection and PCH support for edge_def.  */
+extern void gt_ggc_mx (edge_def *e);
+extern void gt_pch_nx (edge_def *e);
+extern void gt_pch_nx (edge_def *e, gt_pointer_operator, void *);
 
 /* Masks for edge.flags.  */
 #define DEF_EDGE_FLAG(NAME,IDX) EDGE_##NAME = 1 << IDX ,
@@ -85,6 +86,47 @@ enum cfg_edge_flags {
 /* Counter summary from the last set of coverage counts read by
    profile.c.  */
 extern const struct gcov_ctr_summary *profile_info;
+
+/* Working set size statistics for a given percentage of the entire
+   profile (sum_all from the counter summary).  */
+typedef struct gcov_working_set_info
+{
+  /* Number of hot counters included in this working set.  */
+  unsigned num_counters;
+  /* Smallest counter included in this working set.  */
+  gcov_type min_counter;
+} gcov_working_set_t;
+
+/* Structure to gather statistic about profile consistency, per pass.
+   An array of this structure, indexed by pass static number, is allocated
+   in passes.c.  The structure is defined here so that different CFG modes
+   can do their book-keeping via CFG hooks.
+
+   For every field[2], field[0] is the count before the pass runs, and
+   field[1] is the post-pass count.  This allows us to monitor the effect
+   of each individual pass on the profile consistency.
+   
+   This structure is not supposed to be used by anything other than passes.c
+   and one CFG hook per CFG mode.  */
+struct profile_record
+{
+  /* The number of basic blocks where sum(freq) of the block's predecessors
+     doesn't match reasonably well with the incoming frequency.  */
+  int num_mismatched_freq_in[2];
+  /* Likewise for a basic block's successors.  */
+  int num_mismatched_freq_out[2];
+  /* The number of basic blocks where sum(count) of the block's predecessors
+     doesn't match reasonably well with the incoming frequency.  */
+  int num_mismatched_count_in[2];
+  /* Likewise for a basic block's successors.  */
+  int num_mismatched_count_out[2];
+  /* A weighted cost of the run-time of the function body.  */
+  gcov_type time[2];
+  /* A weighted cost of the size of the function body.  */
+  int size[2];
+  /* True iff this pass actually was run.  */
+  bool run;
+};
 
 /* Declared in cfgloop.h.  */
 struct loop;
@@ -108,7 +150,7 @@ struct GTY(()) gimple_bb_info {
   gimple_seq phi_nodes;
 };
 
-/* A basic block is a sequence of instructions with only entry and
+/* A basic block is a sequence of instructions with only one entry and
    only one exit.  If any one of the instructions are executed, they
    will all be executed, and in sequence from first to last.
 
@@ -136,8 +178,8 @@ struct GTY(()) gimple_bb_info {
 /* Basic block information indexed by block number.  */
 struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_def {
   /* The edges into and out of the block.  */
-  VEC(edge,gc) *preds;
-  VEC(edge,gc) *succs;
+  vec<edge, va_gc> *preds;
+  vec<edge, va_gc> *succs;
 
   /* Auxiliary info specific to a pass.  */
   PTR GTY ((skip (""))) aux;
@@ -160,14 +202,14 @@ struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_d
       } GTY ((tag ("1"))) x;
     } GTY ((desc ("((%1.flags & BB_RTL) != 0)"))) il;
 
-  /* Expected number of executions: calculated in profile.c.  */
-  gcov_type count;
+  /* Various flags.  See cfg-flags.def.  */
+  int flags;
 
   /* The index of this block.  */
   int index;
 
-  /* The loop depth of this block.  */
-  int loop_depth;
+  /* Expected number of executions: calculated in profile.c.  */
+  gcov_type count;
 
   /* Expected frequency.  Normalized to be in range 0 to BB_FREQ_MAX.  */
   int frequency;
@@ -176,9 +218,6 @@ struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_d
      among several basic blocks that share a common locus, allowing for
      more accurate sample-based profiling.  */
   int discriminator;
-
-  /* Various flags.  See cfg-flags.def.  */
-  int flags;
 };
 
 /* This ensures that struct gimple_bb_info is smaller than
@@ -188,9 +227,6 @@ typedef int __assert_gimple_bb_smaller_rtl_bb
               [(int)sizeof(struct rtl_bb_info)
                - (int)sizeof (struct gimple_bb_info)];
 
-DEF_VEC_P(basic_block);
-DEF_VEC_ALLOC_P(basic_block,gc);
-DEF_VEC_ALLOC_P(basic_block,heap);
 
 #define BB_FREQ_MAX 10000
 
@@ -256,7 +292,7 @@ struct GTY(()) control_flow_graph {
   basic_block x_exit_block_ptr;
 
   /* Index by basic block number, get basic block struct info.  */
-  VEC(basic_block,gc) *x_basic_block_info;
+  vec<basic_block, va_gc> *x_basic_block_info;
 
   /* Number of basic blocks in this flow graph.  */
   int x_n_basic_blocks;
@@ -272,7 +308,7 @@ struct GTY(()) control_flow_graph {
 
   /* Mapping of labels to their associated blocks.  At present
      only used for the gimple CFG.  */
-  VEC(basic_block,gc) *x_label_to_block_map;
+  vec<basic_block, va_gc> *x_label_to_block_map;
 
   enum profile_status_d x_profile_status;
 
@@ -298,9 +334,9 @@ struct GTY(()) control_flow_graph {
 #define profile_status_for_function(FN)	     ((FN)->cfg->x_profile_status)
 
 #define BASIC_BLOCK_FOR_FUNCTION(FN,N) \
-  (VEC_index (basic_block, basic_block_info_for_function(FN), (N)))
+  ((*basic_block_info_for_function(FN))[(N)])
 #define SET_BASIC_BLOCK_FOR_FUNCTION(FN,N,BB) \
-  (VEC_replace (basic_block, basic_block_info_for_function(FN), (N), (BB)))
+  ((*basic_block_info_for_function(FN))[(N)] = (BB))
 
 /* Defines for textual backward source compatibility.  */
 #define ENTRY_BLOCK_PTR		(cfun->cfg->x_entry_block_ptr)
@@ -312,8 +348,8 @@ struct GTY(()) control_flow_graph {
 #define label_to_block_map	(cfun->cfg->x_label_to_block_map)
 #define profile_status		(cfun->cfg->x_profile_status)
 
-#define BASIC_BLOCK(N)		(VEC_index (basic_block, basic_block_info, (N)))
-#define SET_BASIC_BLOCK(N,BB)	(VEC_replace (basic_block, basic_block_info, (N), (BB)))
+#define BASIC_BLOCK(N)		((*basic_block_info)[(N)])
+#define SET_BASIC_BLOCK(N,BB)	((*basic_block_info)[(N)] = (BB))
 
 /* For iterating over basic blocks.  */
 #define FOR_BB_BETWEEN(BB, FROM, TO, DIR) \
@@ -401,6 +437,8 @@ extern basic_block create_basic_block_structure (rtx, rtx, rtx, basic_block);
 extern void clear_bb_flags (void);
 extern void dump_bb_info (FILE *, basic_block, int, int, bool, bool);
 extern void dump_edge_info (FILE *, edge, int, int);
+extern void debug (edge_def &ref);
+extern void debug (edge_def *ptr);
 extern void brief_dump_cfg (FILE *, int);
 extern void clear_edges (void);
 extern void scale_bbs_frequencies_int (basic_block *, int, int, int);
@@ -430,7 +468,7 @@ typedef struct ce_if_block
 } ce_if_block_t;
 
 /* This structure maintains an edge list vector.  */
-/* FIXME: Make this a VEC(edge).  */
+/* FIXME: Make this a vec<edge>.  */
 struct edge_list
 {
   int num_edges;
@@ -466,20 +504,19 @@ struct edge_list
 #define BRANCH_EDGE(bb)			(EDGE_SUCC ((bb), 0)->flags & EDGE_FALLTHRU \
 					 ? EDGE_SUCC ((bb), 1) : EDGE_SUCC ((bb), 0))
 
+#define RDIV(X,Y) (((X) + (Y) / 2) / (Y))
 /* Return expected execution frequency of the edge E.  */
-#define EDGE_FREQUENCY(e)		(((e)->src->frequency \
-					  * (e)->probability \
-					  + REG_BR_PROB_BASE / 2) \
-					 / REG_BR_PROB_BASE)
+#define EDGE_FREQUENCY(e)		RDIV ((e)->src->frequency * (e)->probability, \
+					      REG_BR_PROB_BASE)
 
 /* Return nonzero if edge is critical.  */
 #define EDGE_CRITICAL_P(e)		(EDGE_COUNT ((e)->src->succs) >= 2 \
 					 && EDGE_COUNT ((e)->dest->preds) >= 2)
 
-#define EDGE_COUNT(ev)			VEC_length (edge, (ev))
-#define EDGE_I(ev,i)			VEC_index  (edge, (ev), (i))
-#define EDGE_PRED(bb,i)			VEC_index  (edge, (bb)->preds, (i))
-#define EDGE_SUCC(bb,i)			VEC_index  (edge, (bb)->succs, (i))
+#define EDGE_COUNT(ev)			vec_safe_length (ev)
+#define EDGE_I(ev,i)			(*ev)[(i)]
+#define EDGE_PRED(bb,i)			(*(bb)->preds)[(i)]
+#define EDGE_SUCC(bb,i)			(*(bb)->succs)[(i)]
 
 /* Returns true if BB has precisely one successor.  */
 
@@ -539,10 +576,10 @@ single_pred (const_basic_block bb)
 
 typedef struct {
   unsigned index;
-  VEC(edge,gc) **container;
+  vec<edge, va_gc> **container;
 } edge_iterator;
 
-static inline VEC(edge,gc) *
+static inline vec<edge, va_gc> *
 ei_container (edge_iterator i)
 {
   gcc_checking_assert (i.container);
@@ -554,7 +591,7 @@ ei_container (edge_iterator i)
 
 /* Return an iterator pointing to the start of an edge vector.  */
 static inline edge_iterator
-ei_start_1 (VEC(edge,gc) **ev)
+ei_start_1 (vec<edge, va_gc> **ev)
 {
   edge_iterator i;
 
@@ -567,7 +604,7 @@ ei_start_1 (VEC(edge,gc) **ev)
 /* Return an iterator pointing to the last element of an edge
    vector.  */
 static inline edge_iterator
-ei_last_1 (VEC(edge,gc) **ev)
+ei_last_1 (vec<edge, va_gc> **ev)
 {
   edge_iterator i;
 
@@ -674,6 +711,12 @@ ei_cond (edge_iterator ei, edge *p)
 #define CLEANUP_CFGLAYOUT	32	/* Do cleanup in cfglayout mode.  */
 #define CLEANUP_CFG_CHANGED	64      /* The caller changed the CFG.  */
 
+/* In cfganal.c */
+extern void bitmap_intersection_of_succs (sbitmap, sbitmap *, basic_block);
+extern void bitmap_intersection_of_preds (sbitmap, sbitmap *, basic_block);
+extern void bitmap_union_of_succs (sbitmap, sbitmap *, basic_block);
+extern void bitmap_union_of_preds (sbitmap, sbitmap *, basic_block);
+
 /* In lcm.c */
 extern struct edge_list *pre_edge_lcm (int, sbitmap *, sbitmap *,
 				       sbitmap *, sbitmap *, sbitmap **,
@@ -685,9 +728,9 @@ extern struct edge_list *pre_edge_rev_lcm (int, sbitmap *,
 extern void compute_available (sbitmap *, sbitmap *, sbitmap *, sbitmap *);
 
 /* In predict.c */
-extern bool maybe_hot_bb_p (const_basic_block);
+extern bool maybe_hot_bb_p (struct function *, const_basic_block);
 extern bool maybe_hot_edge_p (edge);
-extern bool probably_never_executed_bb_p (const_basic_block);
+extern bool probably_never_executed_bb_p (struct function *, const_basic_block);
 extern bool optimize_bb_for_size_p (const_basic_block);
 extern bool optimize_bb_for_speed_p (const_basic_block);
 extern bool optimize_edge_for_size_p (edge);
@@ -739,6 +782,7 @@ extern void remove_fake_exit_edges (void);
 extern void add_noreturn_fake_exit_edges (void);
 extern void connect_infinite_loops_to_exit (void);
 extern int post_order_compute (int *, bool, bool);
+extern basic_block dfs_find_deadend (basic_block);
 extern int inverted_post_order_compute (int *);
 extern int pre_and_rev_post_order_compute (int *, int *, bool);
 extern int dfs_enumerate_from (basic_block, int,
@@ -754,6 +798,7 @@ extern bool purge_all_dead_edges (void);
 extern bool purge_dead_edges (basic_block);
 extern bool fixup_abnormal_edges (void);
 extern basic_block force_nonfallthru_and_redirect (edge, basic_block, rtx);
+extern bool contains_no_active_insn_p (const_basic_block);
 extern bool forwarder_block_p (const_basic_block);
 extern bool can_fallthru (basic_block, basic_block);
 
@@ -798,13 +843,13 @@ extern void set_immediate_dominator (enum cdi_direction, basic_block,
 				     basic_block);
 extern basic_block get_immediate_dominator (enum cdi_direction, basic_block);
 extern bool dominated_by_p (enum cdi_direction, const_basic_block, const_basic_block);
-extern VEC (basic_block, heap) *get_dominated_by (enum cdi_direction, basic_block);
-extern VEC (basic_block, heap) *get_dominated_by_region (enum cdi_direction,
+extern vec<basic_block> get_dominated_by (enum cdi_direction, basic_block);
+extern vec<basic_block> get_dominated_by_region (enum cdi_direction,
 							 basic_block *,
 							 unsigned);
-extern VEC (basic_block, heap) *get_dominated_to_depth (enum cdi_direction,
+extern vec<basic_block> get_dominated_to_depth (enum cdi_direction,
 							basic_block, int);
-extern VEC (basic_block, heap) *get_all_dominated_blocks (enum cdi_direction,
+extern vec<basic_block> get_all_dominated_blocks (enum cdi_direction,
 							  basic_block);
 extern void add_to_dominance_info (enum cdi_direction, basic_block);
 extern void delete_from_dominance_info (enum cdi_direction, basic_block);
@@ -812,7 +857,7 @@ basic_block recompute_dominator (enum cdi_direction, basic_block);
 extern void redirect_immediate_dominators (enum cdi_direction, basic_block,
 					   basic_block);
 extern void iterate_fix_dominators (enum cdi_direction,
-				    VEC (basic_block, heap) *, bool);
+				    vec<basic_block> , bool);
 extern void verify_dominators (enum cdi_direction);
 extern basic_block first_dom_son (enum cdi_direction, basic_block);
 extern basic_block next_dom_son (enum cdi_direction, basic_block);
@@ -868,7 +913,7 @@ bb_has_abnormal_pred (basic_block bb)
 
 /* Return the fallthru edge in EDGES if it exists, NULL otherwise.  */
 static inline edge
-find_fallthru_edge (VEC(edge,gc) *edges)
+find_fallthru_edge (vec<edge, va_gc> *edges)
 {
   edge e;
   edge_iterator ei;
@@ -889,4 +934,43 @@ extern void rtl_profile_for_bb (basic_block);
 extern void rtl_profile_for_edge (edge);
 extern void default_rtl_profile (void);
 
+/* In profile.c.  */
+extern gcov_working_set_t *find_working_set(unsigned pct_times_10);
+
+/* Check tha probability is sane.  */
+
+static inline void
+check_probability (int prob)
+{
+  gcc_checking_assert (prob >= 0 && prob <= REG_BR_PROB_BASE);
+}
+
+/* Given PROB1 and PROB2, return PROB1*PROB2/REG_BR_PROB_BASE. 
+   Used to combine BB probabilities.  */
+
+static inline int
+combine_probabilities (int prob1, int prob2)
+{
+  check_probability (prob1);
+  check_probability (prob2);
+  return RDIV (prob1 * prob2, REG_BR_PROB_BASE);
+}
+
+/* Apply probability PROB on frequency or count FREQ.  */
+
+static inline gcov_type
+apply_probability (gcov_type freq, int prob)
+{
+  check_probability (prob);
+  return RDIV (freq * prob, REG_BR_PROB_BASE);
+}
+
+/* Return inverse probability for PROB.  */
+
+static inline int
+inverse_probability (int prob1)
+{
+  check_probability (prob1);
+  return REG_BR_PROB_BASE - prob1;
+}
 #endif /* GCC_BASIC_BLOCK_H */

@@ -1,5 +1,4 @@
-;; Copyright (C) 2002, 2003, 2004, 2005, 2006,
-;; 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2002-2013 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -710,30 +709,30 @@
 
 (define_insn_reservation "athlon_sselog_load" 3
 			 (and (eq_attr "cpu" "athlon")
-			      (and (eq_attr "type" "sselog,sselog1")
+			      (and (eq_attr "type" "sselog,sselog1,sseshuf,sseshuf1")
 				   (eq_attr "memory" "load")))
 			 "athlon-vector,athlon-fpload2,(athlon-fmul*2)")
 (define_insn_reservation "athlon_sselog_load_k8" 5
 			 (and (eq_attr "cpu" "k8,generic64")
-			      (and (eq_attr "type" "sselog,sselog1")
+			      (and (eq_attr "type" "sselog,sselog1,sseshuf,sseshuf1")
 				   (eq_attr "memory" "load")))
 			 "athlon-double,athlon-fpload2k8,(athlon-fmul*2)")
 (define_insn_reservation "athlon_sselog_load_amdfam10" 4
 			 (and (eq_attr "cpu" "amdfam10")
-			      (and (eq_attr "type" "sselog,sselog1")
+			      (and (eq_attr "type" "sselog,sselog1,sseshuf,sseshuf1")
 				   (eq_attr "memory" "load")))
 			 "athlon-direct,athlon-fploadk8,(athlon-fadd|athlon-fmul)")
 (define_insn_reservation "athlon_sselog" 3
 			 (and (eq_attr "cpu" "athlon")
-			      (eq_attr "type" "sselog,sselog1"))
+			      (eq_attr "type" "sselog,sselog1,sseshuf,sseshuf1"))
 			 "athlon-vector,athlon-fpsched,athlon-fmul*2")
 (define_insn_reservation "athlon_sselog_k8" 3
 			 (and (eq_attr "cpu" "k8,generic64")
-			      (eq_attr "type" "sselog,sselog1"))
+			      (eq_attr "type" "sselog,sselog1,sseshuf,sseshuf1"))
 			 "athlon-double,athlon-fpsched,athlon-fmul")
 (define_insn_reservation "athlon_sselog_amdfam10" 2
 			 (and (eq_attr "cpu" "amdfam10")
-			      (eq_attr "type" "sselog,sselog1"))
+			      (eq_attr "type" "sselog,sselog1,sseshuf,sseshuf1"))
 			 "athlon-direct,athlon-fpsched,(athlon-fadd|athlon-fmul)")
 
 ;; ??? pcmp executes in addmul, probably not worthwhile to bother about that.
@@ -807,47 +806,47 @@
 			 "athlon-direct,athlon-fpsched,athlon-fadd")
 (define_insn_reservation "athlon_sseadd_load" 4
 			 (and (eq_attr "cpu" "athlon")
-			      (and (eq_attr "type" "sseadd")
+			      (and (eq_attr "type" "sseadd,sseadd1")
 				   (and (eq_attr "mode" "SF,DF,DI")
 					(eq_attr "memory" "load"))))
 			 "athlon-direct,athlon-fpload,athlon-fadd")
 (define_insn_reservation "athlon_sseadd_load_k8" 6
 			 (and (eq_attr "cpu" "k8,generic64,amdfam10")
-			      (and (eq_attr "type" "sseadd")
+			      (and (eq_attr "type" "sseadd,sseadd1")
 				   (and (eq_attr "mode" "SF,DF,DI")
 					(eq_attr "memory" "load"))))
 			 "athlon-direct,athlon-fploadk8,athlon-fadd")
 (define_insn_reservation "athlon_sseadd" 4
 			 (and (eq_attr "cpu" "athlon,k8,generic64,amdfam10")
-			      (and (eq_attr "type" "sseadd")
+			      (and (eq_attr "type" "sseadd,sseadd1")
 				   (eq_attr "mode" "SF,DF,DI")))
 			 "athlon-direct,athlon-fpsched,athlon-fadd")
 (define_insn_reservation "athlon_sseaddvector_load" 5
 			 (and (eq_attr "cpu" "athlon")
-			      (and (eq_attr "type" "sseadd")
+			      (and (eq_attr "type" "sseadd,sseadd1")
 				   (eq_attr "memory" "load")))
 			 "athlon-vector,athlon-fpload2,(athlon-fadd*2)")
 (define_insn_reservation "athlon_sseaddvector_load_k8" 7
 			 (and (eq_attr "cpu" "k8,generic64")
-			      (and (eq_attr "type" "sseadd")
+			      (and (eq_attr "type" "sseadd,sseadd1")
 				   (eq_attr "memory" "load")))
 			 "athlon-double,athlon-fpload2k8,(athlon-fadd*2)")
 (define_insn_reservation "athlon_sseaddvector_load_amdfam10" 6
 			 (and (eq_attr "cpu" "amdfam10")
-			      (and (eq_attr "type" "sseadd")
+			      (and (eq_attr "type" "sseadd,sseadd1")
 				   (eq_attr "memory" "load")))
 			 "athlon-direct,athlon-fploadk8,athlon-fadd")
 (define_insn_reservation "athlon_sseaddvector" 5
 			 (and (eq_attr "cpu" "athlon")
-			      (eq_attr "type" "sseadd"))
+			      (eq_attr "type" "sseadd,sseadd1"))
 			 "athlon-vector,athlon-fpsched,(athlon-fadd*2)")
 (define_insn_reservation "athlon_sseaddvector_k8" 5
 			 (and (eq_attr "cpu" "k8,generic64")
-			      (eq_attr "type" "sseadd"))
+			      (eq_attr "type" "sseadd,sseadd1"))
 			 "athlon-double,athlon-fpsched,(athlon-fadd*2)")
 (define_insn_reservation "athlon_sseaddvector_amdfam10" 4
 			 (and (eq_attr "cpu" "amdfam10")
-			      (eq_attr "type" "sseadd"))
+			      (eq_attr "type" "sseadd,sseadd1"))
 			 "athlon-direct,athlon-fpsched,athlon-fadd")
 
 ;; Conversions behaves very irregularly and the scheduling is critical here.

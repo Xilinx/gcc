@@ -1,5 +1,4 @@
-/* Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+/* Copyright (C) 2006-2013 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
@@ -53,6 +52,7 @@
 #include "timevar.h"
 #include "df.h"
 #include "dumpfile.h"
+#include "cfgloop.h"
 
 /* Builtin types, data and prototypes. */
 
@@ -1962,7 +1962,7 @@ struct spu_bb_info
 static struct spu_bb_info *spu_bb_info;
 
 #define STOP_HINT_P(INSN) \
-		(GET_CODE(INSN) == CALL_INSN \
+		(CALL_P(INSN) \
 		 || INSN_CODE(INSN) == CODE_FOR_divmodsi4 \
 		 || INSN_CODE(INSN) == CODE_FOR_udivmodsi4)
 
@@ -1997,7 +1997,7 @@ emit_nop_for_insn (rtx insn)
   else
     new_insn = emit_insn_after (gen_lnop (), insn);
   recog_memoized (new_insn);
-  INSN_LOCATOR (new_insn) = INSN_LOCATOR (insn);
+  INSN_LOCATION (new_insn) = INSN_LOCATION (insn);
 }
 
 /* Insert nops in basic blocks to meet dual issue alignment
@@ -2036,7 +2036,7 @@ pad_bb(void)
 		  prev_insn = emit_insn_before (gen_lnop (), insn);
 		  PUT_MODE (prev_insn, GET_MODE (insn));
 		  PUT_MODE (insn, TImode);
-		  INSN_LOCATOR (prev_insn) = INSN_LOCATOR (insn);
+		  INSN_LOCATION (prev_insn) = INSN_LOCATION (insn);
 		  length += 4;
 		}
 	    }
@@ -2101,11 +2101,11 @@ spu_emit_branch_hint (rtx before, rtx branch, rtx target,
   LABEL_PRESERVE_P (branch_label) = 1;
   insn = emit_label_before (branch_label, branch);
   branch_label = gen_rtx_LABEL_REF (VOIDmode, branch_label);
-  SET_BIT (blocks, BLOCK_FOR_INSN (branch)->index);
+  bitmap_set_bit (blocks, BLOCK_FOR_INSN (branch)->index);
 
   hint = emit_insn_before (gen_hbr (branch_label, target), before);
   recog_memoized (hint);
-  INSN_LOCATOR (hint) = INSN_LOCATOR (branch);
+  INSN_LOCATION (hint) = INSN_LOCATION (branch);
   HINTED_P (branch) = 1;
 
   if (GET_CODE (target) == LABEL_REF)
@@ -2128,7 +2128,7 @@ spu_emit_branch_hint (rtx before, rtx branch, rtx target,
          which could make it too far for the branch offest to fit */
       insn = emit_insn_before (gen_blockage (), hint);
       recog_memoized (insn);
-      INSN_LOCATOR (insn) = INSN_LOCATOR (hint);
+      INSN_LOCATION (insn) = INSN_LOCATION (hint);
     }
   else if (distance <= 8 * 4)
     {
@@ -2140,20 +2140,20 @@ spu_emit_branch_hint (rtx before, rtx branch, rtx target,
 	  insn =
 	    emit_insn_after (gen_nopn_nv (gen_rtx_REG (SImode, 127)), hint);
 	  recog_memoized (insn);
-	  INSN_LOCATOR (insn) = INSN_LOCATOR (hint);
+	  INSN_LOCATION (insn) = INSN_LOCATION (hint);
 	}
 
       /* Make sure any nops inserted aren't scheduled before the hint. */
       insn = emit_insn_after (gen_blockage (), hint);
       recog_memoized (insn);
-      INSN_LOCATOR (insn) = INSN_LOCATOR (hint);
+      INSN_LOCATION (insn) = INSN_LOCATION (hint);
 
       /* Make sure any nops inserted aren't scheduled after the call. */
       if (CALL_P (branch) && distance < 8 * 4)
 	{
 	  insn = emit_insn_before (gen_blockage (), branch);
 	  recog_memoized (insn);
-	  INSN_LOCATOR (insn) = INSN_LOCATOR (branch);
+	  INSN_LOCATION (insn) = INSN_LOCATION (branch);
 	}
     }
 }
@@ -2163,18 +2163,13 @@ spu_emit_branch_hint (rtx before, rtx branch, rtx target,
 static rtx
 get_branch_target (rtx branch)
 {
-  if (GET_CODE (branch) == JUMP_INSN)
+  if (JUMP_P (branch))
     {
       rtx set, src;
 
       /* Return statements */
       if (GET_CODE (PATTERN (branch)) == RETURN)
 	return gen_rtx_REG (SImode, LINK_REGISTER_REGNUM);
-
-      /* jump table */
-      if (GET_CODE (PATTERN (branch)) == ADDR_VEC
-	  || GET_CODE (PATTERN (branch)) == ADDR_DIFF_VEC)
-	return 0;
 
      /* ASM GOTOs. */
      if (extract_asm_operands (PATTERN (branch)) != NULL)
@@ -2212,7 +2207,7 @@ get_branch_target (rtx branch)
 
       return src;
     }
-  else if (GET_CODE (branch) == CALL_INSN)
+  else if (CALL_P (branch))
     {
       rtx call;
       /* All of our call patterns are in a PARALLEL and the CALL is
@@ -2339,7 +2334,7 @@ insert_hbrp_for_ilb_runout (rtx first)
 		insn =
 		  emit_insn_before (gen_iprefetch (GEN_INT (1)), before_4);
 		recog_memoized (insn);
-		INSN_LOCATOR (insn) = INSN_LOCATOR (before_4);
+		INSN_LOCATION (insn) = INSN_LOCATION (before_4);
 		INSN_ADDRESSES_NEW (insn,
 				    INSN_ADDRESSES (INSN_UID (before_4)));
 		PUT_MODE (insn, GET_MODE (before_4));
@@ -2348,7 +2343,7 @@ insert_hbrp_for_ilb_runout (rtx first)
 		  {
 		    insn = emit_insn_before (gen_lnop (), before_4);
 		    recog_memoized (insn);
-		    INSN_LOCATOR (insn) = INSN_LOCATOR (before_4);
+		    INSN_LOCATION (insn) = INSN_LOCATION (before_4);
 		    INSN_ADDRESSES_NEW (insn,
 					INSN_ADDRESSES (INSN_UID (before_4)));
 		    PUT_MODE (insn, TImode);
@@ -2360,7 +2355,7 @@ insert_hbrp_for_ilb_runout (rtx first)
 		insn =
 		  emit_insn_before (gen_iprefetch (GEN_INT (2)), before_16);
 		recog_memoized (insn);
-		INSN_LOCATOR (insn) = INSN_LOCATOR (before_16);
+		INSN_LOCATION (insn) = INSN_LOCATION (before_16);
 		INSN_ADDRESSES_NEW (insn,
 				    INSN_ADDRESSES (INSN_UID (before_16)));
 		PUT_MODE (insn, GET_MODE (before_16));
@@ -2369,7 +2364,7 @@ insert_hbrp_for_ilb_runout (rtx first)
 		  {
 		    insn = emit_insn_before (gen_lnop (), before_16);
 		    recog_memoized (insn);
-		    INSN_LOCATOR (insn) = INSN_LOCATOR (before_16);
+		    INSN_LOCATION (insn) = INSN_LOCATION (before_16);
 		    INSN_ADDRESSES_NEW (insn,
 					INSN_ADDRESSES (INSN_UID
 							(before_16)));
@@ -2453,10 +2448,14 @@ spu_machine_dependent_reorg (void)
     }
 
   blocks = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (blocks);
+  bitmap_clear (blocks);
 
   in_spu_reorg = 1;
   compute_bb_for_insn ();
+
+  /* (Re-)discover loops so that bb->loop_father can be used
+     in the analysis below.  */
+  loop_optimizer_init (AVOID_CFG_MODIFICATIONS);
 
   compact_blocks ();
 
@@ -2562,14 +2561,13 @@ spu_machine_dependent_reorg (void)
 	     fallthru block. This catches the cases when it is a simple
 	     loop or when there is an initial branch into the loop. */
 	  if (prev && (loop_exit || simple_loop)
-	      && prev->loop_depth <= bb->loop_depth)
+	      && bb_loop_depth (prev) <= bb_loop_depth (bb))
 	    prop = prev;
 
 	  /* If there is only one adjacent predecessor.  Don't propagate
-	     outside this loop.  This loop_depth test isn't perfect, but
-	     I'm not sure the loop_father member is valid at this point.  */
+	     outside this loop.  */
 	  else if (prev && single_pred_p (bb)
-		   && prev->loop_depth == bb->loop_depth)
+		   && prev->loop_father == bb->loop_father)
 	    prop = prev;
 
 	  /* If this is the JOIN block of a simple IF-THEN then
@@ -2578,7 +2576,7 @@ spu_machine_dependent_reorg (void)
 		   && EDGE_COUNT (bb->preds) == 2
 		   && EDGE_COUNT (prev->preds) == 1
 		   && EDGE_PRED (prev, 0)->src == prev2
-		   && prev2->loop_depth == bb->loop_depth
+		   && prev2->loop_father == bb->loop_father
 		   && GET_CODE (branch_target) != REG)
 	    prop = prev;
 
@@ -2600,7 +2598,7 @@ spu_machine_dependent_reorg (void)
 	      if (dump_file)
 		fprintf (dump_file, "propagate from %i to %i (loop depth %i) "
 			 "for %i (loop_exit %i simple_loop %i dist %i)\n",
-			 bb->index, prop->index, bb->loop_depth,
+			 bb->index, prop->index, bb_loop_depth (bb),
 			 INSN_UID (branch), loop_exit, simple_loop,
 			 branch_addr - INSN_ADDRESSES (INSN_UID (bbend)));
 
@@ -2621,7 +2619,7 @@ spu_machine_dependent_reorg (void)
     }
   free (spu_bb_info);
 
-  if (!sbitmap_empty_p (blocks))
+  if (!bitmap_empty_p (blocks))
     find_many_sub_basic_blocks (blocks);
 
   /* We have to schedule to make sure alignment is ok. */
@@ -2656,6 +2654,8 @@ spu_machine_dependent_reorg (void)
       }
 
   spu_var_tracking ();
+
+  loop_optimizer_finalize ();
 
   free_bb_for_insn ();
 
@@ -5881,6 +5881,14 @@ spu_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
   emit_insn (gen_sync ());
 }
 
+static bool
+spu_warn_func_return (tree decl)
+{
+  /* Naked functions are implemented entirely in assembly, including the
+     return sequence, so suppress warnings about this.  */
+  return !spu_naked_function_p (decl);
+}
+
 void
 spu_expand_sign_extend (rtx ops[])
 {
@@ -6623,8 +6631,8 @@ spu_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
 static void *
 spu_init_cost (struct loop *loop_info ATTRIBUTE_UNUSED)
 {
-  unsigned *cost = XNEW (unsigned);
-  *cost = 0;
+  unsigned *cost = XNEWVEC (unsigned, 3);
+  cost[vect_prologue] = cost[vect_body] = cost[vect_epilogue] = 0;
   return cost;
 }
 
@@ -6632,24 +6640,25 @@ spu_init_cost (struct loop *loop_info ATTRIBUTE_UNUSED)
 
 static unsigned
 spu_add_stmt_cost (void *data, int count, enum vect_cost_for_stmt kind,
-		   struct _stmt_vec_info *stmt_info, int misalign)
+		   struct _stmt_vec_info *stmt_info, int misalign,
+		   enum vect_cost_model_location where)
 {
   unsigned *cost = (unsigned *) data;
   unsigned retval = 0;
 
   if (flag_vect_cost_model)
     {
-      tree vectype = stmt_vectype (stmt_info);
+      tree vectype = stmt_info ? stmt_vectype (stmt_info) : NULL_TREE;
       int stmt_cost = spu_builtin_vectorization_cost (kind, vectype, misalign);
 
       /* Statements in an inner loop relative to the loop being
 	 vectorized are weighted more heavily.  The value here is
 	 arbitrary and could potentially be improved with analysis.  */
-      if (stmt_in_inner_loop_p (stmt_info))
+      if (where == vect_body && stmt_info && stmt_in_inner_loop_p (stmt_info))
 	count *= 50;  /* FIXME.  */
 
       retval = (unsigned) (count * stmt_cost);
-      *cost += retval;
+      cost[where] += retval;
     }
 
   return retval;
@@ -6657,10 +6666,14 @@ spu_add_stmt_cost (void *data, int count, enum vect_cost_for_stmt kind,
 
 /* Implement targetm.vectorize.finish_cost.  */
 
-static unsigned
-spu_finish_cost (void *data)
+static void
+spu_finish_cost (void *data, unsigned *prologue_cost,
+		 unsigned *body_cost, unsigned *epilogue_cost)
 {
-  return *((unsigned *) data);
+  unsigned *cost = (unsigned *) data;
+  *prologue_cost = cost[vect_prologue];
+  *body_cost     = cost[vect_body];
+  *epilogue_cost = cost[vect_epilogue];
 }
 
 /* Implement targetm.vectorize.destroy_cost_data.  */
@@ -7076,6 +7089,20 @@ spu_output_mi_thunk (FILE *file, tree thunk ATTRIBUTE_UNUSED,
   final_end_function ();
 }
 
+/* Canonicalize a comparison from one we don't have to one we do have.  */
+static void
+spu_canonicalize_comparison (int *code, rtx *op0, rtx *op1,
+			     bool op0_preserve_value)
+{
+  if (!op0_preserve_value
+      && (*code == LE || *code == LT || *code == LEU || *code == LTU))
+    {
+      rtx tem = *op0;
+      *op0 = *op1;
+      *op1 = tem;
+      *code = (int)swap_condition ((enum rtx_code)*code);
+    }
+}
 
 /*  Table of machine attributes.  */
 static const struct attribute_spec spu_attribute_table[] =
@@ -7142,7 +7169,7 @@ static const struct attribute_spec spu_attribute_table[] =
 #define TARGET_RTX_COSTS spu_rtx_costs
 
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
+#define TARGET_ADDRESS_COST hook_int_rtx_mode_as_bool_0
 
 #undef TARGET_SCHED_ISSUE_RATE
 #define TARGET_SCHED_ISSUE_RATE spu_sched_issue_rate
@@ -7267,6 +7294,9 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT spu_trampoline_init
 
+#undef TARGET_WARN_FUNC_RETURN
+#define TARGET_WARN_FUNC_RETURN spu_warn_func_return
+
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE spu_option_override
 
@@ -7285,6 +7315,9 @@ static const struct attribute_spec spu_attribute_table[] =
    change order of insns.  It also needs a valid CFG.  */
 #undef TARGET_DELAY_VARTRACK
 #define TARGET_DELAY_VARTRACK true
+
+#undef TARGET_CANONICALIZE_COMPARISON
+#define TARGET_CANONICALIZE_COMPARISON spu_canonicalize_comparison
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

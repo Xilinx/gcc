@@ -1,7 +1,5 @@
 /* Matching subroutines in all sizes, shapes and colors.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2000-2013 Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
@@ -588,7 +586,7 @@ gfc_match_name_C (const char **buffer)
   size_t i = 0;
   gfc_char_t c;
   char* buf;
-  size_t cursz = 16; 
+  size_t cursz = 16;
 
   old_loc = gfc_current_locus;
   gfc_gobble_whitespace ();
@@ -605,7 +603,7 @@ gfc_match_name_C (const char **buffer)
       gfc_current_locus = old_loc;
       return MATCH_YES;
     }
-  
+
   if (!ISALPHA (c) && c != '_')
     {
       gfc_error ("Invalid C name in NAME= specifier at %C");
@@ -625,9 +623,9 @@ gfc_match_name_C (const char **buffer)
 	  cursz *= 2;
 	  buf = XRESIZEVEC (char, buf, cursz);
 	}
-      
+
       old_loc = gfc_current_locus;
-      
+
       /* Get next char; param means we're in a string.  */
       c = gfc_next_char_literal (INSTRING_WARN);
     } while (ISALNUM (c) || c == '_');
@@ -650,7 +648,7 @@ gfc_match_name_C (const char **buffer)
           return MATCH_ERROR;
         }
     }
-  
+
   /* If we stopped because we had an invalid character for a C name, report
      that to the user by returning MATCH_NO.  */
   if (c != '"' && c != '\'')
@@ -708,8 +706,8 @@ gfc_match_symbol (gfc_symbol **matched_symbol, int host_assoc)
 }
 
 
-/* Match an intrinsic operator.  Returns an INTRINSIC enum. While matching, 
-   we always find INTRINSIC_PLUS before INTRINSIC_UPLUS. We work around this 
+/* Match an intrinsic operator.  Returns an INTRINSIC enum. While matching,
+   we always find INTRINSIC_PLUS before INTRINSIC_UPLUS. We work around this
    in matchexp.c.  */
 
 match
@@ -1344,7 +1342,7 @@ gfc_match_pointer_assignment (void)
     }
 
   if (lvalue->symtree->n.sym->attr.proc_pointer
-      || gfc_is_proc_ptr_comp (lvalue, NULL))
+      || gfc_is_proc_ptr_comp (lvalue))
     gfc_matching_procptr_assignment = 1;
   else
     gfc_matching_ptr_assignment = 1;
@@ -1441,7 +1439,7 @@ gfc_match_if (gfc_statement *if_type)
 
   old_loc2 = gfc_current_locus;
   gfc_current_locus = old_loc;
-  
+
   if (gfc_match_parens () == MATCH_ERROR)
     return MATCH_ERROR;
 
@@ -1473,7 +1471,7 @@ gfc_match_if (gfc_statement *if_type)
 	  gfc_free_expr (expr);
 	  return MATCH_ERROR;
 	}
-      
+
       if (gfc_notify_std (GFC_STD_F95_OBS, "Arithmetic IF "
 			  "statement at %C") == FAILURE)
 	return MATCH_ERROR;
@@ -1579,7 +1577,7 @@ gfc_match_if (gfc_statement *if_type)
   match ("write", gfc_match_write, ST_WRITE)
 
   /* The gfc_match_assignment() above may have returned a MATCH_NO
-     where the assignment was to a named constant.  Check that 
+     where the assignment was to a named constant.  Check that
      special case here.  */
   m = gfc_match_assignment ();
   if (m == MATCH_NO)
@@ -1907,7 +1905,7 @@ static match
 match_derived_type_spec (gfc_typespec *ts)
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
-  locus old_locus; 
+  locus old_locus;
   gfc_symbol *derived;
 
   old_locus = gfc_current_locus;
@@ -1930,7 +1928,7 @@ match_derived_type_spec (gfc_typespec *ts)
       return MATCH_YES;
     }
 
-  gfc_current_locus = old_locus; 
+  gfc_current_locus = old_locus;
   return MATCH_NO;
 }
 
@@ -2194,7 +2192,7 @@ cleanup:
   return MATCH_ERROR;
 }
 
-/* Match the rest of a simple FORALL statement that follows an 
+/* Match the rest of a simple FORALL statement that follows an
    IF statement.  */
 
 static match
@@ -2373,7 +2371,7 @@ gfc_match_do (void)
     return MATCH_NO;
 
   /* Check for balanced parens.  */
-  
+
   if (gfc_match_parens () == MATCH_ERROR)
     return MATCH_ERROR;
 
@@ -2400,7 +2398,7 @@ gfc_match_do (void)
 	goto concurr_cleanup;
 
       if (label != NULL
-	   && gfc_reference_st_label (label, ST_LABEL_TARGET) == FAILURE)
+	   && gfc_reference_st_label (label, ST_LABEL_DO_TARGET) == FAILURE)
 	goto concurr_cleanup;
 
       new_st.label1 = label;
@@ -2454,7 +2452,7 @@ concurr_cleanup:
 
 done:
   if (label != NULL
-      && gfc_reference_st_label (label, ST_LABEL_TARGET) == FAILURE)
+      && gfc_reference_st_label (label, ST_LABEL_DO_TARGET) == FAILURE)
     goto cleanup;
 
   new_st.label1 = label;
@@ -2585,7 +2583,7 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
 			  " do-construct-name at %C") == FAILURE)
 	return MATCH_ERROR;
       break;
-      
+
     default:
       gfc_error ("%s statement at %C is not applicable to construct '%s'",
 		 gfc_ascii_statement (st), sym->name);
@@ -2964,11 +2962,15 @@ syntax:
   gfc_syntax_error (st);
 
 cleanup:
+  if (acq_lock != tmp)
+    gfc_free_expr (acq_lock);
+  if (errmsg != tmp)
+    gfc_free_expr (errmsg);
+  if (stat != tmp)
+    gfc_free_expr (stat);
+
   gfc_free_expr (tmp);
   gfc_free_expr (lockvar);
-  gfc_free_expr (acq_lock);
-  gfc_free_expr (stat);
-  gfc_free_expr (errmsg);
 
   return MATCH_ERROR;
 }
@@ -3121,9 +3123,6 @@ sync_statement (gfc_statement st)
 	break;
     }
 
-  if (m == MATCH_ERROR)
-    goto syntax;
-
   if (gfc_match (" )%t") != MATCH_YES)
     goto syntax;
 
@@ -3153,10 +3152,13 @@ syntax:
   gfc_syntax_error (st);
 
 cleanup:
+  if (stat != tmp)
+    gfc_free_expr (stat);
+  if (errmsg != tmp)
+    gfc_free_expr (errmsg);
+
   gfc_free_expr (tmp);
   gfc_free_expr (imageset);
-  gfc_free_expr (stat);
-  gfc_free_expr (errmsg);
 
   return MATCH_ERROR;
 }
@@ -3261,7 +3263,7 @@ gfc_match_goto (void)
       return MATCH_YES;
     }
 
-  /* The assigned GO TO statement.  */ 
+  /* The assigned GO TO statement.  */
 
   if (gfc_match_variable (&expr, 0) == MATCH_YES)
     {
@@ -3428,6 +3430,7 @@ gfc_match_allocate (void)
   match m;
   locus old_locus, deferred_locus;
   bool saw_stat, saw_errmsg, saw_source, saw_mold, saw_deferred, b1, b2, b3;
+  bool saw_unlimited = false;
 
   head = tail = NULL;
   stat = errmsg = source = mold = tmp = NULL;
@@ -3569,7 +3572,7 @@ gfc_match_allocate (void)
 	    }
 
 	  /* Enforce F03:C627.  */
-	  if (ts.kind != tail->expr->ts.kind)
+	  if (ts.kind != tail->expr->ts.kind && !UNLIMITED_POLY (tail->expr))
 	    {
 	      gfc_error ("Kind type parameter for entity at %L differs from "
 			 "the kind type parameter of the typespec",
@@ -3580,6 +3583,8 @@ gfc_match_allocate (void)
 
       if (tail->expr->ts.type == BT_DERIVED)
 	tail->expr->ts.u.derived = gfc_use_derived (tail->expr->ts.u.derived);
+
+      saw_unlimited = saw_unlimited | UNLIMITED_POLY (tail->expr);
 
       if (gfc_peek_ascii_char () == '(' && !sym->attr.dimension)
 	{
@@ -3692,7 +3697,7 @@ alloc_opt_list:
 	      gfc_error ("Redundant MOLD tag found at %L ", &tmp->where);
 	      goto cleanup;
 	    }
-  
+
 	  /* Check F08:C637.  */
 	  if (ts.type != BT_UNKNOWN)
 	    {
@@ -3735,7 +3740,20 @@ alloc_opt_list:
 		 &deferred_locus);
       goto cleanup;
     }
-  
+
+  /* Check F03:C625,  */
+  if (saw_unlimited && ts.type == BT_UNKNOWN && !source && !mold)
+    {
+      for (tail = head; tail; tail = tail->next)
+	{
+	  if (UNLIMITED_POLY (tail->expr))
+	    gfc_error ("Unlimited polymorphic allocate-object at %L "
+		       "requires either a type-spec or SOURCE tag "
+		       "or a MOLD tag", &tail->expr->where);
+	}
+      goto cleanup;
+    }
+
   new_st.op = EXEC_ALLOCATE;
   new_st.expr1 = stat;
   new_st.expr2 = errmsg;
@@ -4063,7 +4081,7 @@ done:
 }
 
 
-/* Match the call of a type-bound procedure, if CALL%var has already been 
+/* Match the call of a type-bound procedure, if CALL%var has already been
    matched and var found to be a derived-type variable.  */
 
 static match
@@ -4077,7 +4095,7 @@ match_typebound_call (gfc_symtree* varst)
   base->symtree = varst;
   base->where = gfc_current_locus;
   gfc_set_sym_referenced (varst->n.sym);
-  
+
   m = gfc_match_varspec (base, 0, true, true);
   if (m == MATCH_NO)
     gfc_error ("Expected component reference at %C");
@@ -4254,7 +4272,7 @@ cleanup:
 
 /* Given a name, return a pointer to the common head structure,
    creating it if it does not exist. If FROM_MODULE is nonzero, we
-   mangle the name so that it doesn't interfere with commons defined 
+   mangle the name so that it doesn't interfere with commons defined
    in the using namespace.
    TODO: Add to global symbol tree.  */
 
@@ -4398,7 +4416,8 @@ gfc_match_common (void)
 
           /* Store a ref to the common block for error checking.  */
           sym->common_block = t;
-          
+          sym->common_block->refs++;
+
           /* See if we know the current common block is bind(c), and if
              so, then see if we can check if the symbol is (which it'll
              need to be).  This can happen if the bind(c) attr stmt was
@@ -4418,13 +4437,13 @@ gfc_match_common (void)
                                  sym->name, &(sym->declared_at), t->name,
                                  t->name);
                 }
-              
+
               if (sym->attr.is_bind_c == 1)
                 gfc_error_now ("Variable '%s' in common block "
                                "'%s' at %C can not be bind(c) since "
                                "it is not global", sym->name, t->name);
             }
-          
+
 	  if (sym->attr.in_common)
 	    {
 	      gfc_error ("Symbol '%s' at %C is already in a COMMON block",
@@ -4867,7 +4886,7 @@ cleanup:
 
 /* Check that a statement function is not recursive. This is done by looking
    for the statement function symbol(sym) by looking recursively through its
-   expression(e).  If a reference to sym is found, true is returned.  
+   expression(e).  If a reference to sym is found, true is returned.
    12.5.4 requires that any variable of function that is implicitly typed
    shall have that type confirmed by any subsequent type declaration.  The
    implicit typing is conveniently done here.  */
@@ -5123,11 +5142,9 @@ copy_ts_from_selector_to_associate (gfc_expr *associate, gfc_expr *selector)
 {
   gfc_ref *ref;
   gfc_symbol *assoc_sym;
+  int i;
 
   assoc_sym = associate->symtree->n.sym;
-
-  /* Ensure that any array reference is resolved.  */
-  gfc_resolve_expr (selector);
 
   /* At this stage the expression rank and arrayspec dimensions have
      not been completely sorted out. We must get the expr2->rank
@@ -5140,6 +5157,23 @@ copy_ts_from_selector_to_associate (gfc_expr *associate, gfc_expr *selector)
 	&& CLASS_DATA (selector)->as
 	&& ref && ref->type == REF_ARRAY)
     {
+      /* Ensure that the array reference type is set.  We cannot use
+	 gfc_resolve_expr at this point, so the usable parts of
+	 resolve.c(resolve_array_ref) are employed to do it.  */
+      if (ref->u.ar.type == AR_UNKNOWN)
+	{
+	  ref->u.ar.type = AR_ELEMENT;
+	  for (i = 0; i < ref->u.ar.dimen + ref->u.ar.codimen; i++)
+	    if (ref->u.ar.dimen_type[i] == DIMEN_RANGE
+		|| ref->u.ar.dimen_type[i] == DIMEN_VECTOR
+		|| (ref->u.ar.dimen_type[i] == DIMEN_UNKNOWN
+		    && ref->u.ar.start[i] && ref->u.ar.start[i]->rank))
+	      {
+		ref->u.ar.type = AR_SECTION;
+		break;
+	      }
+	}
+
       if (ref->u.ar.type == AR_FULL)
 	selector->rank = CLASS_DATA (selector)->as->rank;
       else if (ref->u.ar.type == AR_SECTION)
@@ -5202,57 +5236,37 @@ select_type_push (gfc_symbol *sel)
 }
 
 
-/* Set the temporary for the current derived type SELECT TYPE selector.  */
+/* Set the temporary for the current intrinsic SELECT TYPE selector.  */
 
 static gfc_symtree *
-select_derived_set_tmp (gfc_typespec *ts)
+select_intrinsic_set_tmp (gfc_typespec *ts)
 {
   char name[GFC_MAX_SYMBOL_LEN];
   gfc_symtree *tmp;
-  
-  sprintf (name, "__tmp_type_%s", ts->u.derived->name);
-  gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
-  gfc_add_type (tmp->n.sym, ts, NULL);
+  int charlen = 0;
 
-  /* Copy across the array spec to the selector.  */
-  if (select_type_stack->selector->ts.type == BT_CLASS
-      && select_type_stack->selector->attr.class_ok
-      && (CLASS_DATA (select_type_stack->selector)->attr.dimension
-	  || CLASS_DATA (select_type_stack->selector)->attr.codimension))
-    {
-      tmp->n.sym->attr.dimension
-		= CLASS_DATA (select_type_stack->selector)->attr.dimension;
-      tmp->n.sym->attr.codimension
-		= CLASS_DATA (select_type_stack->selector)->attr.codimension;
-      tmp->n.sym->as
-	= gfc_copy_array_spec (CLASS_DATA (select_type_stack->selector)->as);
-    }
+  if (ts->type == BT_CLASS || ts->type == BT_DERIVED)
+    return NULL;
 
-  gfc_set_sym_referenced (tmp->n.sym);
-  gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
-  tmp->n.sym->attr.select_type_temporary = 1;
-
-  return tmp;
-}
-
-
-/* Set the temporary for the current class SELECT TYPE selector.  */
-
-static gfc_symtree *
-select_class_set_tmp (gfc_typespec *ts)
-{
-  char name[GFC_MAX_SYMBOL_LEN];
-  gfc_symtree *tmp;
-  
   if (select_type_stack->selector->ts.type == BT_CLASS
       && !select_type_stack->selector->attr.class_ok)
     return NULL;
 
-  sprintf (name, "__tmp_class_%s", ts->u.derived->name);
+  if (ts->type == BT_CHARACTER && ts->u.cl && ts->u.cl->length
+      && ts->u.cl->length->expr_type == EXPR_CONSTANT)
+    charlen = mpz_get_si (ts->u.cl->length->value.integer);
+
+  if (ts->type != BT_CHARACTER)
+    sprintf (name, "__tmp_%s_%d", gfc_basic_typename (ts->type),
+	     ts->kind);
+  else
+    sprintf (name, "__tmp_%s_%d_%d", gfc_basic_typename (ts->type),
+	     charlen, ts->kind);
+
   gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
   gfc_add_type (tmp->n.sym, ts, NULL);
 
-/* Copy across the array spec to the selector.  */
+  /* Copy across the array spec to the selector.  */
   if (select_type_stack->selector->ts.type == BT_CLASS
       && (CLASS_DATA (select_type_stack->selector)->attr.dimension
 	  || CLASS_DATA (select_type_stack->selector)->attr.codimension))
@@ -5269,36 +5283,66 @@ select_class_set_tmp (gfc_typespec *ts)
   gfc_set_sym_referenced (tmp->n.sym);
   gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
   tmp->n.sym->attr.select_type_temporary = 1;
-  gfc_build_class_symbol (&tmp->n.sym->ts, &tmp->n.sym->attr,
-			  &tmp->n.sym->as, false);
 
   return tmp;
 }
 
 
+/* Set up a temporary for the current TYPE IS / CLASS IS branch .  */
+
 static void
 select_type_set_tmp (gfc_typespec *ts)
 {
-  gfc_symtree *tmp;
+  char name[GFC_MAX_SYMBOL_LEN];
+  gfc_symtree *tmp = NULL;
 
   if (!ts)
     {
       select_type_stack->tmp = NULL;
       return;
     }
-  
-  if (!gfc_type_is_extensible (ts->u.derived))
-    return;
 
-  /* Logic is a LOT clearer with separate functions for class and derived
-     type temporaries! There are not many more lines of code either.  */
-  if (ts->type == BT_CLASS)
-    tmp = select_class_set_tmp (ts);
-  else
-    tmp = select_derived_set_tmp (ts);
+  tmp = select_intrinsic_set_tmp (ts);
 
   if (tmp == NULL)
-    return;
+    {
+      if (!ts->u.derived)
+	return;
+
+      if (ts->type == BT_CLASS)
+	sprintf (name, "__tmp_class_%s", ts->u.derived->name);
+      else
+	sprintf (name, "__tmp_type_%s", ts->u.derived->name);
+      gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
+      gfc_add_type (tmp->n.sym, ts, NULL);
+
+      if (select_type_stack->selector->ts.type == BT_CLASS
+	&& select_type_stack->selector->attr.class_ok)
+	{
+	  tmp->n.sym->attr.pointer
+		= CLASS_DATA (select_type_stack->selector)->attr.class_pointer;
+
+	  /* Copy across the array spec to the selector.  */
+	  if (CLASS_DATA (select_type_stack->selector)->attr.dimension
+	      || CLASS_DATA (select_type_stack->selector)->attr.codimension)
+	    {
+	      tmp->n.sym->attr.dimension
+		    = CLASS_DATA (select_type_stack->selector)->attr.dimension;
+	      tmp->n.sym->attr.codimension
+		    = CLASS_DATA (select_type_stack->selector)->attr.codimension;
+	      tmp->n.sym->as
+	    = gfc_copy_array_spec (CLASS_DATA (select_type_stack->selector)->as);
+	    }
+    }
+
+  gfc_set_sym_referenced (tmp->n.sym);
+  gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
+  tmp->n.sym->attr.select_type_temporary = 1;
+
+  if (ts->type == BT_CLASS)
+    gfc_build_class_symbol (&tmp->n.sym->ts, &tmp->n.sym->attr,
+			    &tmp->n.sym->as, false);
+    }
 
   /* Add an association for it, so the rest of the parser knows it is
      an associate-name.  The target will be set during resolution.  */
@@ -5309,7 +5353,7 @@ select_type_set_tmp (gfc_typespec *ts)
   select_type_stack->tmp = tmp;
 }
 
-  
+
 /* Match a SELECT TYPE statement.  */
 
 match
@@ -5320,6 +5364,7 @@ gfc_match_select_type (void)
   char name[GFC_MAX_SYMBOL_LEN];
   bool class_array;
   gfc_symbol *sym;
+  gfc_namespace *parent_ns;
 
   m = gfc_match_label ();
   if (m == MATCH_ERROR)
@@ -5367,10 +5412,10 @@ gfc_match_select_type (void)
      array, which can have a reference, from other expressions that
      have references, such as derived type components, and are not
      allowed by the standard.
-     TODO; see is it is sufficient to exclude component and substring
+     TODO: see if it is sufficient to exclude component and substring
      references.  */
   class_array = expr1->expr_type == EXPR_VARIABLE
-		  && expr1->ts.type != BT_UNKNOWN
+		  && expr1->ts.type == BT_CLASS
 		  && CLASS_DATA (expr1)
 		  && (strcmp (CLASS_DATA (expr1)->name, "_data") == 0)
 		  && (CLASS_DATA (expr1)->attr.dimension
@@ -5397,9 +5442,11 @@ gfc_match_select_type (void)
   select_type_push (expr1->symtree->n.sym);
 
   return MATCH_YES;
-  
+
 cleanup:
-  gfc_current_ns = gfc_current_ns->parent;
+  parent_ns = gfc_current_ns->parent;
+  gfc_free_namespace (gfc_current_ns);
+  gfc_current_ns = parent_ns;
   return m;
 }
 
@@ -5496,9 +5543,7 @@ gfc_match_type_is (void)
   c = gfc_get_case ();
   c->where = gfc_current_locus;
 
-  /* TODO: Once unlimited polymorphism is implemented, we will need to call
-     match_type_spec here.  */
-  if (match_derived_type_spec (&c->ts) == MATCH_ERROR)
+  if (match_type_spec (&c->ts) == MATCH_ERROR)
     goto cleanup;
 
   if (gfc_match_char (')') != MATCH_YES)
@@ -5512,6 +5557,16 @@ gfc_match_type_is (void)
 
   new_st.op = EXEC_SELECT_TYPE;
   new_st.ext.block.case_list = c;
+
+  if (c->ts.type == BT_DERIVED && c->ts.u.derived
+      && (c->ts.u.derived->attr.sequence
+	  || c->ts.u.derived->attr.is_bind_c))
+    {
+      gfc_error ("The type-spec shall not specify a sequence derived "
+		 "type or a type with the BIND attribute in SELECT "
+		 "TYPE at %C [F2003:C815]");
+      return MATCH_ERROR;
+    }
 
   /* Create temporary variable.  */
   select_type_set_tmp (&c->ts);
@@ -5585,7 +5640,7 @@ gfc_match_class_is (void)
 
   new_st.op = EXEC_SELECT_TYPE;
   new_st.ext.block.case_list = c;
-  
+
   /* Create temporary variable.  */
   select_type_set_tmp (&c->ts);
 
@@ -5603,7 +5658,7 @@ cleanup:
 
 /********************* WHERE subroutines ********************/
 
-/* Match the rest of a simple WHERE statement that follows an IF statement.  
+/* Match the rest of a simple WHERE statement that follows an IF statement.
  */
 
 static match

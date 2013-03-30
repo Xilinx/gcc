@@ -1,7 +1,7 @@
 (* Common code for ARM NEON header file, documentation and test case
    generators.
 
-   Copyright (C) 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2006-2013 Free Software Foundation, Inc.
    Contributed by CodeSourcery.
 
    This file is part of GCC.
@@ -102,6 +102,8 @@ type opcode =
   | Vmul
   | Vmla
   | Vmls
+  | Vfma
+  | Vfms
   | Vsub
   | Vceq
   | Vcge
@@ -150,6 +152,11 @@ type opcode =
   | Vqdmulh_n
   | Vqdmulh_lane
   (* Unary ops.  *)
+  | Vrintn
+  | Vrinta
+  | Vrintp
+  | Vrintm
+  | Vrintz
   | Vabs
   | Vneg
   | Vcls
@@ -275,6 +282,9 @@ type features =
   | Const_valuator of (int -> int)
   | Fixed_vector_reg
   | Fixed_core_reg
+    (* Mark that the intrinsic requires __ARM_FEATURE_string to be defined.  *)
+  | Requires_feature of string
+  | Requires_arch of int
 
 exception MixedMode of elts * elts
 
@@ -802,6 +812,33 @@ let ops =
     Vmls, [], Long, "vmlsl", elts_same_io, su_8_32;
     Vmls, [Saturating; Doubling], Long, "vqdmlsl", elts_same_io, [S16; S32];
 
+    (* Fused-multiply-accumulate. *)
+    Vfma, [Requires_feature "FMA"], All (3, Dreg), "vfma", elts_same_io, [F32];
+    Vfma, [Requires_feature "FMA"], All (3, Qreg), "vfmaQ", elts_same_io, [F32];
+    Vfms, [Requires_feature "FMA"], All (3, Dreg), "vfms", elts_same_io, [F32];
+    Vfms, [Requires_feature "FMA"], All (3, Qreg), "vfmsQ", elts_same_io, [F32];
+
+    (* Round to integral. *)
+    Vrintn, [Builtin_name "vrintn"; Requires_arch 8], Use_operands [| Dreg; Dreg |],
+            "vrndn", elts_same_1, [F32];
+    Vrintn, [Builtin_name "vrintn"; Requires_arch 8], Use_operands [| Qreg; Qreg |],
+            "vrndqn", elts_same_1, [F32];
+    Vrinta, [Builtin_name "vrinta"; Requires_arch 8], Use_operands [| Dreg; Dreg |],
+            "vrnda", elts_same_1, [F32];
+    Vrinta, [Builtin_name "vrinta"; Requires_arch 8], Use_operands [| Qreg; Qreg |],
+            "vrndqa", elts_same_1, [F32];
+    Vrintp, [Builtin_name "vrintp"; Requires_arch 8], Use_operands [| Dreg; Dreg |],
+            "vrndp", elts_same_1, [F32];
+    Vrintp, [Builtin_name "vrintp"; Requires_arch 8], Use_operands [| Qreg; Qreg |],
+            "vrndqp", elts_same_1, [F32];
+    Vrintm, [Builtin_name "vrintm"; Requires_arch 8], Use_operands [| Dreg; Dreg |],
+            "vrndm", elts_same_1, [F32];
+    Vrintm, [Builtin_name "vrintm"; Requires_arch 8], Use_operands [| Qreg; Qreg |],
+            "vrndqm", elts_same_1, [F32];
+    Vrintz, [Builtin_name "vrintz"; Requires_arch 8], Use_operands [| Dreg; Dreg |],
+            "vrnd", elts_same_1, [F32];
+    Vrintz, [Builtin_name "vrintz"; Requires_arch 8], Use_operands [| Qreg; Qreg |],
+            "vrndq", elts_same_1, [F32];
     (* Subtraction.  *)
     Vsub, [], All (3, Dreg), "vsub", sign_invar_2, F32 :: su_8_32;
     Vsub, [No_op], All (3, Dreg), "vsub", sign_invar_2,  [S64; U64];
@@ -1445,8 +1482,10 @@ let ops =
                                         CstPtrTo Corereg |]]],
       Use_operands [| Qreg; CstPtrTo Corereg |], "vld1Q_dup",
       bits_1, pf_su_8_32;
+    (* Treated identically to vld1_dup above as we now
+       do a single load followed by a duplicate.  *)
     Vldx_dup 1,
-      [Disassembles_as [Use_operands [| VecArray (2, Dreg);
+      [Disassembles_as [Use_operands [| VecArray (1, Dreg);
                                         CstPtrTo Corereg |]]],
       Use_operands [| Qreg; CstPtrTo Corereg |], "vld1Q_dup",
       bits_1, [S64; U64];

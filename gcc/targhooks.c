@@ -1,6 +1,5 @@
 /* Default target hook functions.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2003-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -102,10 +101,8 @@ default_unspec_may_trap_p (const_rtx x, unsigned flags)
 {
   int i;
 
-  if (GET_CODE (x) == UNSPEC_VOLATILE
-      /* Any floating arithmetic may trap.  */
-      || (SCALAR_FLOAT_MODE_P (GET_MODE (x))
-	  && flag_trapping_math))
+  /* Any floating arithmetic may trap.  */
+  if ((SCALAR_FLOAT_MODE_P (GET_MODE (x)) && flag_trapping_math))
     return 1;
 
   for (i = 0; i < XVECLEN (x, 0); ++i)
@@ -453,6 +450,14 @@ default_fixed_point_supported_p (void)
   return ENABLE_FIXED_POINT;
 }
 
+/* True if the target supports GNU indirect functions.  */
+
+bool
+default_has_ifunc_p (void)
+{
+  return HAVE_GNU_INDIRECT_FUNCTION;
+}
+
 /* NULL if INSN insn is valid within a low-overhead loop, otherwise returns
    an error message.
 
@@ -469,7 +474,7 @@ default_invalid_within_doloop (const_rtx insn)
   if (CALL_P (insn))
     return "Function call in loop.";
 
-  if (JUMP_TABLE_DATA_P (insn))
+  if (tablejump_p (insn, NULL, NULL) || computed_jump_p (insn))
     return "Computed branch in the loop.";
 
   return NULL;
@@ -840,6 +845,24 @@ default_branch_target_register_class (void)
   return NO_REGS;
 }
 
+extern bool
+default_lra_p (void)
+{
+  return false;
+}
+
+int
+default_register_priority (int hard_regno ATTRIBUTE_UNUSED)
+{
+  return 0;
+}
+
+extern bool
+default_different_addr_displacement_p (void)
+{
+  return false;
+}
+
 reg_class_t
 default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 			  reg_class_t reload_class_i ATTRIBUTE_UNUSED,
@@ -945,6 +968,13 @@ tree default_mangle_decl_assembler_name (tree decl ATTRIBUTE_UNUSED,
    return id;
 }
 
+/* Default to natural alignment for vector types.  */
+HOST_WIDE_INT
+default_vector_alignment (const_tree type)
+{
+  return tree_low_cst (TYPE_SIZE (type), 0);
+}
+
 bool
 default_builtin_vector_alignment_reachable (const_tree type, bool is_packed)
 {
@@ -996,54 +1026,58 @@ default_autovectorize_vector_sizes (void)
   return 0;
 }
 
-/* By default, the cost model just accumulates the inside_loop costs for
-   a vectorized loop or block.  So allocate an unsigned int, set it to
-   zero, and return its address.  */
+/* By default, the cost model accumulates three separate costs (prologue,
+   loop body, and epilogue) for a vectorized loop or block.  So allocate an
+   array of three unsigned ints, set it to zero, and return its address.  */
 
 void *
 default_init_cost (struct loop *loop_info ATTRIBUTE_UNUSED)
 {
-  unsigned *cost = XNEW (unsigned);
-  *cost = 0;
+  unsigned *cost = XNEWVEC (unsigned, 3);
+  cost[vect_prologue] = cost[vect_body] = cost[vect_epilogue] = 0;
   return cost;
 }
 
 /* By default, the cost model looks up the cost of the given statement
    kind and mode, multiplies it by the occurrence count, accumulates
-   it into the cost, and returns the cost added.  */
+   it into the cost specified by WHERE, and returns the cost added.  */
 
 unsigned
 default_add_stmt_cost (void *data, int count, enum vect_cost_for_stmt kind,
-		       struct _stmt_vec_info *stmt_info, int misalign)
+		       struct _stmt_vec_info *stmt_info, int misalign,
+		       enum vect_cost_model_location where)
 {
   unsigned *cost = (unsigned *) data;
   unsigned retval = 0;
 
   if (flag_vect_cost_model)
     {
-      tree vectype = stmt_vectype (stmt_info);
+      tree vectype = stmt_info ? stmt_vectype (stmt_info) : NULL_TREE;
       int stmt_cost = default_builtin_vectorization_cost (kind, vectype,
 							  misalign);
       /* Statements in an inner loop relative to the loop being
 	 vectorized are weighted more heavily.  The value here is
 	 arbitrary and could potentially be improved with analysis.  */
-      if (stmt_in_inner_loop_p (stmt_info))
+      if (where == vect_body && stmt_info && stmt_in_inner_loop_p (stmt_info))
 	count *= 50;  /* FIXME.  */
 
       retval = (unsigned) (count * stmt_cost);
-      *cost += retval;
+      cost[where] += retval;
     }
 
   return retval;
 }
 
-/* By default, the cost model just returns the accumulated
-   inside_loop cost.  */
+/* By default, the cost model just returns the accumulated costs.  */
 
-unsigned
-default_finish_cost (void *data)
+void
+default_finish_cost (void *data, unsigned *prologue_cost,
+		     unsigned *body_cost, unsigned *epilogue_cost)
 {
-  return *((unsigned *) data);
+  unsigned *cost = (unsigned *) data;
+  *prologue_cost = cost[vect_prologue];
+  *body_cost     = cost[vect_body];
+  *epilogue_cost = cost[vect_epilogue];
 }
 
 /* Free the cost data.  */
@@ -1191,21 +1225,10 @@ default_hard_regno_scratch_ok (unsigned int regno ATTRIBUTE_UNUSED)
 /* The default implementation of TARGET_MODE_DEPENDENT_ADDRESS_P.  */
 
 bool
-default_mode_dependent_address_p (const_rtx addr ATTRIBUTE_UNUSED)
+default_mode_dependent_address_p (const_rtx addr ATTRIBUTE_UNUSED,
+				  addr_space_t addrspace ATTRIBUTE_UNUSED)
 {
-#ifdef GO_IF_MODE_DEPENDENT_ADDRESS
-
-  GO_IF_MODE_DEPENDENT_ADDRESS (CONST_CAST_RTX (addr), win);
   return false;
-  /* Label `win' might (not) be used via GO_IF_MODE_DEPENDENT_ADDRESS.  */
- win: ATTRIBUTE_UNUSED_LABEL
-  return true;
-
-#else
-
-  return false;
-
-#endif
 }
 
 bool
@@ -1512,6 +1535,21 @@ default_pch_valid_p (const void *data_p, size_t len)
       }
 
   return NULL;
+}
+
+/* Default version of member_type_forces_blk.  */
+
+bool
+default_member_type_forces_blk (const_tree, enum machine_mode)
+{
+  return false;
+}
+
+/* Default version of canonicalize_comparison.  */
+
+void
+default_canonicalize_comparison (int *, rtx *, rtx *, bool)
+{
 }
 
 #include "gt-targhooks.h"

@@ -1,6 +1,5 @@
 /* Machine mode definitions for GCC; included by rtl.h and tree.h.
-   Copyright (C) 1991, 1993, 1994, 1996, 1998, 1999, 2000, 2001, 2003,
-   2007, 2008, 2009, 2010, 2012 Free Software Foundation, Inc.
+   Copyright (C) 1991-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -217,6 +216,11 @@ extern const unsigned char mode_inner[NUM_MACHINE_MODES];
 #define GET_MODE_UNIT_BITSIZE(MODE) \
   ((unsigned short) (GET_MODE_UNIT_SIZE (MODE) * BITS_PER_UNIT))
 
+#define GET_MODE_UNIT_PRECISION(MODE)		\
+  (GET_MODE_INNER (MODE) == VOIDmode		\
+   ? GET_MODE_PRECISION (MODE)			\
+   : GET_MODE_PRECISION (GET_MODE_INNER (MODE)))
+
 /* Get the number of units in the object.  */
 
 extern const unsigned char mode_nunits[NUM_MACHINE_MODES];
@@ -254,13 +258,36 @@ extern enum machine_mode int_mode_for_mode (enum machine_mode);
 
 extern enum machine_mode mode_for_vector (enum machine_mode, unsigned);
 
+/* A class for iterating through possible bitfield modes.  */
+class bit_field_mode_iterator
+{
+public:
+  bit_field_mode_iterator (HOST_WIDE_INT, HOST_WIDE_INT,
+			   HOST_WIDE_INT, HOST_WIDE_INT,
+			   unsigned int, bool);
+  bool next_mode (enum machine_mode *);
+  bool prefer_smaller_modes ();
+
+private:
+  enum machine_mode mode_;
+  /* We use signed values here because the bit position can be negative
+     for invalid input such as gcc.dg/pr48335-8.c.  */
+  HOST_WIDE_INT bitsize_;
+  HOST_WIDE_INT bitpos_;
+  HOST_WIDE_INT bitregion_start_;
+  HOST_WIDE_INT bitregion_end_;
+  unsigned int align_;
+  bool volatilep_;
+  int count_;
+};
+
 /* Find the best mode to use to access a bit field.  */
 
 extern enum machine_mode get_best_mode (int, int,
 					unsigned HOST_WIDE_INT,
 					unsigned HOST_WIDE_INT,
 					unsigned int,
-					enum machine_mode, int);
+					enum machine_mode, bool);
 
 /* Determine alignment, 1<=result<=BIGGEST_ALIGNMENT.  */
 

@@ -1,7 +1,5 @@
 /* Deal with I/O statements & related stuff.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2000-2013 Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
@@ -97,7 +95,8 @@ static const io_tag
 	tag_eor		= {"EOR", " eor =", " %l", BT_UNKNOWN},
 	tag_id		= {"ID", " id =", " %v", BT_INTEGER},
 	tag_pending	= {"PENDING", " pending =", " %v", BT_LOGICAL},
-	tag_newunit	= {"NEWUNIT", " newunit =", " %v", BT_INTEGER};
+	tag_newunit	= {"NEWUNIT", " newunit =", " %v", BT_INTEGER},
+	tag_s_iqstream	= {"STREAM", " stream =", " %v", BT_CHARACTER};
 
 static gfc_dt *current_dt;
 
@@ -243,6 +242,8 @@ format_lex (void)
     {
     case '-':
       negative_flag = 1;
+      /* Falls through.  */
+
     case '+':
       c = next_char_not_space (&error);
       if (!ISDIGIT (c))
@@ -1532,7 +1533,7 @@ resolve_tag (const io_tag *tag, gfc_expr *e)
       char context[64];
 
       sprintf (context, _("%s tag"), tag->name);
-      if (gfc_check_vardef_context (e, false, false, context) == FAILURE)
+      if (gfc_check_vardef_context (e, false, false, false, context) == FAILURE)
 	return FAILURE;
     }
   
@@ -2865,7 +2866,7 @@ gfc_resolve_dt (gfc_dt *dt, locus *loc)
       /* If we are writing, make sure the internal unit can be changed.  */
       gcc_assert (k != M_PRINT);
       if (k == M_WRITE
-	  && gfc_check_vardef_context (e, false, false,
+	  && gfc_check_vardef_context (e, false, false, false,
 				       _("internal unit in WRITE")) == FAILURE)
 	return FAILURE;
     }
@@ -2895,7 +2896,7 @@ gfc_resolve_dt (gfc_dt *dt, locus *loc)
 	  gfc_try t;
 
 	  e = gfc_get_variable_expr (gfc_find_sym_in_symtree (n->sym));
-	  t = gfc_check_vardef_context (e, false, false, NULL);
+	  t = gfc_check_vardef_context (e, false, false, false, NULL);
 	  gfc_free_expr (e);
 
 	  if (t == FAILURE)
@@ -3910,6 +3911,7 @@ match_inquire_element (gfc_inquire *inquire)
   RETM m = match_out_tag (&tag_strm_out, &inquire->strm_pos);
   RETM m = match_vtag (&tag_pending, &inquire->pending);
   RETM m = match_vtag (&tag_id, &inquire->id);
+  RETM m = match_vtag (&tag_s_iqstream, &inquire->iqstream);
   RETM return MATCH_NO;
 }
 
@@ -4061,7 +4063,8 @@ gfc_resolve_inquire (gfc_inquire *inquire)
     { \
       char context[64]; \
       sprintf (context, _("%s tag with INQUIRE"), (tag)->name); \
-      if (gfc_check_vardef_context ((expr), false, false, context) == FAILURE) \
+      if (gfc_check_vardef_context ((expr), false, false, false, \
+				    context) == FAILURE) \
 	return FAILURE; \
     }
   INQUIRE_RESOLVE_TAG (&tag_iomsg, inquire->iomsg);
@@ -4098,6 +4101,7 @@ gfc_resolve_inquire (gfc_inquire *inquire)
   INQUIRE_RESOLVE_TAG (&tag_pending, inquire->pending);
   INQUIRE_RESOLVE_TAG (&tag_size, inquire->size);
   INQUIRE_RESOLVE_TAG (&tag_s_decimal, inquire->decimal);
+  INQUIRE_RESOLVE_TAG (&tag_s_iqstream, inquire->iqstream);
 #undef INQUIRE_RESOLVE_TAG
 
   if (gfc_reference_st_label (inquire->err, ST_LABEL_TARGET) == FAILURE)
@@ -4117,6 +4121,7 @@ gfc_free_wait (gfc_wait *wait)
   gfc_free_expr (wait->iostat);
   gfc_free_expr (wait->iomsg);
   gfc_free_expr (wait->id);
+  free (wait);
 }
 
 

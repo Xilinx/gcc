@@ -1,7 +1,5 @@
 /* Output sdb-format symbol table information from GNU compiler.
-   Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 1988-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -58,7 +56,7 @@ static GTY(()) int unnamed_struct_number;
 
 /* Declarations whose debug info was deferred till end of compilation.  */
 
-static GTY(()) VEC(tree,gc) *deferred_global_decls;
+static GTY(()) vec<tree, va_gc> *deferred_global_decls;
 
 /* The C front end may call sdbout_symbol before sdbout_init runs.
    We save all such decls in this list and output them when we get
@@ -767,7 +765,7 @@ sdbout_symbol (tree decl, int local)
 	      if (REGNO (value) >= FIRST_PSEUDO_REGISTER)
 		return;
 	    }
-	  regno = REGNO (alter_subreg (&value));
+	  regno = REGNO (alter_subreg (&value, true));
 	  SET_DECL_RTL (decl, value);
 	}
       /* Don't output anything if an auto variable
@@ -1019,7 +1017,7 @@ sdbout_one_type (tree type)
       && DECL_SECTION_NAME (current_function_decl) != NULL_TREE)
     ; /* Don't change section amid function.  */
   else
-    switch_to_section (text_section);
+    switch_to_section (current_function_section ());
 
   switch (TREE_CODE (type))
     {
@@ -1427,7 +1425,7 @@ sdbout_global_decl (tree decl)
       if (!DECL_INITIAL (decl) || !TREE_PUBLIC (decl))
 	sdbout_symbol (decl, 0);
       else
-	VEC_safe_push (tree, gc, deferred_global_decls, decl);
+	vec_safe_push (deferred_global_decls, decl);
 
       /* Output COFF information for non-global file-scope initialized
 	 variables.  */
@@ -1445,7 +1443,7 @@ sdbout_finish (const char *main_filename ATTRIBUTE_UNUSED)
   size_t i;
   tree decl;
 
-  FOR_EACH_VEC_ELT (tree, deferred_global_decls, i, decl)
+  FOR_EACH_VEC_SAFE_ELT (deferred_global_decls, i, decl)
     sdbout_symbol (decl, 0);
 }
 
@@ -1621,7 +1619,7 @@ sdbout_init (const char *input_file_name ATTRIBUTE_UNUSED)
 {
   tree t;
 
-  deferred_global_decls = VEC_alloc (tree, gc, 12);
+  vec_alloc (deferred_global_decls, 12);
 
   /* Emit debug information which was queued by sdbout_symbol before
      we got here.  */

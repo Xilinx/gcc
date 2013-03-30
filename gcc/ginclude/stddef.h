@@ -1,5 +1,4 @@
-/* Copyright (C) 1989, 1997, 1998, 1999, 2000, 2002, 2004, 2009, 2011, 2012
-   Free Software Foundation, Inc.
+/* Copyright (C) 1989-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -426,6 +425,13 @@ typedef struct {
 } max_align_t;
 #endif
 #endif /* C11 or C++11.  */
+
+#if defined(__cplusplus) && __cplusplus >= 201103L
+#ifndef _GXX_NULLPTR_T
+#define _GXX_NULLPTR_T
+  typedef decltype(nullptr) nullptr_t;
+#endif
+#endif /* C++11.  */
 
 #endif /* _STDDEF_H was defined this time */
 

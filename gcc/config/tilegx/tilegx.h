@@ -1,6 +1,5 @@
 /* Definitions of target machine for GNU compiler for TILE-Gx.
-   Copyright (C) 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2011-2013 Free Software Foundation, Inc.
    Contributed by Walter Lee (walt@tilera.com)
 
    This file is part of GCC.
@@ -30,6 +29,8 @@
 	builtin_define ("__LITTLE_ENDIAN__");	\
     }						\
   while (0)
+
+#include "config/tilegx/tilegx-opts.h"
 
 
 /* Target CPU builtins.  */
@@ -286,6 +287,8 @@ enum reg_class
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
   ((OFFSET) = tilegx_initial_elimination_offset((FROM),(TO)))
 
+#define PROFILE_BEFORE_PROLOGUE 1
+
 #define FUNCTION_PROFILER(FILE, LABELNO) \
   tilegx_function_profiler (FILE, LABELNO)
 
@@ -445,7 +448,7 @@ enum reg_class
     {								\
       char label[256];						\
       ASM_GENERATE_INTERNAL_LABEL (label, "L", (VALUE));	\
-      fprintf (FILE, "\t%s ",					\
+      fprintf (FILE, "%s ",					\
                integer_asm_op (GET_MODE_SIZE (Pmode), TRUE));	\
       assemble_name (FILE, label);				\
       fprintf (FILE, "\n");					\
@@ -457,7 +460,7 @@ enum reg_class
     {								\
       char label[256];						\
       ASM_GENERATE_INTERNAL_LABEL (label, "L", (VALUE));	\
-      fprintf (FILE, "\t%s ", 					\
+      fprintf (FILE, "%s ", 					\
                integer_asm_op (GET_MODE_SIZE (Pmode), TRUE));	\
       assemble_name (FILE, label);				\
       ASM_GENERATE_INTERNAL_LABEL (label, "L", (REL));		\
@@ -479,6 +482,19 @@ enum reg_class
   ( fputs (".lcomm ", (FILE)),				\
     assemble_name ((FILE), (NAME)),			\
     fprintf ((FILE), ",%u\n", (unsigned int)(ROUNDED)))
+
+#define CRT_CALL_STATIC_FUNCTION(SECTION_OP, FUNC)		\
+static void __attribute__((__used__))				\
+call_ ## FUNC (void)						\
+{								\
+  asm (SECTION_OP);						\
+  asm ("{ moveli r0, hw2_last(" #FUNC " - . - 8); lnk r1 }\n");	\
+  asm ("shl16insli r0, r0, hw1(" #FUNC " - .)\n");		\
+  asm ("shl16insli r0, r0, hw0(" #FUNC " - . + 8)\n");		\
+  asm ("add r0, r1, r0\n");					\
+  asm ("jalr r0\n");						\
+  asm (TEXT_SECTION_ASM_OP);					\
+}
 
 
 

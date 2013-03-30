@@ -1,6 +1,5 @@
 /* Alias analysis for trees.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2004-2013 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -40,7 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "vec.h"
 #include "bitmap.h"
-#include "vecprim.h"
 #include "pointer-set.h"
 #include "alloc-pool.h"
 #include "tree-ssa-alias.h"
@@ -378,17 +376,16 @@ stmt_may_clobber_global_p (gimple stmt)
 void
 dump_alias_info (FILE *file)
 {
-  size_t i;
+  unsigned i;
   const char *funcname
     = lang_hooks.decl_printable_name (current_function_decl, 2);
-  referenced_var_iterator rvi;
   tree var;
 
   fprintf (file, "\n\nAlias information for %s\n\n", funcname);
 
   fprintf (file, "Aliased symbols\n\n");
 
-  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
+  FOR_EACH_LOCAL_DECL (cfun, i, var)
     {
       if (may_be_aliased (var))
 	dump_variable (file, var);
@@ -456,6 +453,25 @@ dump_points_to_solution (FILE *file, struct pt_solution *pt)
 	fprintf (file, " (includes global vars)");
     }
 }
+
+
+/* Unified dump function for pt_solution.  */
+
+DEBUG_FUNCTION void
+debug (pt_solution &ref)
+{
+  dump_points_to_solution (stderr, &ref);
+}
+
+DEBUG_FUNCTION void
+debug (pt_solution *ptr)
+{
+  if (ptr)
+    debug (*ptr);
+  else
+    fprintf (stderr, "<nil>\n");
+}
+
 
 /* Dump points-to information for SSA_NAME PTR into FILE.  */
 
@@ -757,12 +773,11 @@ indirect_ref_may_alias_decl_p (tree ref1 ATTRIBUTE_UNUSED, tree base1,
   /* The offset embedded in MEM_REFs can be negative.  Bias them
      so that the resulting offset adjustment is positive.  */
   moff = mem_ref_offset (base1);
-  moff = double_int_lshift (moff,
-			    BITS_PER_UNIT == 8
-			    ? 3 : exact_log2 (BITS_PER_UNIT),
-			    HOST_BITS_PER_DOUBLE_INT, true);
-  if (double_int_negative_p (moff))
-    offset2p += double_int_neg (moff).low;
+  moff = moff.alshift (BITS_PER_UNIT == 8
+		       ? 3 : exact_log2 (BITS_PER_UNIT),
+		       HOST_BITS_PER_DOUBLE_INT);
+  if (moff.is_negative ())
+    offset2p += (-moff).low;
   else
     offset1p += moff.low;
 
@@ -836,12 +851,11 @@ indirect_ref_may_alias_decl_p (tree ref1 ATTRIBUTE_UNUSED, tree base1,
       || TREE_CODE (dbase2) == TARGET_MEM_REF)
     {
       double_int moff = mem_ref_offset (dbase2);
-      moff = double_int_lshift (moff,
-				BITS_PER_UNIT == 8
-				? 3 : exact_log2 (BITS_PER_UNIT),
-				HOST_BITS_PER_DOUBLE_INT, true);
-      if (double_int_negative_p (moff))
-	doffset1 -= double_int_neg (moff).low;
+      moff = moff.alshift (BITS_PER_UNIT == 8
+			   ? 3 : exact_log2 (BITS_PER_UNIT),
+			   HOST_BITS_PER_DOUBLE_INT);
+      if (moff.is_negative ())
+	doffset1 -= (-moff).low;
       else
 	doffset2 -= moff.low;
     }
@@ -933,21 +947,19 @@ indirect_refs_may_alias_p (tree ref1 ATTRIBUTE_UNUSED, tree base1,
       /* The offset embedded in MEM_REFs can be negative.  Bias them
 	 so that the resulting offset adjustment is positive.  */
       moff = mem_ref_offset (base1);
-      moff = double_int_lshift (moff,
-				BITS_PER_UNIT == 8
-				? 3 : exact_log2 (BITS_PER_UNIT),
-				HOST_BITS_PER_DOUBLE_INT, true);
-      if (double_int_negative_p (moff))
-	offset2 += double_int_neg (moff).low;
+      moff = moff.alshift (BITS_PER_UNIT == 8
+			   ? 3 : exact_log2 (BITS_PER_UNIT),
+			   HOST_BITS_PER_DOUBLE_INT);
+      if (moff.is_negative ())
+	offset2 += (-moff).low;
       else
 	offset1 += moff.low;
       moff = mem_ref_offset (base2);
-      moff = double_int_lshift (moff,
-				BITS_PER_UNIT == 8
-				? 3 : exact_log2 (BITS_PER_UNIT),
-				HOST_BITS_PER_DOUBLE_INT, true);
-      if (double_int_negative_p (moff))
-	offset1 += double_int_neg (moff).low;
+      moff = moff.alshift (BITS_PER_UNIT == 8
+			   ? 3 : exact_log2 (BITS_PER_UNIT),
+			   HOST_BITS_PER_DOUBLE_INT);
+      if (moff.is_negative ())
+	offset1 += (-moff).low;
       else
 	offset2 += moff.low;
       return ranges_overlap_p (offset1, max_size1, offset2, max_size2);
@@ -1321,6 +1333,43 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 					   size);
 	    return refs_may_alias_p_1 (&dref, ref, false);
 	  }
+	/* These read memory pointed to by the first argument.  */
+	case BUILT_IN_INDEX:
+	case BUILT_IN_STRCHR:
+	case BUILT_IN_STRRCHR:
+	  {
+	    ao_ref dref;
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   NULL_TREE);
+	    return refs_may_alias_p_1 (&dref, ref, false);
+	  }
+	/* These read memory pointed to by the first argument with size
+	   in the third argument.  */
+	case BUILT_IN_MEMCHR:
+	  {
+	    ao_ref dref;
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   gimple_call_arg (call, 2));
+	    return refs_may_alias_p_1 (&dref, ref, false);
+	  }
+	/* These read memory pointed to by the first and second arguments.  */
+	case BUILT_IN_STRSTR:
+	case BUILT_IN_STRPBRK:
+	  {
+	    ao_ref dref;
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   NULL_TREE);
+	    if (refs_may_alias_p_1 (&dref, ref, false))
+	      return true;
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 1),
+					   NULL_TREE);
+	    return refs_may_alias_p_1 (&dref, ref, false);
+	  }
+
 	/* The following builtins do not read from memory.  */
 	case BUILT_IN_FREE:
 	case BUILT_IN_MALLOC:
@@ -1930,7 +1979,8 @@ stmt_kills_ref_p (gimple stmt, tree ref)
 
 static bool
 maybe_skip_until (gimple phi, tree target, ao_ref *ref,
-		  tree vuse, bitmap *visited)
+		  tree vuse, unsigned int *cnt, bitmap *visited,
+		  bool abort_on_visited)
 {
   basic_block bb = gimple_bb (phi);
 
@@ -1948,22 +1998,28 @@ maybe_skip_until (gimple phi, tree target, ao_ref *ref,
 	{
 	  /* An already visited PHI node ends the walk successfully.  */
 	  if (bitmap_bit_p (*visited, SSA_NAME_VERSION (PHI_RESULT (def_stmt))))
-	    return true;
-	  vuse = get_continuation_for_phi (def_stmt, ref, visited);
+	    return !abort_on_visited;
+	  vuse = get_continuation_for_phi (def_stmt, ref, cnt,
+					   visited, abort_on_visited);
 	  if (!vuse)
 	    return false;
 	  continue;
 	}
-      /* A clobbering statement or the end of the IL ends it failing.  */
-      else if (gimple_nop_p (def_stmt)
-	       || stmt_may_clobber_ref_p_1 (def_stmt, ref))
+      else if (gimple_nop_p (def_stmt))
 	return false;
+      else
+	{
+	  /* A clobbering statement or the end of the IL ends it failing.  */
+	  ++*cnt;
+	  if (stmt_may_clobber_ref_p_1 (def_stmt, ref))
+	    return false;
+	}
       /* If we reach a new basic-block see if we already skipped it
          in a previous walk that ended successfully.  */
       if (gimple_bb (def_stmt) != bb)
 	{
 	  if (!bitmap_set_bit (*visited, SSA_NAME_VERSION (vuse)))
-	    return true;
+	    return !abort_on_visited;
 	  bb = gimple_bb (def_stmt);
 	}
       vuse = gimple_vuse (def_stmt);
@@ -1977,7 +2033,8 @@ maybe_skip_until (gimple phi, tree target, ao_ref *ref,
 
 static tree
 get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
-			    ao_ref *ref, bitmap *visited)
+			    ao_ref *ref, unsigned int *cnt,
+			    bitmap *visited, bool abort_on_visited)
 {
   gimple def0 = SSA_NAME_DEF_STMT (arg0);
   gimple def1 = SSA_NAME_DEF_STMT (arg1);
@@ -1990,14 +2047,16 @@ get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
 	       && dominated_by_p (CDI_DOMINATORS,
 				  gimple_bb (def1), gimple_bb (def0))))
     {
-      if (maybe_skip_until (phi, arg0, ref, arg1, visited))
+      if (maybe_skip_until (phi, arg0, ref, arg1, cnt,
+			    visited, abort_on_visited))
 	return arg0;
     }
   else if (gimple_nop_p (def1)
 	   || dominated_by_p (CDI_DOMINATORS,
 			      gimple_bb (def0), gimple_bb (def1)))
     {
-      if (maybe_skip_until (phi, arg1, ref, arg0, visited))
+      if (maybe_skip_until (phi, arg1, ref, arg0, cnt,
+			    visited, abort_on_visited))
 	return arg1;
     }
   /* Special case of a diamond:
@@ -2016,6 +2075,7 @@ get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
   else if ((common_vuse = gimple_vuse (def0))
 	   && common_vuse == gimple_vuse (def1))
     {
+      *cnt += 2;
       if (!stmt_may_clobber_ref_p_1 (def0, ref)
 	  && !stmt_may_clobber_ref_p_1 (def1, ref))
 	return common_vuse;
@@ -2028,11 +2088,13 @@ get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
 /* Starting from a PHI node for the virtual operand of the memory reference
    REF find a continuation virtual operand that allows to continue walking
    statements dominating PHI skipping only statements that cannot possibly
-   clobber REF.  Returns NULL_TREE if no suitable virtual operand can
-   be found.  */
+   clobber REF.  Increments *CNT for each alias disambiguation done.
+   Returns NULL_TREE if no suitable virtual operand can be found.  */
 
 tree
-get_continuation_for_phi (gimple phi, ao_ref *ref, bitmap *visited)
+get_continuation_for_phi (gimple phi, ao_ref *ref,
+			  unsigned int *cnt, bitmap *visited,
+			  bool abort_on_visited)
 {
   unsigned nargs = gimple_phi_num_args (phi);
 
@@ -2069,7 +2131,8 @@ get_continuation_for_phi (gimple phi, ao_ref *ref, bitmap *visited)
       for (i = 0; i < nargs; ++i)
 	{
 	  arg1 = PHI_ARG_DEF (phi, i);
-	  arg0 = get_continuation_for_phi_1 (phi, arg0, arg1, ref, visited);
+	  arg0 = get_continuation_for_phi_1 (phi, arg0, arg1, ref,
+					     cnt, visited, abort_on_visited);
 	  if (!arg0)
 	    return NULL_TREE;
 	}
@@ -2100,11 +2163,13 @@ get_continuation_for_phi (gimple phi, ao_ref *ref, bitmap *visited)
 
 void *
 walk_non_aliased_vuses (ao_ref *ref, tree vuse,
-			void *(*walker)(ao_ref *, tree, void *),
+			void *(*walker)(ao_ref *, tree, unsigned int, void *),
 			void *(*translate)(ao_ref *, tree, void *), void *data)
 {
   bitmap visited = NULL;
   void *res;
+  unsigned int cnt = 0;
+  bool translated = false;
 
   timevar_push (TV_ALIAS_STMT_WALK);
 
@@ -2113,17 +2178,26 @@ walk_non_aliased_vuses (ao_ref *ref, tree vuse,
       gimple def_stmt;
 
       /* ???  Do we want to account this to TV_ALIAS_STMT_WALK?  */
-      res = (*walker) (ref, vuse, data);
-      if (res)
+      res = (*walker) (ref, vuse, cnt, data);
+      /* Abort walk.  */
+      if (res == (void *)-1)
+	{
+	  res = NULL;
+	  break;
+	}
+      /* Lookup succeeded.  */
+      else if (res != NULL)
 	break;
 
       def_stmt = SSA_NAME_DEF_STMT (vuse);
       if (gimple_nop_p (def_stmt))
 	break;
       else if (gimple_code (def_stmt) == GIMPLE_PHI)
-	vuse = get_continuation_for_phi (def_stmt, ref, &visited);
+	vuse = get_continuation_for_phi (def_stmt, ref, &cnt,
+					 &visited, translated);
       else
 	{
+	  cnt++;
 	  if (stmt_may_clobber_ref_p_1 (def_stmt, ref))
 	    {
 	      if (!translate)
@@ -2139,6 +2213,7 @@ walk_non_aliased_vuses (ao_ref *ref, tree vuse,
 	      else if (res != NULL)
 		break;
 	      /* Translation succeeded, continue walking.  */
+	      translated = true;
 	    }
 	  vuse = gimple_vuse (def_stmt);
 	}

@@ -32,8 +32,8 @@ build_modules= { module= m4; };
 build_modules= { module= texinfo; };
 build_modules= { module= fixincludes; };
 
-host_modules= { module= bfd; lib_path=.libs; bootstrap=true; };
-host_modules= { module= opcodes; lib_path=.libs; bootstrap=true; };
+host_modules= { module= bfd; bootstrap=true; };
+host_modules= { module= opcodes; bootstrap=true; };
 host_modules= { module= binutils; bootstrap=true; };
 host_modules= { module= bison; no_check_cross= true; };
 host_modules= { module= cgen; };
@@ -80,6 +80,7 @@ host_modules= { module= tcl;
                 missing=mostlyclean; };
 host_modules= { module= itcl; };
 host_modules= { module= ld; bootstrap=true; };
+host_modules= { module= libbacktrace; bootstrap=true; };
 host_modules= { module= libcpp; bootstrap=true; };
 host_modules= { module= libdecnumber; bootstrap=true; };
 host_modules= { module= libgui; };
@@ -118,9 +119,14 @@ target_modules = { module= libstdc++-v3;
 		   lib_path=src/.libs;
 		   raw_cxx=true; };
 target_modules = { module= libmudflap; lib_path=.libs; };
+target_modules = { module= libsanitizer;
+		   bootstrap=true;
+		   lib_path=.libs;
+		   raw_cxx=true; };
 target_modules = { module= libssp; lib_path=.libs; };
 target_modules = { module= newlib; };
 target_modules = { module= libgcc; bootstrap=true; no_check=true; };
+target_modules = { module= libbacktrace; };
 target_modules = { module= libquadmath; };
 target_modules = { module= libgfortran; };
 target_modules = { module= libobjc; };
@@ -132,7 +138,7 @@ target_modules = { module= libtermcap; no_check=true;
                    missing=maintainer-clean; };
 target_modules = { module= winsup; };
 target_modules = { module= libgloss; no_check=true; };
-target_modules = { module= libffi; };
+target_modules = { module= libffi; no_install=true; };
 target_modules = { module= libjava; raw_cxx=true;
                    extra_configure_flags="$(EXTRA_CONFIGARGS_LIBJAVA)"; };
 target_modules = { module= zlib; };
@@ -285,6 +291,7 @@ dependencies = { module=all-build-fixincludes; on=all-build-libiberty; };
 
 // Host modules specific to gcc.
 dependencies = { module=configure-gcc; on=configure-intl; };
+dependencies = { module=configure-gcc; on=all-gmp; };
 dependencies = { module=configure-gcc; on=all-lto-plugin; };
 dependencies = { module=configure-gcc; on=all-binutils; };
 dependencies = { module=configure-gcc; on=all-gas; };
@@ -292,7 +299,6 @@ dependencies = { module=configure-gcc; on=all-ld; };
 dependencies = { module=configure-gcc; on=all-gold; };
 dependencies = { module=configure-gcc; on=all-libelf; };
 dependencies = { module=all-gcc; on=all-libiberty; hard=true; };
-dependencies = { module=all-gcc; on=all-gmp; };
 dependencies = { module=all-gcc; on=all-intl; };
 dependencies = { module=all-gcc; on=all-mpfr; };
 dependencies = { module=all-gcc; on=all-mpc; };
@@ -303,6 +309,7 @@ dependencies = { module=all-gcc; on=all-build-flex; };
 dependencies = { module=all-gcc; on=all-build-libiberty; };
 dependencies = { module=all-gcc; on=all-build-fixincludes; };
 dependencies = { module=all-gcc; on=all-zlib; };
+dependencies = { module=all-gcc; on=all-libbacktrace; hard=true; };
 dependencies = { module=all-gcc; on=all-libcpp; hard=true; };
 dependencies = { module=all-gcc; on=all-libdecnumber; hard=true; };
 dependencies = { module=all-gcc; on=all-libiberty; };
@@ -366,6 +373,9 @@ dependencies = { module=all-bfd; on=all-intl; };
 dependencies = { module=configure-opcodes; on=configure-libiberty; hard=true; };
 dependencies = { module=all-opcodes; on=all-libiberty; };
 
+// We must build gas before binutils, gprof, ld and gold to avoid race
+// condition in the prev-gcc/as script during bootstrap of combined tree
+// with GCC and binutils.  See PR gas/14899 for details.
 dependencies = { module=configure-binutils; on=configure-intl; };
 dependencies = { module=all-binutils; on=all-libiberty; };
 dependencies = { module=all-binutils; on=all-opcodes; };
@@ -373,6 +383,7 @@ dependencies = { module=all-binutils; on=all-bfd; };
 dependencies = { module=all-binutils; on=all-build-flex; };
 dependencies = { module=all-binutils; on=all-build-bison; };
 dependencies = { module=all-binutils; on=all-intl; };
+dependencies = { module=all-binutils; on=all-gas; };
 
 // We put install-opcodes before install-binutils because the installed
 // binutils might be on PATH, and they might need the shared opcodes
@@ -394,6 +405,7 @@ dependencies = { module=all-gprof; on=all-libiberty; };
 dependencies = { module=all-gprof; on=all-bfd; };
 dependencies = { module=all-gprof; on=all-opcodes; };
 dependencies = { module=all-gprof; on=all-intl; };
+dependencies = { module=all-gprof; on=all-gas; };
 dependencies = { module=configure-ld; on=configure-intl; };
 dependencies = { module=all-ld; on=all-libiberty; };
 dependencies = { module=all-ld; on=all-bfd; };
@@ -401,6 +413,7 @@ dependencies = { module=all-ld; on=all-opcodes; };
 dependencies = { module=all-ld; on=all-build-bison; };
 dependencies = { module=all-ld; on=all-build-flex; };
 dependencies = { module=all-ld; on=all-intl; };
+dependencies = { module=all-ld; on=all-gas; };
 dependencies = { module=install-ld; on=install-gold; };
 dependencies = { module=install-strip-ld; on=install-strip-gold; };
 dependencies = { module=configure-gold; on=configure-intl; };
@@ -408,6 +421,7 @@ dependencies = { module=all-gold; on=all-libiberty; };
 dependencies = { module=all-gold; on=all-intl; };
 dependencies = { module=all-gold; on=all-bfd; };
 dependencies = { module=all-gold; on=all-build-bison; };
+dependencies = { module=all-gold; on=all-gas; };
 dependencies = { module=check-gold; on=all-binutils; };
 dependencies = { module=check-gold; on=all-gas; };
 
@@ -488,7 +502,9 @@ dependencies = { module=configure-target-fastjar; on=configure-target-zlib; };
 dependencies = { module=all-target-fastjar; on=all-target-zlib; };
 dependencies = { module=configure-target-libgo; on=configure-target-libffi; };
 dependencies = { module=configure-target-libgo; on=all-target-libstdc++-v3; };
+dependencies = { module=all-target-libgo; on=all-target-libbacktrace; };
 dependencies = { module=all-target-libgo; on=all-target-libffi; };
+dependencies = { module=all-target-libgo; on=all-target-libatomic; };
 dependencies = { module=configure-target-libjava; on=configure-target-zlib; };
 dependencies = { module=configure-target-libjava; on=configure-target-boehm-gc; };
 dependencies = { module=configure-target-libjava; on=configure-target-libffi; };
@@ -499,10 +515,21 @@ dependencies = { module=all-target-libjava; on=all-target-libffi; };
 dependencies = { module=configure-target-libobjc; on=configure-target-boehm-gc; };
 dependencies = { module=all-target-libobjc; on=all-target-boehm-gc; };
 dependencies = { module=configure-target-libstdc++-v3; on=configure-target-libgomp; };
+dependencies = { module=configure-target-libsanitizer; on=all-target-libstdc++-v3; };
 // parallel_list.o and parallel_settings.o depend on omp.h, which is
 // generated by the libgomp configure.  Unfortunately, due to the use of
 //  recursive make, we can't be that specific.
 dependencies = { module=all-target-libstdc++-v3; on=configure-target-libgomp; };
+
+dependencies = { module=install-target-libgo; on=install-target-libatomic; };
+dependencies = { module=install-target-libgfortran; on=install-target-libquadmath; };
+dependencies = { module=install-target-libgfortran; on=install-target-libgcc; };
+dependencies = { module=install-target-libsanitizer; on=install-target-libstdc++-v3; };
+dependencies = { module=install-target-libsanitizer; on=install-target-libgcc; };
+dependencies = { module=install-target-libjava; on=install-target-libgcc; };
+dependencies = { module=install-target-libitm; on=install-target-libgcc; };
+dependencies = { module=install-target-libobjc; on=install-target-libgcc; };
+dependencies = { module=install-target-libstdc++-v3; on=install-target-libgcc; };
 
 // Target modules in the 'src' repository.
 lang_env_dependencies = { module=libtermcap; };

@@ -1,6 +1,5 @@
 /* "Bag-of-pages" garbage collector for the GNU compiler.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009,
-   2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 1999-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -432,7 +431,6 @@ static struct globals
   struct free_object *free_object_list;
 #endif
 
-#ifdef GATHER_STATISTICS
   struct
   {
     /* Total GC-allocated memory.  */
@@ -459,7 +457,6 @@ static struct globals
     /* The overhead for each of the allocation orders.  */
     unsigned long long total_overhead_per_order[NUM_ORDERS];
   } stats;
-#endif
 } G;
 
 /* The size in bytes required to maintain a bitmap for the objects
@@ -1202,15 +1199,6 @@ ggc_round_alloc_size (size_t requested_size)
   return size;
 }
 
-/* Typed allocation function.  Does nothing special in this collector.  */
-
-void *
-ggc_alloc_typed_stat (enum gt_types_enum type ATTRIBUTE_UNUSED, size_t size
-		      MEM_STAT_DECL)
-{
-  return ggc_internal_alloc_stat (size PASS_MEM_STAT);
-}
-
 /* Allocate a chunk of memory of SIZE bytes.  Its contents are undefined.  */
 
 void *
@@ -1324,10 +1312,9 @@ ggc_internal_alloc_stat (size_t size MEM_STAT_DECL)
 
   /* Calculate the object's address.  */
   result = entry->page + object_offset;
-#ifdef GATHER_STATISTICS
-  ggc_record_overhead (OBJECT_SIZE (order), OBJECT_SIZE (order) - size,
-		       result PASS_MEM_STAT);
-#endif
+  if (GATHER_STATISTICS)
+    ggc_record_overhead (OBJECT_SIZE (order), OBJECT_SIZE (order) - size,
+			 result FINAL_PASS_MEM_STAT);
 
 #ifdef ENABLE_GC_CHECKING
   /* Keep poisoning-by-writing-0xaf the object, in an attempt to keep the
@@ -1358,32 +1345,31 @@ ggc_internal_alloc_stat (size_t size MEM_STAT_DECL)
   /* For timevar statistics.  */
   timevar_ggc_mem_total += object_size;
 
-#ifdef GATHER_STATISTICS
-  {
-    size_t overhead = object_size - size;
+  if (GATHER_STATISTICS)
+    {
+      size_t overhead = object_size - size;
 
-    G.stats.total_overhead += overhead;
-    G.stats.total_allocated += object_size;
-    G.stats.total_overhead_per_order[order] += overhead;
-    G.stats.total_allocated_per_order[order] += object_size;
+      G.stats.total_overhead += overhead;
+      G.stats.total_allocated += object_size;
+      G.stats.total_overhead_per_order[order] += overhead;
+      G.stats.total_allocated_per_order[order] += object_size;
 
-    if (size <= 32)
-      {
-	G.stats.total_overhead_under32 += overhead;
-	G.stats.total_allocated_under32 += object_size;
-      }
-    if (size <= 64)
-      {
-	G.stats.total_overhead_under64 += overhead;
-	G.stats.total_allocated_under64 += object_size;
-      }
-    if (size <= 128)
-      {
-	G.stats.total_overhead_under128 += overhead;
-	G.stats.total_allocated_under128 += object_size;
-      }
-  }
-#endif
+      if (size <= 32)
+	{
+	  G.stats.total_overhead_under32 += overhead;
+	  G.stats.total_allocated_under32 += object_size;
+	}
+      if (size <= 64)
+	{
+	  G.stats.total_overhead_under64 += overhead;
+	  G.stats.total_allocated_under64 += object_size;
+	}
+      if (size <= 128)
+	{
+	  G.stats.total_overhead_under128 += overhead;
+	  G.stats.total_allocated_under128 += object_size;
+	}
+    }
 
   if (GGC_DEBUG_LEVEL >= 3)
     fprintf (G.debug_file,
@@ -1443,6 +1429,26 @@ gt_ggc_m_S (const void *p)
     fprintf (G.debug_file, "Marking %p\n", p);
 
   return;
+}
+
+
+/* User-callable entry points for marking string X.  */
+
+void
+gt_ggc_mx (const char *& x)
+{
+  gt_ggc_m_S (x);
+}
+
+void
+gt_ggc_mx (unsigned char *& x)
+{
+  gt_ggc_m_S (x);
+}
+
+void
+gt_ggc_mx (unsigned char& x ATTRIBUTE_UNUSED)
+{
 }
 
 /* If P is not marked, marks it and return false.  Otherwise return true.
@@ -1524,9 +1530,8 @@ ggc_free (void *p)
   size_t order = pe->order;
   size_t size = OBJECT_SIZE (order);
 
-#ifdef GATHER_STATISTICS
-  ggc_free_overhead (p);
-#endif
+  if (GATHER_STATISTICS)
+    ggc_free_overhead (p);
 
   if (GGC_DEBUG_LEVEL >= 3)
     fprintf (G.debug_file,
@@ -2070,9 +2075,10 @@ ggc_collect (void)
 
   clear_marks ();
   ggc_mark_roots ();
-#ifdef GATHER_STATISTICS
-  ggc_prune_overhead_list ();
-#endif
+
+  if (GATHER_STATISTICS)
+    ggc_prune_overhead_list ();
+
   poison_pages ();
   validate_free_objects ();
   sweep_pages ();
@@ -2160,40 +2166,39 @@ ggc_print_statistics (void)
 	   SCALE (G.allocated), STAT_LABEL(G.allocated),
 	   SCALE (total_overhead), STAT_LABEL (total_overhead));
 
-#ifdef GATHER_STATISTICS
-  {
-    fprintf (stderr, "\nTotal allocations and overheads during the compilation process\n");
+  if (GATHER_STATISTICS)
+    {
+      fprintf (stderr, "\nTotal allocations and overheads during the compilation process\n");
 
-    fprintf (stderr, "Total Overhead:                        %10lld\n",
-             G.stats.total_overhead);
-    fprintf (stderr, "Total Allocated:                       %10lld\n",
-             G.stats.total_allocated);
+      fprintf (stderr, "Total Overhead:                        %10" HOST_LONG_LONG_FORMAT "d\n",
+	       G.stats.total_overhead);
+      fprintf (stderr, "Total Allocated:                       %10" HOST_LONG_LONG_FORMAT "d\n",
+	       G.stats.total_allocated);
 
-    fprintf (stderr, "Total Overhead  under  32B:            %10lld\n",
-             G.stats.total_overhead_under32);
-    fprintf (stderr, "Total Allocated under  32B:            %10lld\n",
-             G.stats.total_allocated_under32);
-    fprintf (stderr, "Total Overhead  under  64B:            %10lld\n",
-             G.stats.total_overhead_under64);
-    fprintf (stderr, "Total Allocated under  64B:            %10lld\n",
-             G.stats.total_allocated_under64);
-    fprintf (stderr, "Total Overhead  under 128B:            %10lld\n",
-             G.stats.total_overhead_under128);
-    fprintf (stderr, "Total Allocated under 128B:            %10lld\n",
-             G.stats.total_allocated_under128);
+      fprintf (stderr, "Total Overhead  under  32B:            %10" HOST_LONG_LONG_FORMAT "d\n",
+	       G.stats.total_overhead_under32);
+      fprintf (stderr, "Total Allocated under  32B:            %10" HOST_LONG_LONG_FORMAT "d\n",
+	       G.stats.total_allocated_under32);
+      fprintf (stderr, "Total Overhead  under  64B:            %10" HOST_LONG_LONG_FORMAT "d\n",
+	       G.stats.total_overhead_under64);
+      fprintf (stderr, "Total Allocated under  64B:            %10" HOST_LONG_LONG_FORMAT "d\n",
+	       G.stats.total_allocated_under64);
+      fprintf (stderr, "Total Overhead  under 128B:            %10" HOST_LONG_LONG_FORMAT "d\n",
+	       G.stats.total_overhead_under128);
+      fprintf (stderr, "Total Allocated under 128B:            %10" HOST_LONG_LONG_FORMAT "d\n",
+	       G.stats.total_allocated_under128);
 
-    for (i = 0; i < NUM_ORDERS; i++)
-      if (G.stats.total_allocated_per_order[i])
-        {
-          fprintf (stderr, "Total Overhead  page size %7lu:     %10lld\n",
-                   (unsigned long) OBJECT_SIZE (i),
-		   G.stats.total_overhead_per_order[i]);
-          fprintf (stderr, "Total Allocated page size %7lu:     %10lld\n",
-                   (unsigned long) OBJECT_SIZE (i),
-		   G.stats.total_allocated_per_order[i]);
-        }
+      for (i = 0; i < NUM_ORDERS; i++)
+	if (G.stats.total_allocated_per_order[i])
+	  {
+	    fprintf (stderr, "Total Overhead  page size %7lu:     %10" HOST_LONG_LONG_FORMAT "d\n",
+		     (unsigned long) OBJECT_SIZE (i),
+		     G.stats.total_overhead_per_order[i]);
+	    fprintf (stderr, "Total Allocated page size %7lu:     %10" HOST_LONG_LONG_FORMAT "d\n",
+		     (unsigned long) OBJECT_SIZE (i),
+		     G.stats.total_allocated_per_order[i]);
+	  }
   }
-#endif
 }
 
 struct ggc_pch_ondisk
@@ -2216,8 +2221,7 @@ init_ggc_pch (void)
 
 void
 ggc_pch_count_object (struct ggc_pch_data *d, void *x ATTRIBUTE_UNUSED,
-		      size_t size, bool is_string ATTRIBUTE_UNUSED,
-		      enum gt_types_enum type ATTRIBUTE_UNUSED)
+		      size_t size, bool is_string ATTRIBUTE_UNUSED)
 {
   unsigned order;
 
@@ -2260,8 +2264,7 @@ ggc_pch_this_base (struct ggc_pch_data *d, void *base)
 
 char *
 ggc_pch_alloc_object (struct ggc_pch_data *d, void *x ATTRIBUTE_UNUSED,
-		      size_t size, bool is_string ATTRIBUTE_UNUSED,
-		      enum gt_types_enum type ATTRIBUTE_UNUSED)
+		      size_t size, bool is_string ATTRIBUTE_UNUSED)
 {
   unsigned order;
   char *result;
@@ -2493,12 +2496,3 @@ ggc_pch_read (FILE *f, void *addr)
   /* Update the statistics.  */
   G.allocated = G.allocated_last_gc = offs - (char *)addr;
 }
-
-struct alloc_zone
-{
-  int dummy;
-};
-
-struct alloc_zone rtl_zone;
-struct alloc_zone tree_zone;
-struct alloc_zone tree_id_zone;

@@ -196,6 +196,10 @@ package Lib.Writ is
    --         DB   Detect_Blocking pragma is in effect for all units in this
    --              file.
    --
+   --         Ex   A valid Partition_Elaboration_Policy pragma applies to all
+   --              the units in this file, where x is the first character
+   --              (upper case) of the policy name (e.g. 'C' for Concurrent).
+   --
    --         FD   Configuration pragmas apply to all the units in this file
    --              specifying a possibly non-standard floating point format
    --              (VAX float with Long_Float using D_Float).
@@ -797,21 +801,40 @@ package Lib.Writ is
    --------------------------
 
    --  The cross-reference data follows the dependency lines. See the spec of
-   --  Lib.Xref for details on the format of this data.
+   --  Lib.Xref in file lib-xref.ads for details on the format of this data.
 
    ---------------------------------
    -- Source Coverage Obligations --
    ---------------------------------
 
    --  The Source Coverage Obligation (SCO) information follows the cross-
-   --  reference data. See the spec of Par_SCO for full details of the format.
+   --  reference data. See the spec of Par_SCO in file par_sco.ads for full
+   --  details of the format.
 
    ----------------------
    -- Alfa Information --
    ----------------------
 
    --  The Alfa information follows the SCO information. See the spec of Alfa
-   --  for full details of the format.
+   --  in file alfa.ads for full details of the format.
+
+   -------------------------------------
+   -- T  Target Dependent Information --
+   -------------------------------------
+
+   --  This section is present if the option to generate target dependent
+   --  information is present (this flag is set by the -gnatT switch). The
+   --  format of T lines is:
+
+   --    T key val
+
+   --  There is one line for each constant declared in the Ttypes package
+
+   --    key   is the four letter code (which can be found as a comment on each
+   --          of the constant declarations in Ttypes).
+
+   --    val   is the value of the constant, which is either a non-negative
+   --          decimal constant, or TRUE or FALSE for a Boolean value.
 
    ----------------------
    -- Global Variables --

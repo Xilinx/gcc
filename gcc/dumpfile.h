@@ -1,6 +1,5 @@
 /* Definitions for the shared dumpfile.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2004-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -22,8 +21,10 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_DUMPFILE_H
 #define GCC_DUMPFILE_H 1
 
+#include "line-map.h"
+
 /* Different tree dump places.  When you add new tree dump places,
-   extend the DUMP_FILES array in tree-dump.c.  */
+   extend the DUMP_FILES array in dumpfile.c.  */
 enum tree_dump_index
 {
   TDI_none,			/* No dump */
@@ -33,9 +34,6 @@ enum tree_dump_index
   TDI_original,			/* dump each function before optimizing it */
   TDI_generic,			/* dump each function after genericizing it */
   TDI_nested,			/* dump each function after unnesting it */
-  TDI_vcg,			/* create a VCG graph file for each
-				   function's flowgraph.  */
-  TDI_ada,                      /* dump declarations in Ada syntax.  */
   TDI_tree_all,                 /* enable all the GENERIC/GIMPLE dumps.  */
   TDI_rtl_all,                  /* enable all the RTL dumps.  */
   TDI_ipa_all,                  /* enable all the IPA dumps.  */
@@ -43,9 +41,11 @@ enum tree_dump_index
   TDI_end
 };
 
-/* Bit masks to control dumping. Not all values are applicable to
-   all dumps. Add new ones at the end. When you define new
-   values, extend the DUMP_OPTIONS array in tree-dump.c */
+/* Bit masks to control dumping. Not all values are applicable to all
+   dumps. Add new ones at the end. When you define new values, extend
+   the DUMP_OPTIONS array in dumpfile.c. The TDF_* flags coexist with
+   MSG_* flags (for -fopt-info) and the bit values must be chosen to
+   allow that.  */
 #define TDF_ADDRESS	(1 << 0)	/* dump node addresses */
 #define TDF_SLIM	(1 << 1)	/* don't go wild following links */
 #define TDF_RAW  	(1 << 2)	/* don't unparse the function */
@@ -82,37 +82,87 @@ enum tree_dump_index
 #define TDF_CSELIB	(1 << 23)	/* Dump cselib details.  */
 #define TDF_SCEV	(1 << 24)	/* Dump SCEV details.  */
 #define TDF_COMMENT	(1 << 25)	/* Dump lines with prefix ";;"  */
+#define MSG_OPTIMIZED_LOCATIONS  (1 << 26)  /* -fopt-info optimized sources */
+#define MSG_MISSED_OPTIMIZATION  (1 << 27)  /* missed opportunities */
+#define MSG_NOTE                 (1 << 28)  /* general optimization info */
+#define MSG_ALL         (MSG_OPTIMIZED_LOCATIONS | MSG_MISSED_OPTIMIZATION \
+                         | MSG_NOTE)
 
 
-/* In tree-dump.c */
+/* Flags to control high-level -fopt-info dumps.  Usually these flags
+   define a group of passes.  An optimization pass can be part of
+   multiple groups.  */
+#define OPTGROUP_NONE        (0)
+#define OPTGROUP_IPA         (1 << 1)   /* IPA optimization passes */
+#define OPTGROUP_LOOP        (1 << 2)   /* Loop optimization passes */
+#define OPTGROUP_INLINE      (1 << 3)   /* Inlining passes */
+#define OPTGROUP_VEC         (1 << 4)   /* Vectorization passes */
+#define OPTGROUP_ALL	     (OPTGROUP_IPA | OPTGROUP_LOOP | OPTGROUP_INLINE \
+                              | OPTGROUP_VEC)
 
+/* Define a tree dump switch.  */
+struct dump_file_info
+{
+  const char *suffix;           /* suffix to give output file.  */
+  const char *swtch;            /* command line dump switch */
+  const char *glob;             /* command line glob  */
+  const char *pfilename;        /* filename for the pass-specific stream  */
+  const char *alt_filename;     /* filename for the -fopt-info stream  */
+  FILE *pstream;                /* pass-specific dump stream  */
+  FILE *alt_stream;             /* -fopt-info stream */
+  int pflags;                   /* dump flags */
+  int optgroup_flags;           /* optgroup flags for -fopt-info */
+  int alt_flags;                /* flags for opt-info */
+  int pstate;                   /* state of pass-specific stream */
+  int alt_state;                /* state of the -fopt-info stream */
+  int num;                      /* dump file number */
+};
+
+/* In dumpfile.c */
 extern char *get_dump_file_name (int);
-extern int dump_enabled_p (int);
 extern int dump_initialized_p (int);
 extern FILE *dump_begin (int, int *);
 extern void dump_end (int, FILE *);
-extern void dump_node (const_tree, int, FILE *);
+extern int dump_start (int, int *);
+extern void dump_finish (int);
 extern int dump_switch_p (const char *);
+extern int opt_info_switch_p (const char *);
 extern const char *dump_flag_name (int);
+extern void dump_printf (int, const char *, ...) ATTRIBUTE_PRINTF_2;
+extern void dump_printf_loc (int, source_location,
+                             const char *, ...) ATTRIBUTE_PRINTF_3;
+extern void dump_basic_block (int, basic_block, int);
+extern void dump_generic_expr_loc (int, source_location, int, tree);
+extern void dump_generic_expr (int, int, tree);
+extern void dump_gimple_stmt_loc (int, source_location, int, gimple, int);
+extern void dump_gimple_stmt (int, int, gimple, int);
+extern void print_combine_total_stats (void);
+extern unsigned int dump_register (const char *, const char *, const char *,
+                                   int, int);
+extern bool enable_rtl_dump_file (void);
+
+/* In tree-dump.c  */
+extern void dump_node (const_tree, int, FILE *);
+
+/* In combine.c  */
+extern void dump_combine_total_stats (FILE *);
+/* In cfghooks.c  */
+extern void dump_bb (FILE *, basic_block, int, int);
 
 /* Global variables used to communicate with passes.  */
 extern FILE *dump_file;
+extern FILE *alt_dump_file;
 extern int dump_flags;
 extern const char *dump_file_name;
 
 /* Return the dump_file_info for the given phase.  */
 extern struct dump_file_info *get_dump_file_info (int);
 
-/* Define a tree dump switch.  */
-struct dump_file_info
+/* Return true if any of the dumps is enabled, false otherwise. */
+static inline bool
+dump_enabled_p (void)
 {
-  const char *suffix;           /* suffix to give output file.  */
-  const char *swtch;            /* command line switch */
-  const char *glob;             /* command line glob  */
-  int flags;                    /* user flags */
-  int state;                    /* state of play */
-  int num;                      /* dump file number */
-};
-
+  return (dump_file || alt_dump_file);
+}
 
 #endif /* GCC_DUMPFILE_H */

@@ -1,3 +1,347 @@
+2013-03-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/56524
+	* c-common.c (handle_optimize_attribute): Don't call
+	save_optabs_if_changed.
+
+2013-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/56461
+	* c-pch.c (pch_init): Free target_validity at the end.
+
+2013-03-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-pretty-print.c (pp_c_pretty_printer_init): Clear pp->flags.
+
+2013-02-28  Konstantin Serebryany  <konstantin.s.serebryany@gmail.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR sanitizer/56454
+	* c-common.c (handle_no_sanitize_address_attribute): New function.
+	(c_common_attribute_table): Add no_sanitize_address attribute.
+	(handle_no_address_safety_analysis_attribute): Add
+	no_sanitize_address attribute, not no_address_safety_analysis
+	attribute.
+
+2013-02-18  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR target/52555
+	* c-common.c (handle_optimize_attribute): Call
+	save_optabs_if_changed.
+
+2013-02-18  Jakub Jelinek  <jakub@redhat.com>
+	    Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR pch/54117
+	* c-opts.c (c_common_post_options): If debug info is enabled
+	and non-dwarf*, refuse to load PCH files and when writing PCH
+	file warn.
+
+2013-02-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/56167
+	* c-common.c (handle_error_attribute): Fix condition.
+
+2013-01-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/55742
+	* c-common.c (handle_target_attribute): Revert 2012-12-26 change.
+
+2013-01-18  Jason Merrill  <jason@redhat.com>
+
+	PR target/54908
+	* c.opt (-fextern-tls-init): New.
+	* c-opts.c (c_common_post_options): Handle it.
+
+2013-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/48418
+	* c-common.c (c_fully_fold_internal): Warn for LSHIFT_EXPR and
+	RSHIFT_EXPR, if orig_op1 isn't INTEGER_CST, op1 is INTEGER_CST
+	and is either negative or bigger or equal to type precision
+	of the first operand.
+
+2012-12-03  Marek Polacek  <polacek@redhat.com>
+
+	PR c/55570
+	* c-common.c (check_user_alignment): Swap order of tests,
+	check TREE_CODE first.
+
+2012-11-29  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/52654
+	* c-common.h (overflow_type): New enum.
+	(build_userdef_literal): Add overflow_type argument.
+	(tree_userdef_literal): Add overflow_type.
+	(USERDEF_LITERAL_OVERFLOW): New access macro.
+	* c-common.c (build_userdef_literal): Add overflow_type
+	argument.
+	* c-lex.c (c_lex_with_flags): Add overflow_type to
+	build_userdef_literal calls.
+	(interpret_integer, interpret_float): Add overflow_type argument.
+
+2012-11-28  Richard Biener  <rguenther@suse.de>
+
+	PR c/35634
+	* c-gimplify.c (c_gimplify_expr): Gimplify self-modify expressions
+	here and use a type with proper overflow behavior for types that would
+	need to be promoted for the arithmetic.
+
+2012-11-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR sanitizer/55435
+	* c-common.c (handle_no_address_safety_analysis_attribute): New
+	function.
+	(c_common_attribute_table): Add no_address_safety_analysis.
+
+2012-11-16  Simon Baldwin  <simonb@google.com>
+
+	* c.opt: Add f[no-]canonical-system-headers.
+	* c-opts.c (c_common_handle_option): Handle
+	OPT_fcanonical_system_headers.
+
+2012-11-09  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/54413
+	* c-opts.c (c_common_handle_option): Set new flags.
+	* c.opt: Describe new flags.
+
+2012-11-09  Jason Merrill  <jason@redhat.com>
+
+	* c.opt (Wabi-tag): New.
+
+2012-11-09  Andi Kleen  <ak@linux.intel.com>
+
+	PR 55139
+	* c-common.c (get_atomic_generic_size): Mask with
+        MEMMODEL_MASK
+
+2012-11-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/53063
+	* c.opt (Wformat): Make it Alias Wformat=1.
+	(Wformat-contains-nul,Wformat-extra-args,Wformat-nonliteral,
+	Wformat-security,Wformat-y2k,Wformat-zero-length): Use
+	LangEnabledBy.
+	(Wformat=): RejectNegative. Use LangEnabledBy.
+	(Wnonnull): Use LangEnabledBy.
+	* c-opts.c (c_common_handle_option): Do not handle Wformat here.
+	* c-format.c (set_Wformat): Delete.
+	(decode_format_attr): Replace OPT_Wformat with OPT_Wformat_.
+        (maybe_read_dollar_number):  Likewise.
+        (avoid_dollar_number):  Likewise.
+        (finish_dollar_format_checking):  Likewise.
+        (check_format_info):  Likewise.
+        (check_format_info_main):  Likewise.
+        (check_format_types):  Likewise.
+        (format_type_warning):  Likewise.
+        * c-common.c (int):  Likewise.
+        (check_function_sentinel):  Likewise.
+        * c-common.h (warn_format,set_Wformat): Do not declare here.
+
+2012-11-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/53063
+	* c.opt(Warray-bounds,Wdelete-non-virtual-dtor,Wenum-compare,
+	Wmain,Woverlength-strings, Wunknown-pragmas,Wunused-macros):
+	Use LangEnabledBy.
+	(Wswitch,Wswitch-default,Wswitch-enum): Likewise. Move here from
+	common.opt.
+	(Wvariadic-macros): Init(1).
+	* c-opts.c (c_common_handle_option): Do not handle them
+	explicitly.
+	(c_common_post_options): Likewise.
+	(sanitize_cpp_opts): warn_unused_macros is now
+	cpp_warn_unused_macros.
+	(push_command_line_include): Likewise.
+	* c-common.c (warn_unknown_pragmas): Do not define.
+	* c-common.h (warn_unknown_pragmas): Do not declare.
+
+2012-11-07  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/51294
+	* c-common.c (conversion_warning): Handle conditional expressions.
+
+2012-10-29  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/54930
+	* c.opt (Wreturn_local_addr): Define new option.
+
+2012-10-25  Jason Merrill  <jason@redhat.com>
+
+	* c.opt (Wvirtual-move-assign): New.
+
+	* c.opt (Winherited-variadic-ctor): New.
+
+2012-10-25  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/54427
+	* c-common.c (scalar_to_vector): Handle VEC_COND_EXPR.
+
+2012-10-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (pch_cpp_save_state): Declare.
+	* c-target.def (c_preinclude): New hook.
+	* c-opts.c (done_preinclude): New.
+	(push_command_line_include): Handle default preincluded header.
+	(cb_file_change): Call pch_cpp_save_state when calling
+	push_command_line_include.
+	* c-pch.c (pch_ready_to_save_cpp_state, pch_cpp_state_saved)
+	(pch_cpp_save_state): New.
+	(pch_init): Call pch_cpp_save_state conditionally, instead of
+	calling cpp_save_state.
+
+2012-10-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/53063
+	PR c/40989
+	* c.opt (Waddress,Wchar-subscripts,Wsign-conversion,Wimplicit,
+	Wimplicit-function-declaration,Wimplicit-int,Wsizeof-pointer-memaccess,
+	Wnarrowing,Wparentheses,Wpointer-sign,Wreturn-type,Wsequence-point,
+	Wsign-compare,Wuninitialized,Wmaybe-uninitialized,Wunused,
+	Wvolatile-register-var): Add LangEnabledBy or EnabledBy.
+	* c-opts.c (c_common_handle_option): Remove explicit handling from
+	here.
+	(c_common_post_options): Likewise.
+
+2012-10-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* c-ada-spec.c (LOCATION_COL): Delete.
+	(compare_location): New function.
+	(compare_node): Use it.
+	(compare_comment): Likewise.
+
+2012-10-16  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/53063
+	PR c/40989
+	* c.opt (Wstrict-aliasing=,Wstrict-overflow=): Use LangEnabledBy.
+	* c-opts.c (c_common_handle_option): Do not set them here. Add
+	comment.
+	(c_common_post_options): Likewise.
+
+2012-10-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* c-ada-spec.c (ADA_HOST_WIDE_INT_PRINT_DOUBLE_HEX): Define.
+	(dump_generic_ada_node) <INTEGER_CST>: Deal with sizetype specially.
+	Remove POINTER_TYPE handling, add large unsigned handling and use
+	ADA_HOST_WIDE_INT_PRINT_DOUBLE_HEX for big numbers.
+
+2012-10-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/54381
+	* c-common.h (sizeof_pointer_memaccess_warning): Adjust prototype.
+	* c-common.c (sizeof_pointer_memaccess_warning): Take array of 3
+	locs and array of 3 trees instead of just single loc and single
+	sizeof_arg tree.  Handle __builtin___*_chk builtins too, and
+	also stpncpy, bcopy, bcmp, bzero, snprintf and vsnprintf builtins.
+	For *cmp* builtins that take two sources strings report warnings
+	about first and second source, not about destination and source.
+
+2012-10-12  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/53055
+	* c-common.h (enum ref_operator) [RO_ARROW_STAR]: New.
+
+2012-10-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* c-ada-spec.c (dump_ada_template): Bail out for template declarations
+	declaring something coming from another file.
+
+2012-10-10  Arnaud Charlet  <charlet@adacore.com>
+
+	PR ada/54845
+	* c-ada-spec.c (print_ada_struct_decl): Increase buf size.
+
+2012-10-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54194
+	* c-common.c (warn_about_parentheses): Add location_t parameter;
+	use EXPR_LOC_OR_LOC.
+	* c-common.h: Update declaration.
+
+2012-10-09  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/54427
+	* c-common.c (scalar_to_vector): Moved from c-typeck.c. Support
+	more operations. Make error messages optional.
+	* c-common.h (enum stv_conv): Moved from c-typeck.c.
+	(scalar_to_vector): Declare.
+
+2012-10-08  Jason Merrill  <jason@redhat.com>
+
+	* c-common.c (c_common_reswords): Add thread_local.
+
+2012-10-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/53528 C++11 attribute support
+	* c-common.h (bitfield_p, cxx_fundamental_alignment_p): Declare
+	new functions.
+	* c-common.c (check_cxx_fundamental_alignment_constraints): New
+	static function.
+	(handle_aligned_attribute): In choose strictest alignment
+	among many.  Use new check_cxx_fundamental_alignment_constraints.
+	(handle_transparent_union_attribute): In c++11 attribute syntax,
+	don't look through typedefs.
+
+2012-10-04  Arnaud Charlet  <charlet@adacore.com>
+
+	* c-ada-spec.c (print_ada_declaration): Remove handling of TDF_RAW.
+	* c.opt (-fdump-ada-spec, -fdump-ada-spec-slim): Move switch definition
+	out of dumpfile.h.
+
+2012-09-25  Dehao Chen  <dehao@google.com>
+
+	PR middle-end/54645
+	* c-pch.c (c_common_read_pch): Rebuild the location_adhoc_data
+	map when read in the pch.
+
+2012-09-18 Arnaud Charlet  <charlet@adacore.com>
+
+	* c-ada-spec.c: Style fixes.
+
+2012-09-18 Thomas Quinot  <quinot@adacore.com>
+
+	* c.opt (-fada-spec-parent): Define new command line switch.
+	* c-ada-spec.c (get_ada_package): When -fada-spec-parent
+	is specified, generate binding spec as a child of the specified unit.
+
+2012-09-13  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/53210
+	* c.opt ([Winit-self]): Enabled by -Wall in C++.
+
+2012-08-23  Arnaud Charlet  <charlet@adacore.com>
+
+	* c-ada-spec.c (dump_generic_ada_node): Fix handling of name_only
+	for pointers, and add missing Convention C pragma.
+	(print_ada_struct_decl): Add missing aliased keyword.
+	(dump_ads): Add pragma Ada_2005 and Style_Checks (Off).
+
+2012-08-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-common.c (sizeof_pointer_memaccess_warning): New function.
+	* c.opt (-Wsizeof-pointer-memaccess): Add new option.
+	* c-opts.c (c_common_handle_option): Enable it for -Wall.
+	* c-common.h (sizeof_pointer_memaccess_warning): Add prototype.
+	* c-common.def (SIZEOF_EXPR): Moved here from cp-tree.def.
+
+2012-08-10  Richard Guenther  <rguenther@suse.de>
+
+	* c-pretty-print.c (pp_c_expression): Handle anonymous SSA names.
+
+2012-08-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-pretty-print.c (pp_c_function_definition): Use pp_newline_and_flush
+	instead of separate pp_newline and pp_flush.
+	(print_c_tree): Likewise.
+
+2012-07-26  Richard Henderson  <rth@redhat.com>
+
+	* c-common.c (handle_hot_attribute): Allow labels.
+	(handle_cold_attribute): Likewise.
+
 2012-07-20  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/28656
@@ -2069,7 +2413,7 @@
 	* c-common.c: Include gt-c-family-c-common.h.
 	* c-pragma.c: Include gt-c-family-c-pragma.h.
 
-Copyright (C) 2010, 2011 Free Software Foundation, Inc.
+Copyright (C) 2010-2013 Free Software Foundation, Inc.
 
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright

@@ -1,7 +1,5 @@
 /* Language-level data type conversion for GNU C++.
-   Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012 Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
@@ -107,14 +105,14 @@ cp_convert_to_pointer (tree type, tree expr, tsubst_flags_t complain)
     }
 
   /* Handle anachronistic conversions from (::*)() to cv void* or (*)().  */
-  if (TREE_CODE (type) == POINTER_TYPE
+  if (TYPE_PTR_P (type)
       && (TREE_CODE (TREE_TYPE (type)) == FUNCTION_TYPE
 	  || VOID_TYPE_P (TREE_TYPE (type))))
     {
       if (TYPE_PTRMEMFUNC_P (intype)
 	  || TREE_CODE (intype) == METHOD_TYPE)
 	return convert_member_func_to_ptr (type, expr, complain);
-      if (TREE_CODE (TREE_TYPE (expr)) == POINTER_TYPE)
+      if (TYPE_PTR_P (TREE_TYPE (expr)))
 	return build_nop (type, expr);
       intype = TREE_TYPE (expr);
     }
@@ -129,7 +127,7 @@ cp_convert_to_pointer (tree type, tree expr, tsubst_flags_t complain)
       intype = TYPE_MAIN_VARIANT (intype);
 
       if (TYPE_MAIN_VARIANT (type) != intype
-	  && TREE_CODE (type) == POINTER_TYPE
+	  && TYPE_PTR_P (type)
 	  && TREE_CODE (TREE_TYPE (type)) == RECORD_TYPE
 	  && MAYBE_CLASS_TYPE_P (TREE_TYPE (type))
 	  && MAYBE_CLASS_TYPE_P (TREE_TYPE (intype))
@@ -149,11 +147,13 @@ cp_convert_to_pointer (tree type, tree expr, tsubst_flags_t complain)
 	  binfo = NULL_TREE;
 	  /* Try derived to base conversion.  */
 	  if (!same_p)
-	    binfo = lookup_base (intype_class, type_class, ba_check, NULL);
+	    binfo = lookup_base (intype_class, type_class, ba_check,
+				 NULL, complain);
 	  if (!same_p && !binfo)
 	    {
 	      /* Try base to derived conversion.  */
-	      binfo = lookup_base (type_class, intype_class, ba_check, NULL);
+	      binfo = lookup_base (type_class, intype_class, ba_check,
+				   NULL, complain);
 	      code = MINUS_EXPR;
 	    }
 	  if (binfo == error_mark_node)
@@ -203,26 +203,21 @@ cp_convert_to_pointer (tree type, tree expr, tsubst_flags_t complain)
 
   if (null_ptr_cst_p (expr))
     {
-      if ((complain & tf_warning)
-	  && c_inhibit_evaluation_warnings == 0
-	  && !NULLPTR_TYPE_P (TREE_TYPE (expr)))
-	warning_at (loc, OPT_Wzero_as_null_pointer_constant,
-		    "zero as null pointer constant");
+      if (complain & tf_warning)
+	maybe_warn_zero_as_null_pointer_constant (expr, loc);
 
       if (TYPE_PTRMEMFUNC_P (type))
 	return build_ptrmemfunc (TYPE_PTRMEMFUNC_FN_TYPE (type), expr, 0,
 				 /*c_cast_p=*/false, complain);
 
-      if (TYPE_PTRDATAMEM_P (type))
-	{
-	  /* A NULL pointer-to-member is represented by -1, not by
-	     zero.  */
-	  expr = build_int_cst_type (type, -1);
-	}
-      else
-	expr = build_int_cst (type, 0);
+      /* A NULL pointer-to-data-member is represented by -1, not by
+	 zero.  */
+      tree val = (TYPE_PTRDATAMEM_P (type)
+		  ? build_int_cst_type (type, -1)
+		  : build_int_cst (type, 0));
 
-      return expr;
+      return (TREE_SIDE_EFFECTS (expr)
+	      ? build2 (COMPOUND_EXPR, type, expr, val) : val);
     }
   else if (TYPE_PTRMEM_P (type) && INTEGRAL_CODE_P (form))
     {
@@ -279,11 +274,11 @@ convert_to_pointer_force (tree type, tree expr, tsubst_flags_t complain)
 	  tree binfo;
 
 	  binfo = lookup_base (TREE_TYPE (intype), TREE_TYPE (type),
-			       ba_unique, NULL);
+			       ba_unique, NULL, complain);
 	  if (!binfo)
 	    {
 	      binfo = lookup_base (TREE_TYPE (type), TREE_TYPE (intype),
-				   ba_unique, NULL);
+				   ba_unique, NULL, complain);
 	      code = MINUS_EXPR;
 	    }
 	  if (binfo == error_mark_node)
@@ -337,12 +332,12 @@ build_up_reference (tree type, tree arg, int flags, tree decl,
 		      LOOKUP_ONLYCONVERTING|DIRECT_BIND);
     }
   else if (!(flags & DIRECT_BIND) && ! lvalue_p (arg))
-    return get_target_expr (arg);
+    return get_target_expr_sfinae (arg, complain);
 
   /* If we had a way to wrap this up, and say, if we ever needed its
      address, transform all occurrences of the register, into a memory
      reference we could win better.  */
-  rval = cp_build_addr_expr (arg, tf_warning_or_error);
+  rval = cp_build_addr_expr (arg, complain);
   if (rval == error_mark_node)
     return error_mark_node;
 
@@ -352,7 +347,8 @@ build_up_reference (tree type, tree arg, int flags, tree decl,
       && MAYBE_CLASS_TYPE_P (target_type))
     {
       /* We go through lookup_base for the access control.  */
-      tree binfo = lookup_base (argtype, target_type, ba_check, NULL);
+      tree binfo = lookup_base (argtype, target_type, ba_check,
+				NULL, complain);
       if (binfo == error_mark_node)
 	return error_mark_node;
       if (binfo == NULL_TREE)
@@ -487,7 +483,7 @@ convert_to_reference (tree reftype, tree expr, int convtype,
       /* B* bp; A& ar = (A&)bp; is valid, but it's probably not what they
 	 meant.  */
       if ((complain & tf_warning)
-	  && TREE_CODE (intype) == POINTER_TYPE
+	  && TYPE_PTR_P (intype)
 	  && (comptypes (TREE_TYPE (intype), type,
 			 COMPARE_BASE | COMPARE_DERIVED)))
 	warning_at (loc, 0, "casting %qT to %qT does not dereference pointer",
@@ -558,7 +554,7 @@ force_rvalue (tree expr, tsubst_flags_t complain)
   tree type = TREE_TYPE (expr);
   if (MAYBE_CLASS_TYPE_P (type) && TREE_CODE (expr) != TARGET_EXPR)
     {
-      VEC(tree,gc) *args = make_tree_vector_single (expr);
+      vec<tree, va_gc> *args = make_tree_vector_single (expr);
       expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
 					&args, type, LOOKUP_NORMAL, complain);
       release_tree_vector (args);
@@ -687,6 +683,8 @@ ocp_convert (tree type, tree expr, int convtype, int flags,
 	 conversion.  */
       else if (TREE_CODE (type) == COMPLEX_TYPE)
 	return fold_if_not_in_template (convert_to_complex (type, e));
+      else if (TREE_CODE (type) == VECTOR_TYPE)
+	return fold_if_not_in_template (convert_to_vector (type, e));
       else if (TREE_CODE (e) == TARGET_EXPR)
 	{
 	  /* Don't build a NOP_EXPR of class type.  Instead, change the
@@ -725,7 +723,7 @@ ocp_convert (tree type, tree expr, int convtype, int flags,
 	  if (((INTEGRAL_OR_ENUMERATION_TYPE_P (intype)
 		|| TREE_CODE (intype) == REAL_TYPE)
 	       && ! (convtype & CONV_STATIC))
-	      || TREE_CODE (intype) == POINTER_TYPE)
+	      || TYPE_PTR_P (intype))
 	    {
 	      if (complain & tf_error)
 		permerror (loc, "conversion from %q#T to %q#T", intype, type);
@@ -760,7 +758,7 @@ ocp_convert (tree type, tree expr, int convtype, int flags,
 	}
       if (code == BOOLEAN_TYPE)
 	{
-	  if (TREE_CODE (intype) == VOID_TYPE)
+	  if (VOID_TYPE_P (intype))
 	    {
 	      if (complain & tf_error)
 		error_at (loc,
@@ -782,7 +780,11 @@ ocp_convert (tree type, tree expr, int convtype, int flags,
       return ignore_overflows (converted, e);
     }
   if (NULLPTR_TYPE_P (type) && e && null_ptr_cst_p (e))
-    return nullptr_node;
+    {
+      if (complain & tf_warning)
+	maybe_warn_zero_as_null_pointer_constant (e, loc);
+      return nullptr_node;
+    }
   if (POINTER_TYPE_P (type) || TYPE_PTRMEM_P (type))
     return fold_if_not_in_template (cp_convert_to_pointer (type, e, complain));
   if (code == VECTOR_TYPE)
@@ -839,7 +841,7 @@ ocp_convert (tree type, tree expr, int convtype, int flags,
 
       ctor = e;
 
-      if (abstract_virtuals_error (NULL_TREE, type))
+      if (abstract_virtuals_error_sfinae (NULL_TREE, type, complain))
 	return error_mark_node;
 
       if (BRACE_ENCLOSED_INITIALIZER_P (ctor))
@@ -852,7 +854,7 @@ ocp_convert (tree type, tree expr, int convtype, int flags,
 	ctor = build_user_type_conversion (type, ctor, flags, complain);
       else
 	{
-	  VEC(tree,gc) *ctor_vec = make_tree_vector_single (ctor);
+	  vec<tree, va_gc> *ctor_vec = make_tree_vector_single (ctor);
 	  ctor = build_special_member_call (NULL_TREE,
 					    complete_ctor_identifier,
 					    &ctor_vec,
@@ -914,7 +916,7 @@ convert_to_void (tree expr, impl_conv_void implicit, tsubst_flags_t complain)
 	exprv = TREE_OPERAND (exprv, 1);
       if (DECL_P (exprv)
 	  || handled_component_p (exprv)
-	  || TREE_CODE (exprv) == INDIRECT_REF)
+	  || INDIRECT_REF_P (exprv))
 	/* Expr is not being 'used' here, otherwise we whould have
 	   called mark_{rl}value_use use here, which would have in turn
 	   called mark_exp_read.  Rather, we call mark_exp_read directly
@@ -1455,8 +1457,7 @@ convert_force (tree type, tree expr, int convtype, tsubst_flags_t complain)
 							      complain));
 
   /* From typeck.c convert_for_assignment */
-  if (((TREE_CODE (TREE_TYPE (e)) == POINTER_TYPE && TREE_CODE (e) == ADDR_EXPR
-	&& TREE_CODE (TREE_TYPE (e)) == POINTER_TYPE
+  if (((TYPE_PTR_P (TREE_TYPE (e)) && TREE_CODE (e) == ADDR_EXPR
 	&& TREE_CODE (TREE_TYPE (TREE_TYPE (e))) == METHOD_TYPE)
        || integer_zerop (e)
        || TYPE_PTRMEMFUNC_P (TREE_TYPE (e)))
@@ -1510,8 +1511,6 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
       warning_at (loc, OPT_Wconversion_null,
 		  "converting NULL to non-pointer type");
     }
-
-  basetype = TREE_TYPE (expr);
 
   if (basetype == error_mark_node)
     return error_mark_node;

@@ -1,6 +1,5 @@
 /* Various declarations for language-independent diagnostics subroutines.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-   2010, Free Software Foundation, Inc.
+   Copyright (C) 2000-2013 Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@codesourcery.com>
 
 This file is part of GCC.
@@ -241,6 +240,8 @@ extern diagnostic_context *global_dc;
 #define errorcount diagnostic_kind_count (global_dc, DK_ERROR)
 /* Similarly, but for warnings.  */
 #define warningcount diagnostic_kind_count (global_dc, DK_WARNING)
+/* Similarly, but for warnings promoted to errors.  */
+#define werrorcount diagnostic_kind_count (global_dc, DK_WERROR)
 /* Similarly, but for sorrys.  */
 #define sorrycount diagnostic_kind_count (global_dc, DK_SORRY)
 
@@ -282,8 +283,10 @@ extern void diagnostic_set_info_translated (diagnostic_info *, const char *,
 					    va_list *, location_t,
 					    diagnostic_t)
      ATTRIBUTE_GCC_DIAG(2,0);
+extern void diagnostic_append_note (diagnostic_context *, location_t,
+                                    const char *, ...) ATTRIBUTE_GCC_DIAG(3,4);
 #endif
-extern char *diagnostic_build_prefix (diagnostic_context *, diagnostic_info *);
+extern char *diagnostic_build_prefix (diagnostic_context *, const diagnostic_info *);
 void default_diagnostic_starter (diagnostic_context *, diagnostic_info *);
 void default_diagnostic_finalizer (diagnostic_context *, diagnostic_info *);
 void diagnostic_set_caret_max_width (diagnostic_context *context, int value);

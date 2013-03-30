@@ -1,6 +1,5 @@
 /* Definitions for MIPS systems using GNU userspace and n32/64 abi.
-   Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2002-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -20,12 +19,16 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Force the default endianness and ABI flags onto the command line
    in order to make the other specs easier to write.  */
-#undef DRIVER_SELF_SPECS
-#define DRIVER_SELF_SPECS \
-  BASE_DRIVER_SELF_SPECS, \
+
+#define LINUX64_DRIVER_SELF_SPECS \
   LINUX_DRIVER_SELF_SPECS \
   " %{!EB:%{!EL:%(endian_spec)}}" \
   " %{!mabi=*: -" MULTILIB_ABI_DEFAULT "}"
+
+#undef DRIVER_SELF_SPECS
+#define DRIVER_SELF_SPECS \
+  BASE_DRIVER_SELF_SPECS, \
+  LINUX64_DRIVER_SELF_SPECS
 
 #undef GNU_USER_TARGET_LINK_SPEC
 #define GNU_USER_TARGET_LINK_SPEC "\

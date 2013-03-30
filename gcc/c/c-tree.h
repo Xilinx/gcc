@@ -1,7 +1,5 @@
 /* Definitions for C parsing and type checking.
-   Copyright (C) 1987, 1993, 1994, 1995, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -135,15 +133,12 @@ struct c_expr
 typedef struct c_expr c_expr_t;
 
 /* A varray of c_expr_t.  */
-DEF_VEC_O (c_expr_t);
-DEF_VEC_ALLOC_O (c_expr_t, gc);
-DEF_VEC_ALLOC_O (c_expr_t, heap);
 
 /* Append a new c_expr_t element to V.  */
 #define C_EXPR_APPEND(V, ELEM) \
   do { \
-    c_expr_t *__elem_p = VEC_safe_push (c_expr_t, gc, V, NULL); \
-    *__elem_p = (ELEM); \
+    c_expr_t __elem = (ELEM); \
+    vec_safe_push (V, __elem); \
   } while (0)
 
 /* A kind of type specifier.  Note that this information is currently
@@ -363,15 +358,13 @@ typedef struct c_arg_tag_d {
   tree type;
 } c_arg_tag;
 
-DEF_VEC_O(c_arg_tag);
-DEF_VEC_ALLOC_O(c_arg_tag,gc);
 
 /* Information about the parameters in a function declarator.  */
 struct c_arg_info {
   /* A list of parameter decls.  */
   tree parms;
   /* A list of structure, union and enum tags defined.  */
-  VEC(c_arg_tag,gc) *tags;
+  vec<c_arg_tag, va_gc> *tags;
   /* A list of argument types to go in the FUNCTION_TYPE.  */
   tree types;
   /* A list of non-parameter decls (notably enumeration constants)
@@ -572,6 +565,8 @@ extern bool c_vla_unspec_p (tree x, tree fn);
 extern int in_alignof;
 extern int in_sizeof;
 extern int in_typeof;
+
+extern tree c_last_sizeof_arg;
 
 extern struct c_switch *c_switch_stack;
 

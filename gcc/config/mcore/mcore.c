@@ -1,6 +1,5 @@
 /* Output routines for Motorola MCore processor
-   Copyright (C) 1993, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
-   2009, 2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 1993-2013 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -138,6 +137,7 @@ static unsigned int mcore_function_arg_boundary (enum machine_mode,
 						 const_tree);
 static void       mcore_asm_trampoline_template (FILE *);
 static void       mcore_trampoline_init		(rtx, tree, rtx);
+static bool       mcore_warn_func_return        (tree);
 static void       mcore_option_override		(void);
 static bool       mcore_legitimate_constant_p   (enum machine_mode, rtx);
 
@@ -190,7 +190,7 @@ static const struct attribute_spec mcore_attribute_table[] =
 #undef  TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS 		mcore_rtx_costs
 #undef  TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST 		hook_int_rtx_bool_0
+#define TARGET_ADDRESS_COST 		hook_int_rtx_mode_as_bool_0
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG	mcore_reorg
 
@@ -227,6 +227,9 @@ static const struct attribute_spec mcore_attribute_table[] =
 
 #undef TARGET_LEGITIMATE_CONSTANT_P
 #define TARGET_LEGITIMATE_CONSTANT_P mcore_legitimate_constant_p
+
+#undef TARGET_WARN_FUNC_RETURN
+#define TARGET_WARN_FUNC_RETURN mcore_warn_func_return
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -911,10 +914,10 @@ mcore_is_dead (rtx first, rtx reg)
      to assume that it is live.  */
   for (insn = NEXT_INSN (first); insn; insn = NEXT_INSN (insn))
     {
-      if (GET_CODE (insn) == JUMP_INSN)
+      if (JUMP_P (insn))
 	return 0;	/* We lose track, assume it is alive.  */
 
-      else if (GET_CODE(insn) == CALL_INSN)
+      else if (CALL_P (insn))
 	{
 	  /* Call's might use it for target or register parms.  */
 	  if (reg_referenced_p (reg, PATTERN (insn))
@@ -923,7 +926,7 @@ mcore_is_dead (rtx first, rtx reg)
 	  else if (dead_or_set_p (insn, reg))
             return 1;
 	}
-      else if (GET_CODE (insn) == INSN)
+      else if (NONJUMP_INSN_P (insn))
 	{
 	  if (reg_referenced_p (reg, PATTERN (insn)))
             return 0;
@@ -1338,7 +1341,7 @@ mcore_output_movedouble (rtx operands[], enum machine_mode mode ATTRIBUTE_UNUSED
 	}
       else if (GET_CODE (src) == MEM)
 	{
-	  rtx memexp = memexp = XEXP (src, 0);
+	  rtx memexp = XEXP (src, 0);
 	  int dstreg = REGNO (dst);
 	  int basereg = -1;
 	  
@@ -2251,7 +2254,7 @@ is_cond_candidate (rtx insn)
      changed into a conditional.  Only bother with SImode items.  If 
      we wanted to be a little more aggressive, we could also do other
      modes such as DImode with reg-reg move or load 0.  */
-  if (GET_CODE (insn) == INSN)
+  if (NONJUMP_INSN_P (insn))
     {
       rtx pat = PATTERN (insn);
       rtx src, dst;
@@ -2302,9 +2305,9 @@ is_cond_candidate (rtx insn)
       */            
 
     }
-  else if (GET_CODE (insn) == JUMP_INSN &&
-	   GET_CODE (PATTERN (insn)) == SET &&
-	   GET_CODE (XEXP (PATTERN (insn), 1)) == LABEL_REF)
+  else if (JUMP_P (insn)
+	   && GET_CODE (PATTERN (insn)) == SET
+	   && GET_CODE (XEXP (PATTERN (insn), 1)) == LABEL_REF)
     return COND_BRANCH_INSN;
 
   return COND_NO;
@@ -2325,7 +2328,7 @@ emit_new_cond_insn (rtx insn, int cond)
 
   pat = PATTERN (insn);
 
-  if (GET_CODE (insn) == INSN)
+  if (NONJUMP_INSN_P (insn))
     {
       dst = SET_DEST (pat);
       src = SET_SRC (pat);
@@ -2446,9 +2449,9 @@ conditionalize_block (rtx first)
   /* Check that the first insn is a candidate conditional jump.  This is
      the one that we'll eliminate.  If not, advance to the next insn to
      try.  */
-  if (GET_CODE (first) != JUMP_INSN ||
-      GET_CODE (PATTERN (first)) != SET ||
-      GET_CODE (XEXP (PATTERN (first), 1)) != IF_THEN_ELSE)
+  if (! JUMP_P (first)
+      || GET_CODE (PATTERN (first)) != SET
+      || GET_CODE (XEXP (PATTERN (first), 1)) != IF_THEN_ELSE)
     return NEXT_INSN (first);
 
   /* Extract some information we need.  */
@@ -2580,9 +2583,6 @@ conditionalize_optimization (void)
     continue;
 }
 
-static int saved_warn_return_type = -1;
-static int saved_warn_return_type_count = 0;
-
 /* This is to handle loads from the constant pool.  */
 
 static void
@@ -2590,21 +2590,6 @@ mcore_reorg (void)
 {
   /* Reset this variable.  */
   current_function_anonymous_args = 0;
-  
-  /* Restore the warn_return_type if it has been altered.  */
-  if (saved_warn_return_type != -1)
-    {
-      /* Only restore the value if we have reached another function.
-	 The test of warn_return_type occurs in final_function () in
-	 c-decl.c a long time after the code for the function is generated,
-	 so we need a counter to tell us when we have finished parsing that
-	 function and can restore the flag.  */
-      if (--saved_warn_return_type_count == 0)
-	{
-	  warn_return_type = saved_warn_return_type;
-	  saved_warn_return_type = -1;
-	}
-    }
   
   if (optimize == 0)
     return;
@@ -3056,25 +3041,7 @@ static tree
 mcore_handle_naked_attribute (tree * node, tree name, tree args ATTRIBUTE_UNUSED,
 			      int flags ATTRIBUTE_UNUSED, bool * no_add_attrs)
 {
-  if (TREE_CODE (*node) == FUNCTION_DECL)
-    {
-      /* PR14310 - don't complain about lack of return statement
-	 in naked functions.  The solution here is a gross hack
-	 but this is the only way to solve the problem without
-	 adding a new feature to GCC.  I did try submitting a patch
-	 that would add such a new feature, but it was (rightfully)
-	 rejected on the grounds that it was creeping featurism,
-	 so hence this code.  */
-      if (warn_return_type)
-	{
-	  saved_warn_return_type = warn_return_type;
-	  warn_return_type = 0;
-	  saved_warn_return_type_count = 2;
-	}
-      else if (saved_warn_return_type_count)
-	saved_warn_return_type_count = 2;
-    }
-  else
+  if (TREE_CODE (*node) != FUNCTION_DECL)
     {
       warning (OPT_Wattributes, "%qE attribute only applies to functions",
 	       name);
@@ -3124,6 +3091,14 @@ int
 mcore_naked_function_p (void)
 {
   return lookup_attribute ("naked", DECL_ATTRIBUTES (current_function_decl)) != NULL_TREE;
+}
+
+static bool
+mcore_warn_func_return (tree decl)
+{
+  /* Naked functions are implemented entirely in assembly, including the
+     return sequence, so suppress warnings about this.  */
+  return lookup_attribute ("naked", DECL_ATTRIBUTES (decl)) == NULL_TREE;
 }
 
 #ifdef OBJECT_FORMAT_ELF

@@ -1,7 +1,5 @@
 /* Compilation switch flag type definitions for GCC.
-   Copyright (C) 1987, 1988, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -141,13 +139,6 @@ enum excess_precision
   EXCESS_PRECISION_STANDARD
 };
 
-/* Selection of the graph form.  */
-enum graph_dump_types
-{
-  no_graph = 0,
-  vcg
-};
-
 /* Type of stack check.  */
 enum stack_check_type
 {
@@ -198,22 +189,6 @@ enum fp_contract_mode {
   FP_CONTRACT_OFF = 0,
   FP_CONTRACT_ON = 1,
   FP_CONTRACT_FAST = 2
-};
-
-/* Vectorizer verbosity levels.  */
-enum vect_verbosity_levels {
-  REPORT_NONE,
-  REPORT_VECTORIZED_LOCATIONS,
-  REPORT_UNVECTORIZED_LOCATIONS,
-  REPORT_COST,
-  REPORT_ALIGNMENT,
-  REPORT_DR_DETAILS,
-  REPORT_BAD_FORM_LOOPS,
-  REPORT_OUTER_LOOPS,
-  REPORT_SLP,
-  REPORT_DETAILS,
-  /* New verbosity levels should be added before this one.  */
-  MAX_VERBOSITY_LEVEL
 };
 
 #endif /* ! GCC_FLAG_TYPES_H */

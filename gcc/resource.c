@@ -1,6 +1,5 @@
 /* Definitions for computing resource usage of specific insns.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 1999-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -176,14 +175,12 @@ next_insn_no_annul (rtx insn)
 	  && NEXT_INSN (PREV_INSN (insn)) != insn)
 	{
 	  rtx next = NEXT_INSN (insn);
-	  enum rtx_code code = GET_CODE (next);
 
-	  while ((code == INSN || code == JUMP_INSN || code == CALL_INSN)
+	  while ((NONJUMP_INSN_P (next) || JUMP_P (next) || CALL_P (next))
 		 && INSN_FROM_TARGET_P (next))
 	    {
 	      insn = next;
 	      next = NEXT_INSN (insn);
-	      code = GET_CODE (next);
 	    }
 	}
 
@@ -215,10 +212,7 @@ mark_referenced_resources (rtx x, struct resources *res,
   switch (code)
     {
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case PC:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -632,10 +626,7 @@ mark_set_resources (rtx x, struct resources *res, int in_dest,
     case BARRIER:
     case CODE_LABEL:
     case USE:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case LABEL_REF:
     case SYMBOL_REF:
     case CONST:

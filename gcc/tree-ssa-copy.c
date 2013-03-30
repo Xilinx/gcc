@@ -1,6 +1,5 @@
 /* Copy propagation and SSA_NAME replacement support routines.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2004-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -74,10 +73,10 @@ may_propagate_copy (tree dest, tree orig)
     return false;
 
   /* Propagating virtual operands is always ok.  */
-  if (TREE_CODE (dest) == SSA_NAME && !is_gimple_reg (dest))
+  if (TREE_CODE (dest) == SSA_NAME && virtual_operand_p (dest))
     {
       /* But only between virtual operands.  */
-      gcc_assert (TREE_CODE (orig) == SSA_NAME && !is_gimple_reg (orig));
+      gcc_assert (TREE_CODE (orig) == SSA_NAME && virtual_operand_p (orig));
 
       return true;
     }
@@ -137,12 +136,9 @@ may_propagate_copy_into_stmt (gimple dest, tree orig)
 /* Similarly, but we know that we're propagating into an ASM_EXPR.  */
 
 bool
-may_propagate_copy_into_asm (tree dest)
+may_propagate_copy_into_asm (tree dest ATTRIBUTE_UNUSED)
 {
-  /* Hard register operands of asms are special.  Do not bypass.  */
-  return !(TREE_CODE (dest) == SSA_NAME
-	   && TREE_CODE (SSA_NAME_VAR (dest)) == VAR_DECL
-	   && DECL_HARD_REGISTER (SSA_NAME_VAR (dest)));
+  return true;
 }
 
 
@@ -284,6 +280,7 @@ struct prop_value_d {
 typedef struct prop_value_d prop_value_t;
 
 static prop_value_t *copy_of;
+static unsigned n_copy_of;
 
 
 /* Return true if this statement may generate a useful copy.  */
@@ -668,12 +665,13 @@ init_copy_prop (void)
 {
   basic_block bb;
 
-  copy_of = XCNEWVEC (prop_value_t, num_ssa_names);
+  n_copy_of = num_ssa_names;
+  copy_of = XCNEWVEC (prop_value_t, n_copy_of);
 
   FOR_EACH_BB (bb)
     {
       gimple_stmt_iterator si;
-      int depth = bb->loop_depth;
+      int depth = bb_loop_depth (bb);
 
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
 	{
@@ -716,7 +714,7 @@ init_copy_prop (void)
           tree def;
 
 	  def = gimple_phi_result (phi);
-	  if (!is_gimple_reg (def))
+	  if (virtual_operand_p (def))
             prop_set_simulate_again (phi, false);
 	  else
             prop_set_simulate_again (phi, true);
@@ -732,7 +730,10 @@ init_copy_prop (void)
 static tree
 get_value (tree name)
 {
-  tree val = copy_of[SSA_NAME_VERSION (name)].value;
+  tree val;
+  if (SSA_NAME_VERSION (name) >= n_copy_of)
+    return NULL_TREE;
+  val = copy_of[SSA_NAME_VERSION (name)].value;
   if (val && val != name)
     return val;
   return NULL_TREE;
@@ -831,6 +832,7 @@ struct gimple_opt_pass pass_copy_prop =
  {
   GIMPLE_PASS,
   "copyprop",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_copy_prop,			/* gate */
   execute_copy_prop,			/* execute */
   NULL,					/* sub */

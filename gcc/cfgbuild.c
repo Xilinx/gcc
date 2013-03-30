@@ -1,7 +1,5 @@
 /* Control flow graph building code for GNU compiler.
-   Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 1987-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -53,19 +51,15 @@ inside_basic_block_p (const_rtx insn)
     case CODE_LABEL:
       /* Avoid creating of basic block for jumptables.  */
       return (NEXT_INSN (insn) == 0
-	      || !JUMP_P (NEXT_INSN (insn))
-	      || (GET_CODE (PATTERN (NEXT_INSN (insn))) != ADDR_VEC
-		  && GET_CODE (PATTERN (NEXT_INSN (insn))) != ADDR_DIFF_VEC));
+	      || ! JUMP_TABLE_DATA_P (insn));
 
     case JUMP_INSN:
-      return (GET_CODE (PATTERN (insn)) != ADDR_VEC
-	      && GET_CODE (PATTERN (insn)) != ADDR_DIFF_VEC);
-
     case CALL_INSN:
     case INSN:
     case DEBUG_INSN:
       return true;
 
+    case JUMP_TABLE_DATA:
     case BARRIER:
     case NOTE:
       return false;
@@ -89,9 +83,7 @@ control_flow_insn_p (const_rtx insn)
       return false;
 
     case JUMP_INSN:
-      /* Jump insn always causes control transfer except for tablejumps.  */
-      return (GET_CODE (PATTERN (insn)) != ADDR_VEC
-	      && GET_CODE (PATTERN (insn)) != ADDR_DIFF_VEC);
+      return true;
 
     case CALL_INSN:
       /* Noreturn and sibling call instructions terminate the basic blocks
@@ -115,8 +107,9 @@ control_flow_insn_p (const_rtx insn)
 	return false;
       break;
 
+    case JUMP_TABLE_DATA:
     case BARRIER:
-      /* It is nonsense to reach barrier when looking for the
+      /* It is nonsense to reach this when looking for the
 	 end of basic block, but before dead code is eliminated
 	 this may happen.  */
       return false;
@@ -236,12 +229,12 @@ make_edges (basic_block min, basic_block max, int update_p)
       /* If we have an edge cache, cache edges going out of BB.  */
       if (edge_cache)
 	{
-	  sbitmap_zero (edge_cache);
+	  bitmap_clear (edge_cache);
 	  if (update_p)
 	    {
 	      FOR_EACH_EDGE (e, ei, bb->succs)
 		if (e->dest != EXIT_BLOCK_PTR)
-		  SET_BIT (edge_cache, e->dest->index);
+		  bitmap_set_bit (edge_cache, e->dest->index);
 	    }
 	}
 
@@ -385,7 +378,7 @@ make_edges (basic_block min, basic_block max, int update_p)
     }
 
   if (edge_cache)
-    sbitmap_vector_free (edge_cache);
+    sbitmap_free (edge_cache);
 }
 
 static void
@@ -559,16 +552,35 @@ compute_outgoing_frequencies (basic_block b)
 	  f->count = b->count - e->count;
 	  return;
 	}
+      else
+        {
+          guess_outgoing_edge_probabilities (b);
+        }
     }
-
-  if (single_succ_p (b))
+  else if (single_succ_p (b))
     {
       e = single_succ_edge (b);
       e->probability = REG_BR_PROB_BASE;
       e->count = b->count;
       return;
     }
-  guess_outgoing_edge_probabilities (b);
+  else
+    {
+      /* We rely on BBs with more than two successors to have sane probabilities
+         and do not guess them here. For BBs terminated by switch statements
+         expanded to jump-table jump, we have done the right thing during
+         expansion. For EH edges, we still guess the probabilities here.  */
+      bool complex_edge = false;
+      FOR_EACH_EDGE (e, ei, b->succs)
+        if (e->flags & EDGE_COMPLEX)
+          {
+            complex_edge = true;
+            break;
+          }
+      if (complex_edge)
+        guess_outgoing_edge_probabilities (b);
+    }
+
   if (b->count)
     FOR_EACH_EDGE (e, ei, b->succs)
       e->count = ((b->count * e->probability + REG_BR_PROB_BASE / 2)
@@ -586,7 +598,7 @@ find_many_sub_basic_blocks (sbitmap blocks)
 
   FOR_EACH_BB (bb)
     SET_STATE (bb,
-	       TEST_BIT (blocks, bb->index) ? BLOCK_TO_SPLIT : BLOCK_ORIGINAL);
+	       bitmap_bit_p (blocks, bb->index) ? BLOCK_TO_SPLIT : BLOCK_ORIGINAL);
 
   FOR_EACH_BB (bb)
     if (STATE (bb) == BLOCK_TO_SPLIT)

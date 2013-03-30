@@ -23,8 +23,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Debug;    use Debug;
+with Errout;   use Errout;
 with Lib;      use Lib;
 with Lib.Util; use Lib.Util;
 with Namet;    use Namet;
@@ -33,6 +35,8 @@ with Opt;      use Opt;
 with Output;   use Output;
 with Put_SCOs;
 with SCOs;     use SCOs;
+with Sem;      use Sem;
+with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Snames;   use Snames;
@@ -101,6 +105,9 @@ package body Par_SCO is
    --  excluding OR and AND) and returns True if so, False otherwise, it does
    --  no other processing.
 
+   function To_Source_Location (S : Source_Ptr) return Source_Location;
+   --  Converts Source_Ptr value to Source_Location (line/col) format
+
    procedure Process_Decisions
      (N           : Node_Id;
       T           : Character;
@@ -108,9 +115,9 @@ package body Par_SCO is
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains. T is one of IEGPWX (for context of
    --  expression: if/exit when/entry guard/pragma/while/expression). If T is
-   --  other than X, the node N is the conditional expression involved, and a
-   --  decision is always present (at the very least a simple decision is
-   --  present at the top level).
+   --  other than X, the node N is the if expression involved, and a decision
+   --  is always present (at the very least a simple decision is present at the
+   --  top level).
 
    procedure Process_Decisions
      (L           : List_Id;
@@ -119,13 +126,13 @@ package body Par_SCO is
    --  Calls above procedure for each element of the list L
 
    procedure Set_Table_Entry
-     (C1          : Character;
-      C2          : Character;
-      From        : Source_Ptr;
-      To          : Source_Ptr;
-      Last        : Boolean;
-      Pragma_Sloc : Source_Ptr := No_Location;
-      Pragma_Name : Pragma_Id  := Unknown_Pragma);
+     (C1                 : Character;
+      C2                 : Character;
+      From               : Source_Ptr;
+      To                 : Source_Ptr;
+      Last               : Boolean;
+      Pragma_Sloc        : Source_Ptr := No_Location;
+      Pragma_Aspect_Name : Name_Id    := No_Name);
    --  Append an entry to SCO_Table with fields set as per arguments
 
    type Dominant_Info is record
@@ -137,6 +144,9 @@ package body Par_SCO is
    end record;
    No_Dominant : constant Dominant_Info := (' ', Empty);
 
+   procedure Record_Instance (Id : Instance_Id; Inst_Sloc : Source_Ptr);
+   --  Add one entry from the instance table to the corresponding SCO table
+
    procedure Traverse_Declarations_Or_Statements
      (L : List_Id;
       D : Dominant_Info := No_Dominant;
@@ -144,19 +154,35 @@ package body Par_SCO is
    --  Process L, a list of statements or declarations dominated by D.
    --  If P is present, it is processed as though it had been prepended to L.
 
-   procedure Traverse_Generic_Instantiation       (N : Node_Id);
+   function Traverse_Declarations_Or_Statements
+     (L : List_Id;
+      D : Dominant_Info := No_Dominant;
+      P : Node_Id       := Empty) return Dominant_Info;
+   --  Same as above, and returns dominant information corresponding to the
+   --  last node with SCO in L.
+
+   --  The following Traverse_* routines perform appropriate calls to
+   --  Traverse_Declarations_Or_Statements to traverse specific node kinds.
+   --  Parameter D, when present, indicates the dominant of the first
+   --  declaration or statement within N.
+
+   --  Why is Traverse_Sync_Definition commented specificaly and
+   --   the others are not???
+
    procedure Traverse_Generic_Package_Declaration (N : Node_Id);
    procedure Traverse_Handled_Statement_Sequence
      (N : Node_Id;
       D : Dominant_Info := No_Dominant);
-   procedure Traverse_Package_Body                (N : Node_Id);
-   procedure Traverse_Package_Declaration         (N : Node_Id);
-   procedure Traverse_Protected_Body              (N : Node_Id);
+   procedure Traverse_Package_Body        (N : Node_Id);
+   procedure Traverse_Package_Declaration
+     (N : Node_Id;
+      D : Dominant_Info := No_Dominant);
    procedure Traverse_Subprogram_Or_Task_Body
      (N : Node_Id;
       D : Dominant_Info := No_Dominant);
-   procedure Traverse_Subprogram_Declaration      (N : Node_Id);
-   --  Traverse the corresponding construct, generating SCO table entries
+
+   procedure Traverse_Sync_Definition     (N : Node_Id);
+   --  Traverse a protected definition or task definition
 
    procedure Write_SCOs_To_ALI_File is new Put_SCOs;
    --  Write SCO information to the ALI file using routines in Lib.Util
@@ -478,30 +504,42 @@ package body Par_SCO is
          Loc : Source_Ptr := No_Location;
          --  Node whose Sloc is used for the decision
 
+         Nam : Name_Id := No_Name;
+         --  For the case of an aspect, aspect name
+
       begin
          case T is
-            when 'I' | 'E' | 'W' =>
+            when 'I' | 'E' | 'W' | 'a' | 'A' =>
 
-               --  For IF, EXIT, WHILE, the token SLOC can be found from
-               --  the SLOC of the parent of the expression.
+               --  For IF, EXIT, WHILE, or aspects, the token SLOC is that of
+               --  the parent of the expression.
 
                Loc := Sloc (Parent (N));
+
+               if T = 'a' or else T = 'A' then
+                  Nam := Chars (Identifier (Parent (N)));
+               end if;
 
             when 'G' | 'P' =>
 
                --  For entry guard, the token sloc is from the N_Entry_Body.
                --  For PRAGMA, we must get the location from the pragma node.
-               --  Argument N is the pragma argument, and we have to go up two
-               --  levels (through the pragma argument association) to get to
-               --  the pragma node itself. For the guard on a select
-               --  alternative, we do not have access to the token location
-               --  for the WHEN, so we use the sloc of the condition itself.
+               --  Argument N is the pragma argument, and we have to go up
+               --  two levels (through the pragma argument association) to
+               --  get to the pragma node itself. For the guard on a select
+               --  alternative, we do not have access to the token location for
+               --  the WHEN, so we use the first sloc of the condition itself
+               --  (note: we use First_Sloc, not Sloc, because this is what is
+               --  referenced by dominance markers).
+
+               --  Doesn't this requirement of using First_Sloc need to be
+               --  documented in the spec ???
 
                if Nkind_In (Parent (N), N_Accept_Alternative,
                                         N_Delay_Alternative,
                                         N_Terminate_Alternative)
                then
-                  Loc := Sloc (N);
+                  Loc := First_Sloc (N);
                else
                   Loc := Sloc (Parent (Parent (N)));
                end if;
@@ -519,12 +557,20 @@ package body Par_SCO is
          end case;
 
          Set_Table_Entry
-           (C1          => T,
-            C2          => ' ',
-            From        => Loc,
-            To          => No_Location,
-            Last        => False,
-            Pragma_Sloc => Pragma_Sloc);
+           (C1                 => T,
+            C2                 => ' ',
+            From               => Loc,
+            To                 => No_Location,
+            Last               => False,
+            Pragma_Sloc        => Pragma_Sloc,
+            Pragma_Aspect_Name => Nam);
+
+         --  For an aspect specification, which will be rewritten into a
+         --  pragma, enter a hash table entry now.
+
+         if T = 'a' then
+            Condition_Pragma_Hash_Table.Set (Loc, SCO_Table.Last);
+         end if;
       end Output_Header;
 
       ------------------------------
@@ -602,12 +648,15 @@ package body Par_SCO is
 
             --  Case expression
 
+            --  Really hard to believe this is correct given the special
+            --  handling for if expressions below ???
+
             when N_Case_Expression =>
                return OK; -- ???
 
-            --  Conditional expression, processed like an if statement
+            --  If expression, processed like an if statement
 
-            when N_Conditional_Expression =>
+            when N_If_Expression =>
                declare
                   Cond : constant Node_Id := First (Expressions (N));
                   Thnx : constant Node_Id := Next (Cond);
@@ -690,15 +739,38 @@ package body Par_SCO is
       Debug_Put_SCOs;
    end pscos;
 
+   ---------------------
+   -- Record_Instance --
+   ---------------------
+
+   procedure Record_Instance (Id : Instance_Id; Inst_Sloc : Source_Ptr) is
+      Inst_Src  : constant Source_File_Index :=
+                    Get_Source_File_Index (Inst_Sloc);
+   begin
+      SCO_Instance_Table.Append
+        ((Inst_Dep_Num       => Dependency_Num (Unit (Inst_Src)),
+          Inst_Loc           => To_Source_Location (Inst_Sloc),
+          Enclosing_Instance => SCO_Instance_Index (Instance (Inst_Src))));
+      pragma Assert
+        (SCO_Instance_Table.Last = SCO_Instance_Index (Id));
+   end Record_Instance;
+
    ----------------
    -- SCO_Output --
    ----------------
 
    procedure SCO_Output is
+      procedure Populate_SCO_Instance_Table is
+        new Sinput.Iterate_On_Instances (Record_Instance);
+
+      SCO_Index : Nat;
+
    begin
       if Debug_Flag_Dot_OO then
          dsco;
       end if;
+
+      Populate_SCO_Instance_Table;
 
       --  Sort the unit tables based on dependency numbers
 
@@ -758,6 +830,25 @@ package body Par_SCO is
          end;
       end loop;
 
+      --  Stamp out SCO entries for decisions in disabled constructs (pragmas
+      --  or aspects).
+
+      SCO_Index := 1;
+      while SCO_Index <= SCO_Table.Last loop
+         if Is_Decision (SCO_Table.Table (SCO_Index).C1)
+           and then SCO_Pragma_Disabled
+                      (SCO_Table.Table (SCO_Index).Pragma_Sloc)
+         then
+            loop
+               SCO_Table.Table (SCO_Index).C1 := ASCII.NUL;
+               exit when SCO_Table.Table (SCO_Index).Last;
+               SCO_Index := SCO_Index + 1;
+            end loop;
+         end if;
+
+         SCO_Index := SCO_Index + 1;
+      end loop;
+
       --  Now the tables are all setup for output to the ALI file
 
       Write_SCOs_To_ALI_File;
@@ -786,8 +877,30 @@ package body Par_SCO is
          declare
             T : SCO_Table_Entry renames SCO_Table.Table (Index);
          begin
-            pragma Assert (T.C1 = 'S');
-            return T.C2 = 'p';
+            case T.C1 is
+               when 'S' =>
+                  --  Pragma statement
+
+                  return T.C2 = 'p';
+
+               when 'A' =>
+                  --  Aspect decision (enabled)
+
+                  return False;
+
+               when 'a' =>
+                  --  Aspect decision (not enabled)
+
+                  return True;
+
+               when ASCII.NUL =>
+                  --  Nullified disabled SCO
+
+                  return True;
+
+               when others =>
+                  raise Program_Error;
+            end case;
          end;
 
       else
@@ -802,6 +915,23 @@ package body Par_SCO is
    procedure SCO_Record (U : Unit_Number_Type) is
       Lu   : Node_Id;
       From : Nat;
+
+      procedure Traverse_Aux_Decls (N : Node_Id);
+      --  Traverse the Aux_Decl_Nodes of compilation unit N
+
+      ------------------------
+      -- Traverse_Aux_Decls --
+      ------------------------
+
+      procedure Traverse_Aux_Decls (N : Node_Id) is
+         ADN : constant Node_Id := Aux_Decls_Node (N);
+      begin
+         Traverse_Declarations_Or_Statements (Config_Pragmas (ADN));
+         Traverse_Declarations_Or_Statements (Declarations   (ADN));
+         Traverse_Declarations_Or_Statements (Pragmas_After  (ADN));
+      end Traverse_Aux_Decls;
+
+   --  Start of processing for SCO_Record
 
    begin
       --  Ignore call if not generating code and generating SCO's
@@ -832,27 +962,20 @@ package body Par_SCO is
 
       --  Traverse the unit
 
+      Traverse_Aux_Decls (Cunit (U));
+
       case Nkind (Lu) is
-         when N_Protected_Body =>
-            Traverse_Protected_Body (Lu);
+         when
+           N_Package_Declaration         |
+           N_Package_Body                |
+           N_Subprogram_Declaration      |
+           N_Subprogram_Body             |
+           N_Generic_Package_Declaration |
+           N_Protected_Body              |
+           N_Task_Body                   |
+           N_Generic_Instantiation       =>
 
-         when N_Subprogram_Body | N_Task_Body =>
-            Traverse_Subprogram_Or_Task_Body (Lu);
-
-         when N_Subprogram_Declaration =>
-            Traverse_Subprogram_Declaration (Lu);
-
-         when N_Package_Declaration =>
-            Traverse_Package_Declaration (Lu);
-
-         when N_Package_Body =>
-            Traverse_Package_Body (Lu);
-
-         when N_Generic_Package_Declaration =>
-            Traverse_Generic_Package_Declaration (Lu);
-
-         when N_Generic_Instantiation =>
-            Traverse_Generic_Instantiation (Lu);
+            Traverse_Declarations_Or_Statements (L => No_List, P => Lu);
 
          when others =>
 
@@ -890,9 +1013,14 @@ package body Par_SCO is
       Sloc_Range (Orig, Start, Dummy);
       Index := Condition_Pragma_Hash_Table.Get (Start);
 
-      --  The test here for zero is to deal with possible previous errors
+      --  Index can be zero for boolean expressions that do not have SCOs
+      --  (simple decisions outside of a control flow structure), or in case
+      --  of a previous error.
 
-      if Index /= 0 then
+      if Index = 0 then
+         return;
+
+      else
          pragma Assert (SCO_Table.Table (Index).C1 = ' ');
          SCO_Table.Table (Index).C2 := Constant_Condition_Code (Val);
       end if;
@@ -906,26 +1034,59 @@ package body Par_SCO is
       Index : Nat;
 
    begin
+      --  Nothing to do if not generating SCO, or if we're not processing the
+      --  original source occurrence of the pragma.
+
+      if not (Generate_SCO
+               and then In_Extended_Main_Source_Unit (Loc)
+               and then not (In_Instance or In_Inlined_Body))
+      then
+         return;
+      end if;
+
       --  Note: the reason we use the Sloc value as the key is that in the
       --  generic case, the call to this procedure is made on a copy of the
       --  original node, so we can't use the Node_Id value.
 
       Index := Condition_Pragma_Hash_Table.Get (Loc);
 
-      --  The test here for zero is to deal with possible previous errors
+      --  A zero index here indicates that semantic analysis found an
+      --  activated pragma at Loc which does not have a corresponding pragma
+      --  or aspect at the syntax level. This may occur in legitimate cases
+      --  because of expanded code (such are Pre/Post conditions generated for
+      --  formal parameter validity checks), or as a consequence of a previous
+      --  error.
 
-      if Index /= 0 then
+      if Index = 0 then
+         return;
+
+      else
          declare
             T : SCO_Table_Entry renames SCO_Table.Table (Index);
 
          begin
-            --  Called multiple times for the same sloc (need to allow for
-            --  C2 = 'P') ???
+            --  Note: may be called multiple times for the same sloc, so
+            --  account for the fact that the entry may already have been
+            --  marked enabled.
 
-            pragma Assert (T.C1 = 'S'
-                             and then
-                           (T.C2 = 'p' or else T.C2 = 'P'));
-            T.C2 := 'P';
+            case T.C1 is
+               --  Aspect (decision SCO)
+
+               when 'a' =>
+                  T.C1 := 'A';
+
+               when 'A' =>
+                  null;
+
+               --  Pragma (statement SCO)
+
+               when 'S' =>
+                  pragma Assert (T.C2 = 'p' or else T.C2 = 'P');
+                  T.C2 := 'P';
+
+               when others =>
+                  raise Program_Error;
+            end case;
          end;
       end if;
    end Set_SCO_Pragma_Enabled;
@@ -935,44 +1096,39 @@ package body Par_SCO is
    ---------------------
 
    procedure Set_Table_Entry
-     (C1          : Character;
-      C2          : Character;
-      From        : Source_Ptr;
-      To          : Source_Ptr;
-      Last        : Boolean;
-      Pragma_Sloc : Source_Ptr := No_Location;
-      Pragma_Name : Pragma_Id  := Unknown_Pragma)
+     (C1                 : Character;
+      C2                 : Character;
+      From               : Source_Ptr;
+      To                 : Source_Ptr;
+      Last               : Boolean;
+      Pragma_Sloc        : Source_Ptr := No_Location;
+      Pragma_Aspect_Name : Name_Id    := No_Name)
    is
-      function To_Source_Location (S : Source_Ptr) return Source_Location;
-      --  Converts Source_Ptr value to Source_Location (line/col) format
-
-      ------------------------
-      -- To_Source_Location --
-      ------------------------
-
-      function To_Source_Location (S : Source_Ptr) return Source_Location is
-      begin
-         if S = No_Location then
-            return No_Source_Location;
-         else
-            return
-              (Line => Get_Logical_Line_Number (S),
-               Col  => Get_Column_Number (S));
-         end if;
-      end To_Source_Location;
-
-   --  Start of processing for Set_Table_Entry
-
    begin
       SCO_Table.Append
-        ((C1          => C1,
-          C2          => C2,
-          From        => To_Source_Location (From),
-          To          => To_Source_Location (To),
-          Last        => Last,
-          Pragma_Sloc => Pragma_Sloc,
-          Pragma_Name => Pragma_Name));
+        ((C1                 => C1,
+          C2                 => C2,
+          From               => To_Source_Location (From),
+          To                 => To_Source_Location (To),
+          Last               => Last,
+          Pragma_Sloc        => Pragma_Sloc,
+          Pragma_Aspect_Name => Pragma_Aspect_Name));
    end Set_Table_Entry;
+
+   ------------------------
+   -- To_Source_Location --
+   ------------------------
+
+   function To_Source_Location (S : Source_Ptr) return Source_Location is
+   begin
+      if S = No_Location then
+         return No_Source_Location;
+      else
+         return
+           (Line => Get_Logical_Line_Number (S),
+            Col  => Get_Column_Number (S));
+      end if;
+   end To_Source_Location;
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
@@ -1046,6 +1202,17 @@ package body Par_SCO is
       D : Dominant_Info := No_Dominant;
       P : Node_Id       := Empty)
    is
+      Discard_Dom : Dominant_Info;
+      pragma Warnings (Off, Discard_Dom);
+   begin
+      Discard_Dom := Traverse_Declarations_Or_Statements (L, D, P);
+   end Traverse_Declarations_Or_Statements;
+
+   function Traverse_Declarations_Or_Statements
+     (L : List_Id;
+      D : Dominant_Info := No_Dominant;
+      P : Node_Id       := Empty) return Dominant_Info
+   is
       Current_Dominant : Dominant_Info := D;
       --  Dominance information for the current basic block
 
@@ -1065,12 +1232,13 @@ package body Par_SCO is
 
       procedure Set_Statement_Entry;
       --  Output CS entries for all statements saved in table SC, and end the
-      --  current CS sequence.
+      --  current CS sequence. Then output entries for all decisions nested in
+      --  these statements, which have been deferred so far.
 
       procedure Process_Decisions_Defer (N : Node_Id; T : Character);
       pragma Inline (Process_Decisions_Defer);
       --  This routine is logically the same as Process_Decisions, except that
-      --  the arguments are saved in the SD table, for later processing when
+      --  the arguments are saved in the SD table for later processing when
       --  Set_Statement_Entry is called, which goes through the saved entries
       --  making the corresponding calls to Process_Decision.
 
@@ -1080,6 +1248,9 @@ package body Par_SCO is
 
       procedure Traverse_One (N : Node_Id);
       --  Traverse one declaration or statement
+
+      procedure Traverse_Aspects (N : Node_Id);
+      --  Helper for Traverse_One: traverse N's aspect specifications
 
       -------------------------
       -- Set_Statement_Entry --
@@ -1104,21 +1275,21 @@ package body Par_SCO is
                         To := No_Location;
                      end if;
                      Set_Table_Entry
-                       (C1          => '>',
-                        C2          => Current_Dominant.K,
-                        From        => From,
-                        To          => To,
-                        Last        => False,
-                        Pragma_Sloc => No_Location,
-                        Pragma_Name => Unknown_Pragma);
+                       (C1                 => '>',
+                        C2                 => Current_Dominant.K,
+                        From               => From,
+                        To                 => To,
+                        Last               => False,
+                        Pragma_Sloc        => No_Location,
+                        Pragma_Aspect_Name => No_Name);
                   end;
                end if;
             end if;
 
             declare
-               SCE         : SC_Entry renames SC.Table (J);
-               Pragma_Sloc : Source_Ptr := No_Location;
-               Pragma_Name : Pragma_Id  := Unknown_Pragma;
+               SCE                : SC_Entry renames SC.Table (J);
+               Pragma_Sloc        : Source_Ptr := No_Location;
+               Pragma_Aspect_Name : Name_Id    := No_Name;
             begin
                --  For the case of a statement SCO for a pragma controlled by
                --  Set_SCO_Pragma_Enabled, set Pragma_Sloc so that the SCO (and
@@ -1129,20 +1300,22 @@ package body Par_SCO is
                   Pragma_Sloc := SCE.From;
                   Condition_Pragma_Hash_Table.Set
                     (Pragma_Sloc, SCO_Table.Last + 1);
-                  Pragma_Name := Get_Pragma_Id (Sinfo.Pragma_Name (SCE.N));
+                  Pragma_Aspect_Name := Pragma_Name (SCE.N);
+                  pragma Assert (Pragma_Aspect_Name /= No_Name);
 
                elsif SCE.Typ = 'P' then
-                  Pragma_Name := Get_Pragma_Id (Sinfo.Pragma_Name (SCE.N));
+                  Pragma_Aspect_Name := Pragma_Name (SCE.N);
+                  pragma Assert (Pragma_Aspect_Name /= No_Name);
                end if;
 
                Set_Table_Entry
-                 (C1          => 'S',
-                  C2          => SCE.Typ,
-                  From        => SCE.From,
-                  To          => SCE.To,
-                  Last        => (J = SC_Last),
-                  Pragma_Sloc => Pragma_Sloc,
-                  Pragma_Name => Pragma_Name);
+                 (C1                 => 'S',
+                  C2                 => SCE.Typ,
+                  From               => SCE.From,
+                  To                 => SCE.To,
+                  Last               => (J = SC_Last),
+                  Pragma_Sloc        => Pragma_Sloc,
+                  Pragma_Aspect_Name => Pragma_Aspect_Name);
             end;
          end loop;
 
@@ -1209,11 +1382,24 @@ package body Par_SCO is
             when N_Loop_Statement =>
                To_Node := Iteration_Scheme (N);
 
-            when N_Selective_Accept       |
-                 N_Timed_Entry_Call       |
-                 N_Conditional_Entry_Call |
-                 N_Asynchronous_Select    =>
+            when N_Selective_Accept             |
+                 N_Timed_Entry_Call             |
+                 N_Conditional_Entry_Call       |
+                 N_Asynchronous_Select          |
+                 N_Single_Protected_Declaration |
+                 N_Single_Task_Declaration      =>
                T := F;
+
+            when N_Protected_Type_Declaration | N_Task_Type_Declaration =>
+               if Has_Aspects (N) then
+                  To_Node := Last (Aspect_Specifications (N));
+
+               elsif Present (Discriminant_Specifications (N)) then
+                  To_Node := Last (Discriminant_Specifications (N));
+
+               else
+                  To_Node := Defining_Identifier (N);
+               end if;
 
             when others =>
                null;
@@ -1241,6 +1427,86 @@ package body Par_SCO is
          SD.Append ((Empty, L, T, Current_Pragma_Sloc));
       end Process_Decisions_Defer;
 
+      ----------------------
+      -- Traverse_Aspects --
+      ----------------------
+
+      procedure Traverse_Aspects (N : Node_Id) is
+         AN : Node_Id;
+         AE : Node_Id;
+         C1 : Character;
+
+      begin
+         AN := First (Aspect_Specifications (N));
+         while Present (AN) loop
+            AE := Expression (AN);
+
+            --  SCOs are generated before semantic analysis/expansion:
+            --  PPCs are not split yet.
+
+            pragma Assert (not Split_PPC (AN));
+
+            C1 := ASCII.NUL;
+
+            case Get_Aspect_Id (Chars (Identifier (AN))) is
+
+               --  Aspects rewritten into pragmas controlled by a Check_Policy:
+               --  Current_Pragma_Sloc must be set to the sloc of the aspect
+               --  specification. The corresponding pragma will have the same
+               --  sloc.
+
+               when Aspect_Pre               |
+                    Aspect_Precondition      |
+                    Aspect_Post              |
+                    Aspect_Postcondition     |
+                    Aspect_Invariant         =>
+
+                  C1 := 'a';
+
+               --  Aspects whose checks are generated in client units,
+               --  regardless of whether or not the check is activated in the
+               --  unit which contains the declaration: create decision as
+               --  unconditionally enabled aspect (but still make a pragma
+               --  entry since Set_SCO_Pragma_Enabled will be called when
+               --  analyzing actual checks, possibly in other units).
+
+               --  Pre/post can have checks in client units too because of
+               --  inheritance, so should they be moved here???
+
+               when Aspect_Predicate         |
+                    Aspect_Static_Predicate  |
+                    Aspect_Dynamic_Predicate |
+                    Aspect_Type_Invariant    =>
+
+                  C1 := 'A';
+
+               --  Other aspects: just process any decision nested in the
+               --  aspect expression.
+
+               when others =>
+
+                  if Has_Decision (AE) then
+                     C1 := 'X';
+                  end if;
+
+            end case;
+
+            if C1 /= ASCII.NUL then
+               pragma Assert (Current_Pragma_Sloc = No_Location);
+
+               if C1 = 'a' or else C1 = 'A' then
+                  Current_Pragma_Sloc := Sloc (AN);
+               end if;
+
+               Process_Decisions_Defer (AE, C1);
+
+               Current_Pragma_Sloc := No_Location;
+            end if;
+
+            Next (AN);
+         end loop;
+      end Traverse_Aspects;
+
       ------------------
       -- Traverse_One --
       ------------------
@@ -1258,7 +1524,7 @@ package body Par_SCO is
 
             when N_Package_Declaration =>
                Set_Statement_Entry;
-               Traverse_Package_Declaration (N);
+               Traverse_Package_Declaration (N, Current_Dominant);
 
             --  Generic package declaration
 
@@ -1274,7 +1540,7 @@ package body Par_SCO is
 
             --  Subprogram declaration
 
-            when N_Subprogram_Declaration =>
+            when N_Subprogram_Declaration | N_Subprogram_Body_Stub =>
                Process_Decisions_Defer
                  (Parameter_Specifications (Specification (N)), 'X');
 
@@ -1320,7 +1586,7 @@ package body Par_SCO is
 
             when N_Protected_Body =>
                Set_Statement_Entry;
-               Traverse_Protected_Body (N);
+               Traverse_Declarations_Or_Statements (Declarations (N));
 
             --  Exit statement, which is an exit statement in the SCO sense,
             --  so it is included in the current statement sequence, but
@@ -1353,9 +1619,14 @@ package body Par_SCO is
 
             when N_Block_Statement =>
                Set_Statement_Entry;
-               Traverse_Declarations_Or_Statements
-                 (L => Declarations (N),
-                  D => Current_Dominant);
+
+               --  The first statement in the handled sequence of statements
+               --  is dominated by the elaboration of the last declaration.
+
+               Current_Dominant := Traverse_Declarations_Or_Statements
+                                     (L => Declarations (N),
+                                      D => Current_Dominant);
+
                Traverse_Handled_Statement_Sequence
                  (N => Handled_Statement_Sequence (N),
                   D => Current_Dominant);
@@ -1550,6 +1821,12 @@ package body Par_SCO is
                   P => Triggering_Statement (N));
 
             when N_Terminate_Alternative =>
+
+               --  It is dubious to emit a statement SCO for a TERMINATE
+               --  alternative, since no code is actually executed if the
+               --  alternative is selected -- the tasking runtime call just
+               --  never returns???
+
                Extend_Statement_Sequence (N, ' ');
                Set_Statement_Entry;
 
@@ -1654,10 +1931,13 @@ package body Par_SCO is
 
                begin
                   case Nam is
-                     when Name_Assert        |
-                          Name_Check         |
-                          Name_Precondition  |
-                          Name_Postcondition =>
+                     when Name_Assert         |
+                          Name_Assert_And_Cut |
+                          Name_Assume         |
+                          Name_Check          |
+                          Name_Loop_Invariant |
+                          Name_Precondition   |
+                          Name_Postcondition  =>
 
                         --  For Assert/Check/Precondition/Postcondition, we
                         --  must generate a P entry for the decision. Note
@@ -1672,6 +1952,9 @@ package body Par_SCO is
 
                         Process_Decisions_Defer (Expression (Arg), 'P');
                         Typ := 'p';
+
+                        --  Pre/postconditions can be inherited so SCO should
+                        --  never be deactivated???
 
                      when Name_Debug =>
                         if Present (Arg) and then Present (Next (Arg)) then
@@ -1691,6 +1974,10 @@ package body Par_SCO is
                      --  for any embedded expressions, and the pragma is
                      --  never disabled.
 
+                     --  Should generate P decisions (not X) for assertion
+                     --  related pragmas: [Type_]Invariant,
+                     --  [{Static,Dynamic}_]Predicate???
+
                      when others =>
                         Process_Decisions_Defer (N, 'X');
                         Typ := 'P';
@@ -1706,7 +1993,7 @@ package body Par_SCO is
             --  Object declaration. Ignored if Prev_Ids is set, since the
             --  parser generates multiple instances of the whole declaration
             --  if there is more than one identifier declared, and we only
-            --  want one entry in the SCO's, so we take the first, for which
+            --  want one entry in the SCOs, so we take the first, for which
             --  Prev_Ids is False.
 
             when N_Object_Declaration =>
@@ -1720,6 +2007,19 @@ package body Par_SCO is
 
             --  All other cases, which extend the current statement sequence
             --  but do not terminate it, even if they have nested decisions.
+
+            when N_Protected_Type_Declaration | N_Task_Type_Declaration =>
+               Extend_Statement_Sequence (N, 't');
+               Process_Decisions_Defer (Discriminant_Specifications (N), 'X');
+               Set_Statement_Entry;
+
+               Traverse_Sync_Definition (N);
+
+            when N_Single_Protected_Declaration | N_Single_Task_Declaration =>
+               Extend_Statement_Sequence (N, 'o');
+               Set_Statement_Entry;
+
+               Traverse_Sync_Definition (N);
 
             when others =>
 
@@ -1748,7 +2048,10 @@ package body Par_SCO is
 
                      when N_Representation_Clause         |
                           N_Use_Package_Clause            |
-                          N_Use_Type_Clause               =>
+                          N_Use_Type_Clause               |
+                          N_Package_Body_Stub             |
+                          N_Task_Body_Stub                |
+                          N_Protected_Body_Stub           =>
                         Typ := ASCII.NUL;
 
                      when others                          =>
@@ -1767,52 +2070,39 @@ package body Par_SCO is
                end if;
          end case;
 
+         --  Process aspects if present
+
+         Traverse_Aspects (N);
       end Traverse_One;
 
    --  Start of processing for Traverse_Declarations_Or_Statements
 
    begin
+      --  Process single prefixed node
+
       if Present (P) then
          Traverse_One (P);
       end if;
 
+      --  Loop through statements or declarations
+
       if Is_Non_Empty_List (L) then
-
-         --  Loop through statements or declarations
-
          N := First (L);
          while Present (N) loop
             Traverse_One (N);
             Next (N);
          end loop;
 
+      end if;
+
+      --  End sequence of statements and flush deferred decisions
+
+      if Present (P) or else Is_Non_Empty_List (L) then
          Set_Statement_Entry;
       end if;
+
+      return Current_Dominant;
    end Traverse_Declarations_Or_Statements;
-
-   ------------------------------------
-   -- Traverse_Generic_Instantiation --
-   ------------------------------------
-
-   procedure Traverse_Generic_Instantiation (N : Node_Id) is
-      First : Source_Ptr;
-      Last  : Source_Ptr;
-
-   begin
-      --  First we need a statement entry to cover the instantiation
-
-      Sloc_Range (N, First, Last);
-      Set_Table_Entry
-        (C1   => 'S',
-         C2   => ' ',
-         From => First,
-         To   => Last,
-         Last => True);
-
-      --  Now output any embedded decisions
-
-      Process_Decisions (N, 'X', No_Location);
-   end Traverse_Generic_Instantiation;
 
    ------------------------------------------
    -- Traverse_Generic_Package_Declaration --
@@ -1859,30 +2149,77 @@ package body Par_SCO is
    ---------------------------
 
    procedure Traverse_Package_Body (N : Node_Id) is
+      Dom : Dominant_Info;
    begin
-      Traverse_Declarations_Or_Statements (Declarations (N));
-      Traverse_Handled_Statement_Sequence (Handled_Statement_Sequence (N));
+      --  The first statement in the handled sequence of statements is
+      --  dominated by the elaboration of the last declaration.
+
+      Dom := Traverse_Declarations_Or_Statements (Declarations (N));
+
+      Traverse_Handled_Statement_Sequence
+        (Handled_Statement_Sequence (N), Dom);
    end Traverse_Package_Body;
 
    ----------------------------------
    -- Traverse_Package_Declaration --
    ----------------------------------
 
-   procedure Traverse_Package_Declaration (N : Node_Id) is
+   procedure Traverse_Package_Declaration
+     (N : Node_Id;
+      D : Dominant_Info := No_Dominant)
+   is
       Spec : constant Node_Id := Specification (N);
+      Dom  : Dominant_Info;
+
    begin
-      Traverse_Declarations_Or_Statements (Visible_Declarations (Spec));
-      Traverse_Declarations_Or_Statements (Private_Declarations (Spec));
+      Dom :=
+        Traverse_Declarations_Or_Statements (Visible_Declarations (Spec), D);
+
+      --  First private declaration is dominated by last visible declaration
+
+      Traverse_Declarations_Or_Statements (Private_Declarations (Spec), Dom);
    end Traverse_Package_Declaration;
 
-   -----------------------------
-   -- Traverse_Protected_Body --
-   -----------------------------
+   ------------------------------
+   -- Traverse_Sync_Definition --
+   ------------------------------
 
-   procedure Traverse_Protected_Body (N : Node_Id) is
+   procedure Traverse_Sync_Definition (N : Node_Id) is
+      Dom_Info : Dominant_Info := ('S', N);
+      --  The first declaration is dominated by the protected or task [type]
+      --  declaration.
+
+      Sync_Def : Node_Id;
+      --  N's protected or task definition
+
+      Vis_Decl : List_Id;
+      --  Sync_Def's Visible_Declarations
+
    begin
-      Traverse_Declarations_Or_Statements (Declarations (N));
-   end Traverse_Protected_Body;
+      case Nkind (N) is
+         when N_Single_Protected_Declaration | N_Protected_Type_Declaration =>
+            Sync_Def := Protected_Definition (N);
+
+         when N_Single_Task_Declaration      | N_Task_Type_Declaration      =>
+            Sync_Def := Task_Definition (N);
+
+         when others =>
+            raise Program_Error;
+      end case;
+
+      Vis_Decl := Visible_Declarations (Sync_Def);
+
+      Dom_Info := Traverse_Declarations_Or_Statements
+                    (L => Vis_Decl,
+                     D => Dom_Info);
+
+      --  If visible declarations are present, the first private declaration
+      --  is dominated by the last visible declaration.
+
+      Traverse_Declarations_Or_Statements
+        (L => Private_Declarations (Sync_Def),
+         D => Dom_Info);
+   end Traverse_Sync_Definition;
 
    --------------------------------------
    -- Traverse_Subprogram_Or_Task_Body --
@@ -1892,21 +2229,18 @@ package body Par_SCO is
      (N : Node_Id;
       D : Dominant_Info := No_Dominant)
    is
+      Decls    : constant List_Id := Declarations (N);
+      Dom_Info : Dominant_Info := D;
    begin
-      Traverse_Declarations_Or_Statements (Declarations (N), D);
-      Traverse_Handled_Statement_Sequence (Handled_Statement_Sequence (N), D);
+      --  If declarations are present, the first statement is dominated by the
+      --  last declaration.
+
+      Dom_Info := Traverse_Declarations_Or_Statements
+                    (L => Decls, D => Dom_Info);
+
+      Traverse_Handled_Statement_Sequence
+        (N => Handled_Statement_Sequence (N),
+         D => Dom_Info);
    end Traverse_Subprogram_Or_Task_Body;
-
-   -------------------------------------
-   -- Traverse_Subprogram_Declaration --
-   -------------------------------------
-
-   procedure Traverse_Subprogram_Declaration (N : Node_Id) is
-      ADN : constant Node_Id := Aux_Decls_Node (Parent (N));
-   begin
-      Traverse_Declarations_Or_Statements (Config_Pragmas (ADN));
-      Traverse_Declarations_Or_Statements (Declarations   (ADN));
-      Traverse_Declarations_Or_Statements (Pragmas_After  (ADN));
-   end Traverse_Subprogram_Declaration;
 
 end Par_SCO;

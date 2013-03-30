@@ -1,6 +1,5 @@
 /* Optimization statistics functions.
-   Copyright (C) 2008, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2008-2013 Free Software Foundation, Inc.
    Contributed by Richard Guenther  <rguenther@suse.de>
 
 This file is part of GCC.
@@ -246,7 +245,7 @@ void
 statistics_early_init (void)
 {
   statistics_dump_nr = dump_register (".statistics", "statistics",
-				      "statistics", TDF_TREE);
+				      "statistics", TDF_TREE, OPTGROUP_NONE);
 }
 
 /* Init the statistics.  */
@@ -255,7 +254,7 @@ void
 statistics_init (void)
 {
   statistics_dump_file = dump_begin (statistics_dump_nr, NULL);
-  statistics_dump_flags = get_dump_file_info (statistics_dump_nr)->flags;
+  statistics_dump_flags = get_dump_file_info (statistics_dump_nr)->pflags;
 }
 
 /* Lookup or add a statistics counter in the hashtable HASH with ID, VAL

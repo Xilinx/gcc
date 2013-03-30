@@ -1,7 +1,6 @@
 // Debugging support implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-// Free Software Foundation, Inc.
+// Copyright (C) 2003-2013 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -354,8 +353,12 @@ namespace __gnu_debug
     {
       while (__first != __last && *__first < __value)
 	++__first;
-      while (__first != __last && !(*__first < __value))
-	++__first;
+      if (__first != __last)
+	{
+	  ++__first;
+	  while (__first != __last && !(*__first < __value))
+	    ++__first;
+	}
       return __first == __last;
     }
 
@@ -368,8 +371,10 @@ namespace __gnu_debug
 			const _Safe_iterator<_Iterator, _Sequence>& __last,
 			const _Tp& __value,
 			std::random_access_iterator_tag __tag)
-    { return __check_partitioned_lower_aux(__first.base(), __last.base(),
-					   __value, __tag); }
+    {
+      return __check_partitioned_lower_aux(__first.base(), __last.base(),
+					   __value, __tag);
+    }
 
   // _GLIBCXX_RESOLVE_LIB_DEFECTS
   // 270. Binary search requirements overly strict
@@ -378,8 +383,10 @@ namespace __gnu_debug
     inline bool
     __check_partitioned_lower(_ForwardIterator __first,
 			      _ForwardIterator __last, const _Tp& __value)
-    { return __check_partitioned_lower_aux(__first, __last, __value,
-					   std::__iterator_category(__first)); }
+    {
+      return __check_partitioned_lower_aux(__first, __last, __value,
+					   std::__iterator_category(__first));
+    }
 
   template<typename _ForwardIterator, typename _Tp>
     inline bool
@@ -389,8 +396,12 @@ namespace __gnu_debug
     {
       while (__first != __last && !(__value < *__first))
 	++__first;
-      while (__first != __last && __value < *__first)
-	++__first;
+      if (__first != __last)
+	{
+	  ++__first;
+	  while (__first != __last && __value < *__first)
+	    ++__first;
+	}
       return __first == __last;
     }
 
@@ -403,15 +414,19 @@ namespace __gnu_debug
 			const _Safe_iterator<_Iterator, _Sequence>& __last,
 			const _Tp& __value,
 			std::random_access_iterator_tag __tag)
-    { return __check_partitioned_upper_aux(__first.base(), __last.base(),
-					   __value, __tag); }
+    {
+      return __check_partitioned_upper_aux(__first.base(), __last.base(),
+					   __value, __tag);
+    }
 
   template<typename _ForwardIterator, typename _Tp>
     inline bool
     __check_partitioned_upper(_ForwardIterator __first,
 			      _ForwardIterator __last, const _Tp& __value)
-    { return __check_partitioned_upper_aux(__first, __last, __value,
-					   std::__iterator_category(__first)); }
+    {
+      return __check_partitioned_upper_aux(__first, __last, __value,
+					   std::__iterator_category(__first));
+    }
 
   template<typename _ForwardIterator, typename _Tp, typename _Pred>
     inline bool
@@ -422,8 +437,12 @@ namespace __gnu_debug
     {
       while (__first != __last && bool(__pred(*__first, __value)))
 	++__first;
-      while (__first != __last && !bool(__pred(*__first, __value)))
-	++__first;
+      if (__first != __last)
+	{
+	  ++__first;
+	  while (__first != __last && !bool(__pred(*__first, __value)))
+	    ++__first;
+	}
       return __first == __last;
     }
 
@@ -437,8 +456,10 @@ namespace __gnu_debug
 			const _Safe_iterator<_Iterator, _Sequence>& __last,
 			const _Tp& __value, _Pred __pred,
 			std::random_access_iterator_tag __tag)
-    { return __check_partitioned_lower_aux(__first.base(), __last.base(),
-					   __value, __pred, __tag); }
+    {
+      return __check_partitioned_lower_aux(__first.base(), __last.base(),
+					   __value, __pred, __tag);
+    }
 
   // Determine if a sequence is partitioned w.r.t. this element.
   template<typename _ForwardIterator, typename _Tp, typename _Pred>
@@ -446,8 +467,10 @@ namespace __gnu_debug
     __check_partitioned_lower(_ForwardIterator __first,
 			      _ForwardIterator __last, const _Tp& __value,
 			      _Pred __pred)
-    { return __check_partitioned_lower_aux(__first, __last, __value, __pred,
-					   std::__iterator_category(__first)); }
+    {
+      return __check_partitioned_lower_aux(__first, __last, __value, __pred,
+					   std::__iterator_category(__first));
+    }
 
   template<typename _ForwardIterator, typename _Tp, typename _Pred>
     inline bool
@@ -458,8 +481,12 @@ namespace __gnu_debug
     {
       while (__first != __last && !bool(__pred(__value, *__first)))
 	++__first;
-      while (__first != __last && bool(__pred(__value, *__first)))
-	++__first;
+      if (__first != __last)
+	{
+	  ++__first;
+	  while (__first != __last && bool(__pred(__value, *__first)))
+	    ++__first;
+	}
       return __first == __last;
     }
 
@@ -473,16 +500,20 @@ namespace __gnu_debug
 			const _Safe_iterator<_Iterator, _Sequence>& __last,
 			const _Tp& __value, _Pred __pred,
 			std::random_access_iterator_tag __tag)
-    { return __check_partitioned_upper_aux(__first.base(), __last.base(),
-					   __value, __pred, __tag); }
+    {
+      return __check_partitioned_upper_aux(__first.base(), __last.base(),
+					   __value, __pred, __tag);
+    }
 
   template<typename _ForwardIterator, typename _Tp, typename _Pred>
     inline bool
     __check_partitioned_upper(_ForwardIterator __first,
 			      _ForwardIterator __last, const _Tp& __value,
 			      _Pred __pred)
-    { return __check_partitioned_upper_aux(__first, __last, __value, __pred,
-					   std::__iterator_category(__first)); }
+    {
+      return __check_partitioned_upper_aux(__first, __last, __value, __pred,
+					   std::__iterator_category(__first));
+    }
 
   // Helper struct to detect random access safe iterators.
   template<typename _Iterator>

@@ -1,6 +1,5 @@
 /* Optimization of PHI nodes by converting them into straightline code.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 2004-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -272,10 +271,6 @@ single_non_singleton_phi_for_edges (gimple_seq seq, edge e0, edge e1)
   return phi;
 }
 
-/* For conditional store replacement we need a temporary to
-   put the old contents of the memory in.  */
-static tree condstoretemp;
-
 /* The core routine of conditional store replacement and normal
    phi optimizations.  Both share much of the infrastructure in how
    to match applicable basic block patterns.  DO_STORE_ELIM is true
@@ -292,11 +287,8 @@ tree_ssa_phiopt_worker (bool do_store_elim, bool do_hoist_loads)
   struct pointer_set_t *nontrap = 0;
 
   if (do_store_elim)
-    {
-      condstoretemp = NULL_TREE;
-      /* Calculate the set of non-trapping memory accesses.  */
-      nontrap = get_non_trapping ();
-    }
+    /* Calculate the set of non-trapping memory accesses.  */
+    nontrap = get_non_trapping ();
 
   /* Search every basic block for COND_EXPR we may be able to optimize.
 
@@ -486,10 +478,10 @@ blocks_in_phiopt_order (void)
   unsigned np, i;
   sbitmap visited = sbitmap_alloc (last_basic_block);
 
-#define MARK_VISITED(BB) (SET_BIT (visited, (BB)->index))
-#define VISITED_P(BB) (TEST_BIT (visited, (BB)->index))
+#define MARK_VISITED(BB) (bitmap_set_bit (visited, (BB)->index))
+#define VISITED_P(BB) (bitmap_bit_p (visited, (BB)->index))
 
-  sbitmap_zero (visited);
+  bitmap_clear (visited);
 
   MARK_VISITED (ENTRY_BLOCK_PTR);
   FOR_EACH_BB (x)
@@ -524,24 +516,6 @@ blocks_in_phiopt_order (void)
 
 #undef MARK_VISITED
 #undef VISITED_P
-}
-
-
-/* Return TRUE if block BB has no executable statements, otherwise return
-   FALSE.  */
-
-bool
-empty_block_p (basic_block bb)
-{
-  /* BB must have no executable statements.  */
-  gimple_stmt_iterator gsi = gsi_after_labels (bb);
-  if (phi_nodes (bb))
-    return false;
-  if (gsi_end_p (gsi))
-    return true;
-  if (is_gimple_debug (gsi_stmt (gsi)))
-    gsi_next_nondebug (&gsi);
-  return gsi_end_p (gsi);
 }
 
 /* Replace PHI node element whose edge is E in block BB with variable NEW.
@@ -690,12 +664,9 @@ conditional_replacement (basic_block cond_bb, basic_block middle_bb,
     {
       source_location locus_0, locus_1;
 
-      new_var2 = create_tmp_var (TREE_TYPE (result), NULL);
-      add_referenced_var (new_var2);
+      new_var2 = make_ssa_name (TREE_TYPE (result), NULL);
       new_stmt = gimple_build_assign_with_ops (CONVERT_EXPR, new_var2,
 					       new_var, NULL);
-      new_var2 = make_ssa_name (new_var2, new_stmt);
-      gimple_assign_set_lhs (new_stmt, new_var2);
       gsi_insert_before (&gsi, new_stmt, GSI_SAME_STMT);
       new_var = new_var2;
 
@@ -730,9 +701,7 @@ jump_function_from_stmt (tree *arg, gimple stmt)
 						&offset);
       if (tem
 	  && TREE_CODE (tem) == MEM_REF
-	  && double_int_zero_p
-	       (double_int_add (mem_ref_offset (tem),
-				shwi_to_double_int (offset))))
+	  && (mem_ref_offset (tem) + double_int::from_shwi (offset)).is_zero ())
 	{
 	  *arg = TREE_OPERAND (tem, 0);
 	  return true;
@@ -1213,11 +1182,7 @@ abs_replacement (basic_block cond_bb, basic_block middle_bb,
   result = duplicate_ssa_name (result, NULL);
 
   if (negate)
-    {
-      tree tmp = create_tmp_var (TREE_TYPE (result), NULL);
-      add_referenced_var (tmp);
-      lhs = make_ssa_name (tmp, NULL);
-    }
+    lhs = make_ssa_name (TREE_TYPE (result), NULL);
   else
     lhs = result;
 
@@ -1268,6 +1233,7 @@ abs_replacement (basic_block cond_bb, basic_block middle_bb,
 struct name_to_bb
 {
   unsigned int ssa_name_ver;
+  unsigned int phase;
   bool store;
   HOST_WIDE_INT offset, size;
   basic_block bb;
@@ -1275,6 +1241,10 @@ struct name_to_bb
 
 /* The hash table for remembering what we've seen.  */
 static htab_t seen_ssa_names;
+
+/* Used for quick clearing of the hash-table when we see calls.
+   Hash entries with phase < nt_call_phase are invalid.  */
+static unsigned int nt_call_phase;
 
 /* The set of MEM_REFs which can't trap.  */
 static struct pointer_set_t *nontrap_set;
@@ -1326,6 +1296,7 @@ add_or_mark_expr (basic_block bb, tree exp,
       /* Try to find the last seen MEM_REF through the same
          SSA_NAME, which can trap.  */
       map.ssa_name_ver = SSA_NAME_VERSION (name);
+      map.phase = 0;
       map.bb = 0;
       map.store = store;
       map.offset = tree_low_cst (TREE_OPERAND (exp, 1), 0);
@@ -1333,13 +1304,13 @@ add_or_mark_expr (basic_block bb, tree exp,
 
       slot = htab_find_slot (seen_ssa_names, &map, INSERT);
       n2bb = (struct name_to_bb *) *slot;
-      if (n2bb)
+      if (n2bb && n2bb->phase >= nt_call_phase)
         found_bb = n2bb->bb;
 
       /* If we've found a trapping MEM_REF, _and_ it dominates EXP
          (it's in a basic block on the path from us to the dominator root)
 	 then we can't trap.  */
-      if (found_bb && found_bb->aux == (void *)1)
+      if (found_bb && (((size_t)found_bb->aux) & 1) == 1)
 	{
 	  pointer_set_insert (nontrap, exp);
 	}
@@ -1348,12 +1319,14 @@ add_or_mark_expr (basic_block bb, tree exp,
 	  /* EXP might trap, so insert it into the hash table.  */
 	  if (n2bb)
 	    {
+	      n2bb->phase = nt_call_phase;
 	      n2bb->bb = bb;
 	    }
 	  else
 	    {
 	      n2bb = XNEW (struct name_to_bb);
 	      n2bb->ssa_name_ver = SSA_NAME_VERSION (name);
+	      n2bb->phase = nt_call_phase;
 	      n2bb->bb = bb;
 	      n2bb->store = store;
 	      n2bb->offset = map.offset;
@@ -1364,20 +1337,55 @@ add_or_mark_expr (basic_block bb, tree exp,
     }
 }
 
+/* Return true when CALL is a call stmt that definitely doesn't
+   free any memory or makes it unavailable otherwise.  */
+bool
+nonfreeing_call_p (gimple call)
+{
+  if (gimple_call_builtin_p (call, BUILT_IN_NORMAL)
+      && gimple_call_flags (call) & ECF_LEAF)
+    switch (DECL_FUNCTION_CODE (gimple_call_fndecl (call)))
+      {
+	/* Just in case these become ECF_LEAF in the future.  */
+	case BUILT_IN_FREE:
+	case BUILT_IN_TM_FREE:
+	case BUILT_IN_REALLOC:
+	case BUILT_IN_STACK_RESTORE:
+	  return false;
+	default:
+	  return true;
+      }
+
+  return false;
+}
+
 /* Called by walk_dominator_tree, when entering the block BB.  */
 static void
 nt_init_block (struct dom_walk_data *data ATTRIBUTE_UNUSED, basic_block bb)
 {
+  edge e;
+  edge_iterator ei;
   gimple_stmt_iterator gsi;
-  /* Mark this BB as being on the path to dominator root.  */
-  bb->aux = (void*)1;
+
+  /* If we haven't seen all our predecessors, clear the hash-table.  */
+  FOR_EACH_EDGE (e, ei, bb->preds)
+    if ((((size_t)e->src->aux) & 2) == 0)
+      {
+	nt_call_phase++;
+	break;
+      }
+
+  /* Mark this BB as being on the path to dominator root and as visited.  */
+  bb->aux = (void*)(1 | 2);
 
   /* And walk the statements in order.  */
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
 
-      if (gimple_assign_single_p (stmt))
+      if (is_gimple_call (stmt) && !nonfreeing_call_p (stmt))
+	nt_call_phase++;
+      else if (gimple_assign_single_p (stmt) && !gimple_has_volatile_ops (stmt))
 	{
 	  add_or_mark_expr (bb, gimple_assign_lhs (stmt), nontrap_set, true);
 	  add_or_mark_expr (bb, gimple_assign_rhs1 (stmt), nontrap_set, false);
@@ -1390,7 +1398,7 @@ static void
 nt_fini_block (struct dom_walk_data *data ATTRIBUTE_UNUSED, basic_block bb)
 {
   /* This BB isn't on the path to dominator root anymore.  */
-  bb->aux = NULL;
+  bb->aux = (void*)2;
 }
 
 /* This is the entry point of gathering non trapping memory accesses.
@@ -1403,6 +1411,7 @@ get_non_trapping (void)
   struct pointer_set_t *nontrap;
   struct dom_walk_data walk_data;
 
+  nt_call_phase = 0;
   nontrap = pointer_set_create ();
   seen_ssa_names = htab_create (128, name_to_bb_hash, name_to_bb_eq,
 				free);
@@ -1424,6 +1433,7 @@ get_non_trapping (void)
   fini_walk_dominator_tree (&walk_data);
   htab_delete (seen_ssa_names);
 
+  clear_aux_for_blocks ();
   return nontrap;
 }
 
@@ -1447,14 +1457,15 @@ cond_store_replacement (basic_block middle_bb, basic_block join_bb,
 			edge e0, edge e1, struct pointer_set_t *nontrap)
 {
   gimple assign = last_and_only_stmt (middle_bb);
-  tree lhs, rhs, name;
+  tree lhs, rhs, name, name2;
   gimple newphi, new_stmt;
   gimple_stmt_iterator gsi;
   source_location locus;
 
   /* Check if middle_bb contains of only one store.  */
   if (!assign
-      || !gimple_assign_single_p (assign))
+      || !gimple_assign_single_p (assign)
+      || gimple_has_volatile_ops (assign))
     return false;
 
   locus = gimple_location (assign);
@@ -1478,32 +1489,26 @@ cond_store_replacement (basic_block middle_bb, basic_block join_bb,
   gsi_remove (&gsi, true);
   release_defs (assign);
 
-  /* 2) Create a temporary where we can store the old content
-        of the memory touched by the store, if we need to.  */
-  if (!condstoretemp || TREE_TYPE (lhs) != TREE_TYPE (condstoretemp))
-    condstoretemp = create_tmp_reg (TREE_TYPE (lhs), "cstore");
-  add_referenced_var (condstoretemp);
-
-  /* 3) Insert a load from the memory of the store to the temporary
+  /* 2) Insert a load from the memory of the store to the temporary
         on the edge which did not contain the store.  */
   lhs = unshare_expr (lhs);
-  new_stmt = gimple_build_assign (condstoretemp, lhs);
-  name = make_ssa_name (condstoretemp, new_stmt);
-  gimple_assign_set_lhs (new_stmt, name);
+  name = make_temp_ssa_name (TREE_TYPE (lhs), NULL, "cstore");
+  new_stmt = gimple_build_assign (name, lhs);
   gimple_set_location (new_stmt, locus);
   gsi_insert_on_edge (e1, new_stmt);
 
-  /* 4) Create a PHI node at the join block, with one argument
+  /* 3) Create a PHI node at the join block, with one argument
         holding the old RHS, and the other holding the temporary
         where we stored the old memory contents.  */
-  newphi = create_phi_node (condstoretemp, join_bb);
+  name2 = make_temp_ssa_name (TREE_TYPE (lhs), NULL, "cstore");
+  newphi = create_phi_node (name2, join_bb);
   add_phi_arg (newphi, rhs, e0, locus);
   add_phi_arg (newphi, name, e1, locus);
 
   lhs = unshare_expr (lhs);
   new_stmt = gimple_build_assign (lhs, PHI_RESULT (newphi));
 
-  /* 5) Insert that PHI node.  */
+  /* 4) Insert that PHI node.  */
   gsi = gsi_after_labels (join_bb);
   if (gsi_end_p (gsi))
     {
@@ -1523,7 +1528,7 @@ cond_if_else_store_replacement_1 (basic_block then_bb, basic_block else_bb,
 				  basic_block join_bb, gimple then_assign,
 				  gimple else_assign)
 {
-  tree lhs_base, lhs, then_rhs, else_rhs;
+  tree lhs_base, lhs, then_rhs, else_rhs, name;
   source_location then_locus, else_locus;
   gimple_stmt_iterator gsi;
   gimple newphi, new_stmt;
@@ -1531,9 +1536,11 @@ cond_if_else_store_replacement_1 (basic_block then_bb, basic_block else_bb,
   if (then_assign == NULL
       || !gimple_assign_single_p (then_assign)
       || gimple_clobber_p (then_assign)
+      || gimple_has_volatile_ops (then_assign)
       || else_assign == NULL
       || !gimple_assign_single_p (else_assign)
-      || gimple_clobber_p (else_assign))
+      || gimple_clobber_p (else_assign)
+      || gimple_has_volatile_ops (else_assign))
     return false;
 
   lhs = gimple_assign_lhs (then_assign);
@@ -1563,22 +1570,17 @@ cond_if_else_store_replacement_1 (basic_block then_bb, basic_block else_bb,
   gsi_remove (&gsi, true);
   release_defs (else_assign);
 
-  /* 2) Create a temporary where we can store the old content
-	of the memory touched by the store, if we need to.  */
-  if (!condstoretemp || TREE_TYPE (lhs) != TREE_TYPE (condstoretemp))
-    condstoretemp = create_tmp_reg (TREE_TYPE (lhs), "cstore");
-  add_referenced_var (condstoretemp);
-
-  /* 3) Create a PHI node at the join block, with one argument
+  /* 2) Create a PHI node at the join block, with one argument
 	holding the old RHS, and the other holding the temporary
 	where we stored the old memory contents.  */
-  newphi = create_phi_node (condstoretemp, join_bb);
+  name = make_temp_ssa_name (TREE_TYPE (lhs), NULL, "cstore");
+  newphi = create_phi_node (name, join_bb);
   add_phi_arg (newphi, then_rhs, EDGE_SUCC (then_bb, 0), then_locus);
   add_phi_arg (newphi, else_rhs, EDGE_SUCC (else_bb, 0), else_locus);
 
   new_stmt = gimple_build_assign (lhs, PHI_RESULT (newphi));
 
-  /* 4) Insert that PHI node.  */
+  /* 3) Insert that PHI node.  */
   gsi = gsi_after_labels (join_bb);
   if (gsi_end_p (gsi))
     {
@@ -1619,15 +1621,15 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
 {
   gimple then_assign = last_and_only_stmt (then_bb);
   gimple else_assign = last_and_only_stmt (else_bb);
-  VEC (data_reference_p, heap) *then_datarefs, *else_datarefs;
-  VEC (ddr_p, heap) *then_ddrs, *else_ddrs;
+  vec<data_reference_p> then_datarefs, else_datarefs;
+  vec<ddr_p> then_ddrs, else_ddrs;
   gimple then_store, else_store;
   bool found, ok = false, res;
   struct data_dependence_relation *ddr;
   data_reference_p then_dr, else_dr;
   int i, j;
   tree then_lhs, else_lhs;
-  VEC (gimple, heap) *then_stores, *else_stores;
+  vec<gimple> then_stores, else_stores;
   basic_block blocks[3];
 
   if (MAX_STORES_TO_SINK == 0)
@@ -1639,14 +1641,14 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
                                              then_assign, else_assign);
 
   /* Find data references.  */
-  then_datarefs = VEC_alloc (data_reference_p, heap, 1);
-  else_datarefs = VEC_alloc (data_reference_p, heap, 1);
+  then_datarefs.create (1);
+  else_datarefs.create (1);
   if ((find_data_references_in_bb (NULL, then_bb, &then_datarefs)
         == chrec_dont_know)
-      || !VEC_length (data_reference_p, then_datarefs)
+      || !then_datarefs.length ()
       || (find_data_references_in_bb (NULL, else_bb, &else_datarefs)
         == chrec_dont_know)
-      || !VEC_length (data_reference_p, else_datarefs))
+      || !else_datarefs.length ())
     {
       free_data_refs (then_datarefs);
       free_data_refs (else_datarefs);
@@ -1654,9 +1656,9 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
     }
 
   /* Find pairs of stores with equal LHS.  */
-  then_stores = VEC_alloc (gimple, heap, 1);
-  else_stores = VEC_alloc (gimple, heap, 1);
-  FOR_EACH_VEC_ELT (data_reference_p, then_datarefs, i, then_dr)
+  then_stores.create (1);
+  else_stores.create (1);
+  FOR_EACH_VEC_ELT (then_datarefs, i, then_dr)
     {
       if (DR_IS_READ (then_dr))
         continue;
@@ -1665,7 +1667,7 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
       then_lhs = gimple_get_lhs (then_store);
       found = false;
 
-      FOR_EACH_VEC_ELT (data_reference_p, else_datarefs, j, else_dr)
+      FOR_EACH_VEC_ELT (else_datarefs, j, else_dr)
         {
           if (DR_IS_READ (else_dr))
             continue;
@@ -1683,33 +1685,35 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
       if (!found)
         continue;
 
-      VEC_safe_push (gimple, heap, then_stores, then_store);
-      VEC_safe_push (gimple, heap, else_stores, else_store);
+      then_stores.safe_push (then_store);
+      else_stores.safe_push (else_store);
     }
 
   /* No pairs of stores found.  */
-  if (!VEC_length (gimple, then_stores)
-      || VEC_length (gimple, then_stores) > (unsigned) MAX_STORES_TO_SINK)
+  if (!then_stores.length ()
+      || then_stores.length () > (unsigned) MAX_STORES_TO_SINK)
     {
       free_data_refs (then_datarefs);
       free_data_refs (else_datarefs);
-      VEC_free (gimple, heap, then_stores);
-      VEC_free (gimple, heap, else_stores);
+      then_stores.release ();
+      else_stores.release ();
       return false;
     }
 
   /* Compute and check data dependencies in both basic blocks.  */
-  then_ddrs = VEC_alloc (ddr_p, heap, 1);
-  else_ddrs = VEC_alloc (ddr_p, heap, 1);
-  if (!compute_all_dependences (then_datarefs, &then_ddrs, NULL, false)
-      || !compute_all_dependences (else_datarefs, &else_ddrs, NULL, false))
+  then_ddrs.create (1);
+  else_ddrs.create (1);
+  if (!compute_all_dependences (then_datarefs, &then_ddrs,
+				vNULL, false)
+      || !compute_all_dependences (else_datarefs, &else_ddrs,
+				   vNULL, false))
     {
       free_dependence_relations (then_ddrs);
       free_dependence_relations (else_ddrs);
       free_data_refs (then_datarefs);
       free_data_refs (else_datarefs);
-      VEC_free (gimple, heap, then_stores);
-      VEC_free (gimple, heap, else_stores);
+      then_stores.release ();
+      else_stores.release ();
       return false;
     }
   blocks[0] = then_bb;
@@ -1719,7 +1723,7 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
 
   /* Check that there are no read-after-write or write-after-write dependencies
      in THEN_BB.  */
-  FOR_EACH_VEC_ELT (ddr_p, then_ddrs, i, ddr)
+  FOR_EACH_VEC_ELT (then_ddrs, i, ddr)
     {
       struct data_reference *dra = DDR_A (ddr);
       struct data_reference *drb = DDR_B (ddr);
@@ -1735,15 +1739,15 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
           free_dependence_relations (else_ddrs);
 	  free_data_refs (then_datarefs);
 	  free_data_refs (else_datarefs);
-          VEC_free (gimple, heap, then_stores);
-          VEC_free (gimple, heap, else_stores);
+          then_stores.release ();
+          else_stores.release ();
           return false;
         }
     }
 
   /* Check that there are no read-after-write or write-after-write dependencies
      in ELSE_BB.  */
-  FOR_EACH_VEC_ELT (ddr_p, else_ddrs, i, ddr)
+  FOR_EACH_VEC_ELT (else_ddrs, i, ddr)
     {
       struct data_reference *dra = DDR_A (ddr);
       struct data_reference *drb = DDR_B (ddr);
@@ -1759,16 +1763,16 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
           free_dependence_relations (else_ddrs);
 	  free_data_refs (then_datarefs);
 	  free_data_refs (else_datarefs);
-          VEC_free (gimple, heap, then_stores);
-          VEC_free (gimple, heap, else_stores);
+          then_stores.release ();
+          else_stores.release ();
           return false;
         }
     }
 
   /* Sink stores with same LHS.  */
-  FOR_EACH_VEC_ELT (gimple, then_stores, i, then_store)
+  FOR_EACH_VEC_ELT (then_stores, i, then_store)
     {
-      else_store = VEC_index (gimple, else_stores, i);
+      else_store = else_stores[i];
       res = cond_if_else_store_replacement_1 (then_bb, else_bb, join_bb,
                                               then_store, else_store);
       ok = ok || res;
@@ -1778,8 +1782,8 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
   free_dependence_relations (else_ddrs);
   free_data_refs (then_datarefs);
   free_data_refs (else_datarefs);
-  VEC_free (gimple, heap, then_stores);
-  VEC_free (gimple, heap, else_stores);
+  then_stores.release ();
+  else_stores.release ();
 
   return ok;
 }
@@ -1845,7 +1849,8 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
       gimple_stmt_iterator gsi2;
       basic_block bb_for_def1, bb_for_def2;
 
-      if (gimple_phi_num_args (phi_stmt) != 2)
+      if (gimple_phi_num_args (phi_stmt) != 2
+	  || virtual_operand_p (gimple_phi_result (phi_stmt)))
 	continue;
 
       arg1 = gimple_phi_arg_def (phi_stmt, 0);
@@ -1854,9 +1859,7 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
       if (TREE_CODE (arg1) != SSA_NAME
 	  || TREE_CODE (arg2) != SSA_NAME
 	  || SSA_NAME_IS_DEFAULT_DEF (arg1)
-	  || SSA_NAME_IS_DEFAULT_DEF (arg2)
-	  || !is_gimple_reg (arg1)
-	  || !is_gimple_reg (arg2))
+	  || SSA_NAME_IS_DEFAULT_DEF (arg2))
 	continue;
 
       def1 = SSA_NAME_DEF_STMT (arg1);
@@ -1868,12 +1871,15 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
 
       /* Check the mode of the arguments to be sure a conditional move
 	 can be generated for it.  */
-      if (!optab_handler (cmov_optab, TYPE_MODE (TREE_TYPE (arg1))))
+      if (optab_handler (movcc_optab, TYPE_MODE (TREE_TYPE (arg1)))
+	  == CODE_FOR_nothing)
 	continue;
 
       /* Both statements must be assignments whose RHS is a COMPONENT_REF.  */
       if (!gimple_assign_single_p (def1)
-	  || !gimple_assign_single_p (def2))
+	  || !gimple_assign_single_p (def2)
+	  || gimple_has_volatile_ops (def1)
+	  || gimple_has_volatile_ops (def2))
 	continue;
 
       ref1 = gimple_assign_rhs1 (def1);
@@ -1996,6 +2002,7 @@ struct gimple_opt_pass pass_phiopt =
  {
   GIMPLE_PASS,
   "phiopt",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_phiopt,				/* gate */
   tree_ssa_phiopt,			/* execute */
   NULL,					/* sub */
@@ -2024,6 +2031,7 @@ struct gimple_opt_pass pass_cselim =
  {
   GIMPLE_PASS,
   "cselim",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_cselim,				/* gate */
   tree_ssa_cs_elim,			/* execute */
   NULL,					/* sub */

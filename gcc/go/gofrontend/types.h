@@ -179,6 +179,12 @@ class Method
     this->stub_ = no;
   }
 
+  // Return true if this method should not participate in any
+  // interfaces.
+  bool
+  nointerface() const
+  { return this->do_nointerface(); }
+
  protected:
   // These objects are only built by the child classes.
   Method(const Field_indexes* field_indexes, unsigned int depth,
@@ -203,6 +209,10 @@ class Method
   // Bind a method to an object.
   virtual Expression*
   do_bind_method(Expression* expr, Location location) const = 0;
+
+  // Return whether this method should not participate in interfaces.
+  virtual bool
+  do_nointerface() const = 0;
 
  private:
   // The sequence of field indexes used for this method.  If this is
@@ -254,6 +264,10 @@ class Named_method : public Method
   Expression*
   do_bind_method(Expression* expr, Location location) const;
 
+  // Return whether this method should not participate in interfaces.
+  bool
+  do_nointerface() const;
+
  private:
   // The method itself.  For a method which needs a stub, this starts
   // out as the underlying method, and is later replaced with the stub
@@ -294,6 +308,11 @@ class Interface_method : public Method
   // Bind a method to an object.
   Expression*
   do_bind_method(Expression* expr, Location location) const;
+
+  // Return whether this method should not participate in interfaces.
+  bool
+  do_nointerface() const
+  { return false; }
 
  private:
   // The name of the interface method to call.
@@ -568,7 +587,7 @@ class Type
   // identity function which gets nothing but a pointer to the value
   // and a size.
   bool
-  compare_is_identity(Gogo* gogo) const
+  compare_is_identity(Gogo* gogo)
   { return this->do_compare_is_identity(gogo); }
 
   // Return a hash code for this type for the method hash table.
@@ -853,7 +872,7 @@ class Type
 
   // Finish the backend representation of a placeholder.
   void
-  finish_backend(Gogo*);
+  finish_backend(Gogo*, Btype*);
 
   // Build a type descriptor entry for this type.  Return a pointer to
   // it.  The location is the location which causes us to need the
@@ -934,7 +953,7 @@ class Type
   { return false; }
 
   virtual bool
-  do_compare_is_identity(Gogo*) const = 0;
+  do_compare_is_identity(Gogo*) = 0;
 
   virtual unsigned int
   do_hash_for_method(Gogo*) const;
@@ -966,6 +985,19 @@ class Type
   static Method*
   method_function(const Methods*, const std::string& name,
 		  bool* is_ambiguous);
+
+  // A mapping from interfaces to the associated interface method
+  // tables for this type.  This maps to a decl.
+  typedef Unordered_map_hash(const Interface_type*, tree, Type_hash_identical,
+			     Type_identical) Interface_method_tables;
+
+  // Return a pointer to the interface method table for TYPE for the
+  // interface INTERFACE.
+  static tree
+  interface_method_table(Gogo* gogo, Type* type,
+			 const Interface_type *interface, bool is_pointer,
+			 Interface_method_tables** method_tables,
+			 Interface_method_tables** pointer_tables);
 
   // Return a composite literal for the type descriptor entry for a
   // type.
@@ -1157,10 +1189,18 @@ class Type
   Btype*
   get_btype_without_hash(Gogo*);
 
+  // A backend type that may be a placeholder.
+  struct Type_btype_entry
+  {
+    Btype *btype;
+    bool is_placeholder;
+  };
+
   // A mapping from Type to Btype*, used to ensure that the backend
-  // representation of identical types is identical.
-  typedef Unordered_map_hash(const Type*, Btype*, Type_hash_identical,
-			     Type_identical) Type_btypes;
+  // representation of identical types is identical.  This is only
+  // used for unnamed types.
+  typedef Unordered_map_hash(const Type*, Type_btype_entry,
+			     Type_hash_identical, Type_identical) Type_btypes;
 
   static Type_btypes type_btypes;
 
@@ -1177,9 +1217,6 @@ class Type
 
   // The type classification.
   Type_classification classification_;
-  // Whether btype_ is a placeholder type used while named types are
-  // being converted.
-  bool btype_is_placeholder_;
   // The backend representation of the type, once it has been
   // determined.
   Btype* btype_;
@@ -1424,7 +1461,7 @@ class Integer_type : public Type
 
 protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return true; }
 
   unsigned int
@@ -1501,7 +1538,7 @@ class Float_type : public Type
 
  protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -1570,7 +1607,7 @@ class Complex_type : public Type
 
  protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -1630,7 +1667,7 @@ class String_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   Btype*
@@ -1744,7 +1781,7 @@ class Function_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -1819,7 +1856,7 @@ class Pointer_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return true; }
 
   unsigned int
@@ -1973,7 +2010,8 @@ class Struct_type : public Type
  public:
   Struct_type(Struct_field_list* fields, Location location)
     : Type(TYPE_STRUCT),
-      fields_(fields), location_(location), all_methods_(NULL)
+      fields_(fields), location_(location), all_methods_(NULL),
+      interface_method_tables_(NULL), pointer_interface_method_tables_(NULL)
   { }
 
   // Return the field NAME.  This only looks at local fields, not at
@@ -2055,6 +2093,14 @@ class Struct_type : public Type
   Method*
   method_function(const std::string& name, bool* is_ambiguous) const;
 
+  // Return a pointer to the interface method table for this type for
+  // the interface INTERFACE.  If IS_POINTER is true, set the type
+  // descriptor to a pointer to this type, otherwise set it to this
+  // type.
+  tree
+  interface_method_table(Gogo*, const Interface_type* interface,
+			 bool is_pointer);
+
   // Traverse just the field types of a struct type.
   int
   traverse_field_types(Traverse* traverse)
@@ -2096,7 +2142,7 @@ class Struct_type : public Type
   do_has_pointer() const;
 
   bool
-  do_compare_is_identity(Gogo*) const;
+  do_compare_is_identity(Gogo*);
 
   unsigned int
   do_hash_for_method(Gogo*) const;
@@ -2117,6 +2163,12 @@ class Struct_type : public Type
   do_export(Export*) const;
 
  private:
+  // Used to merge method sets of identical unnamed structs.
+  typedef Unordered_map_hash(Struct_type*, Struct_type*, Type_hash_identical,
+			     Type_identical) Identical_structs;
+
+  static Identical_structs identical_structs;
+
   // Used to avoid infinite loops in field_reference_depth.
   struct Saw_named_type
   {
@@ -2135,6 +2187,13 @@ class Struct_type : public Type
   Location location_;
   // If this struct is unnamed, a list of methods.
   Methods* all_methods_;
+  // A mapping from interfaces to the associated interface method
+  // tables for this type.  Only used if this struct is unnamed.
+  Interface_method_tables* interface_method_tables_;
+  // A mapping from interfaces to the associated interface method
+  // tables for pointers to this type.  Only used if this struct is
+  // unnamed.
+  Interface_method_tables* pointer_interface_method_tables_;
 };
 
 // The type of an array.
@@ -2222,7 +2281,7 @@ class Array_type : public Type
   }
 
   bool
-  do_compare_is_identity(Gogo*) const;
+  do_compare_is_identity(Gogo*);
 
   unsigned int
   do_hash_for_method(Gogo*) const;
@@ -2315,7 +2374,7 @@ class Map_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -2401,7 +2460,7 @@ class Channel_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return true; }
 
   unsigned int
@@ -2460,19 +2519,11 @@ class Interface_type : public Type
   // Return the list of methods.  This will return NULL for an empty
   // interface.
   const Typed_identifier_list*
-  methods() const
-  {
-    go_assert(this->methods_are_finalized_);
-    return this->all_methods_;
-  }
+  methods() const;
 
   // Return the number of methods.
   size_t
-  method_count() const
-  {
-    go_assert(this->methods_are_finalized_);
-    return this->all_methods_ == NULL ? 0 : this->all_methods_->size();
-  }
+  method_count() const;
 
   // Return the method NAME, or NULL.
   const Typed_identifier*
@@ -2532,7 +2583,7 @@ class Interface_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -2602,8 +2653,8 @@ class Named_type : public Type
  public:
   Named_type(Named_object* named_object, Type* type, Location location)
     : Type(TYPE_NAMED),
-      named_object_(named_object), in_function_(NULL), type_(type),
-      local_methods_(NULL), all_methods_(NULL),
+      named_object_(named_object), in_function_(NULL), in_function_index_(0),
+      type_(type), local_methods_(NULL), all_methods_(NULL),
       interface_method_tables_(NULL), pointer_interface_method_tables_(NULL),
       location_(location), named_btype_(NULL), dependencies_(),
       is_visible_(true), is_error_(false), is_placeholder_(false),
@@ -2630,13 +2681,19 @@ class Named_type : public Type
   // Return the function in which this type is defined.  This will
   // return NULL for a type defined in global scope.
   const Named_object*
-  in_function() const
-  { return this->in_function_; }
+  in_function(unsigned int *pindex) const
+  {
+    *pindex = this->in_function_index_;
+    return this->in_function_;
+  }
 
   // Set the function in which this type is defined.
   void
-  set_in_function(Named_object* f)
-  { this->in_function_ = f; }
+  set_in_function(Named_object* f, unsigned int index)
+  {
+    this->in_function_ = f;
+    this->in_function_index_ = index;
+  }
 
   // Return the name of the type.
   const std::string&
@@ -2809,7 +2866,7 @@ class Named_type : public Type
   do_has_pointer() const;
 
   bool
-  do_compare_is_identity(Gogo*) const;
+  do_compare_is_identity(Gogo*);
 
   unsigned int
   do_hash_for_method(Gogo*) const;
@@ -2834,16 +2891,13 @@ class Named_type : public Type
   void
   create_placeholder(Gogo*);
 
-  // A mapping from interfaces to the associated interface method
-  // tables for this type.  This maps to a decl.
-  typedef Unordered_map_hash(const Interface_type*, tree, Type_hash_identical,
-			     Type_identical) Interface_method_tables;
-
   // A pointer back to the Named_object for this type.
   Named_object* named_object_;
   // If this type is defined in a function, a pointer back to the
   // function in which it is defined.
   Named_object* in_function_;
+  // The index of this type in IN_FUNCTION_.
+  unsigned int in_function_index_;
   // The actual type.
   Type* type_;
   // The list of methods defined for this type.  Any named type can
@@ -2896,7 +2950,7 @@ class Named_type : public Type
   // function exits.
   mutable bool seen_;
   // Like seen_, but used only by do_compare_is_identity.
-  mutable bool seen_in_compare_is_identity_;
+  bool seen_in_compare_is_identity_;
   // Like seen_, but used only by do_get_backend.
   bool seen_in_get_backend_;
 };
@@ -2947,11 +3001,14 @@ class Forward_declaration_type : public Type
   do_traverse(Traverse* traverse);
 
   bool
+  do_verify();
+
+  bool
   do_has_pointer() const
   { return this->real_type()->has_pointer(); }
 
   bool
-  do_compare_is_identity(Gogo* gogo) const
+  do_compare_is_identity(Gogo* gogo)
   { return this->real_type()->compare_is_identity(gogo); }
 
   unsigned int

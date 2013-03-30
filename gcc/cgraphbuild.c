@@ -1,6 +1,5 @@
 /* Callgraph construction.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2003-2013 Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
 This file is part of GCC.
@@ -74,7 +73,7 @@ record_reference (tree *tp, int *walk_subtrees, void *data)
       decl = get_base_var (*tp);
       if (TREE_CODE (decl) == FUNCTION_DECL)
 	{
-	  struct cgraph_node *node = cgraph_get_create_node (decl);
+	  struct cgraph_node *node = cgraph_get_create_real_symbol_node (decl);
 	  if (!ctx->only_vars)
 	    cgraph_mark_address_taken_node (node);
 	  ipa_record_reference ((symtab_node)ctx->varpool_node,
@@ -84,7 +83,7 @@ record_reference (tree *tp, int *walk_subtrees, void *data)
 
       if (TREE_CODE (decl) == VAR_DECL)
 	{
-	  struct varpool_node *vnode = varpool_node (decl);
+	  struct varpool_node *vnode = varpool_node_for_decl (decl);
 	  ipa_record_reference ((symtab_node)ctx->varpool_node,
 				(symtab_node)vnode,
 				IPA_REF_ADDR, NULL);
@@ -123,7 +122,7 @@ record_type_list (struct cgraph_node *node, tree list)
 	  type = TREE_OPERAND (type, 0);
 	  if (TREE_CODE (type) == VAR_DECL)
 	    {
-	      struct varpool_node *vnode = varpool_node (type);
+	      struct varpool_node *vnode = varpool_node_for_decl (type);
 	      ipa_record_reference ((symtab_node)node,
 				    (symtab_node)vnode,
 				    IPA_REF_ADDR, NULL);
@@ -144,7 +143,7 @@ record_eh_tables (struct cgraph_node *node, struct function *fun)
     {
       struct cgraph_node *per_node;
 
-      per_node = cgraph_get_create_node (DECL_FUNCTION_PERSONALITY (node->symbol.decl));
+      per_node = cgraph_get_create_real_symbol_node (DECL_FUNCTION_PERSONALITY (node->symbol.decl));
       ipa_record_reference ((symtab_node)node, (symtab_node)per_node, IPA_REF_ADDR, NULL);
       cgraph_mark_address_taken_node (per_node);
     }
@@ -224,7 +223,7 @@ mark_address (gimple stmt, tree addr, void *data)
   addr = get_base_address (addr);
   if (TREE_CODE (addr) == FUNCTION_DECL)
     {
-      struct cgraph_node *node = cgraph_get_create_node (addr);
+      struct cgraph_node *node = cgraph_get_create_real_symbol_node (addr);
       cgraph_mark_address_taken_node (node);
       ipa_record_reference ((symtab_node)data,
 			    (symtab_node)node,
@@ -233,7 +232,7 @@ mark_address (gimple stmt, tree addr, void *data)
   else if (addr && TREE_CODE (addr) == VAR_DECL
 	   && (TREE_STATIC (addr) || DECL_EXTERNAL (addr)))
     {
-      struct varpool_node *vnode = varpool_node (addr);
+      struct varpool_node *vnode = varpool_node_for_decl (addr);
 
       ipa_record_reference ((symtab_node)data,
 			    (symtab_node)vnode,
@@ -253,7 +252,7 @@ mark_load (gimple stmt, tree t, void *data)
     {
       /* ??? This can happen on platforms with descriptors when these are
 	 directly manipulated in the code.  Pretend that it's an address.  */
-      struct cgraph_node *node = cgraph_get_create_node (t);
+      struct cgraph_node *node = cgraph_get_create_real_symbol_node (t);
       cgraph_mark_address_taken_node (node);
       ipa_record_reference ((symtab_node)data,
 			    (symtab_node)node,
@@ -262,7 +261,7 @@ mark_load (gimple stmt, tree t, void *data)
   else if (t && TREE_CODE (t) == VAR_DECL
 	   && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
     {
-      struct varpool_node *vnode = varpool_node (t);
+      struct varpool_node *vnode = varpool_node_for_decl (t);
 
       ipa_record_reference ((symtab_node)data,
 			    (symtab_node)vnode,
@@ -280,7 +279,7 @@ mark_store (gimple stmt, tree t, void *data)
   if (t && TREE_CODE (t) == VAR_DECL
       && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
     {
-      struct varpool_node *vnode = varpool_node (t);
+      struct varpool_node *vnode = varpool_node_for_decl (t);
 
       ipa_record_reference ((symtab_node)data,
 			    (symtab_node)vnode,
@@ -331,7 +330,7 @@ build_cgraph_edges (void)
 	    {
 	      tree fn = gimple_omp_parallel_child_fn (stmt);
 	      ipa_record_reference ((symtab_node)node,
-				    (symtab_node)cgraph_get_create_node (fn),
+				    (symtab_node)cgraph_get_create_real_symbol_node (fn),
 				    IPA_REF_ADDR, stmt);
 	    }
 	  if (gimple_code (stmt) == GIMPLE_OMP_TASK)
@@ -339,12 +338,12 @@ build_cgraph_edges (void)
 	      tree fn = gimple_omp_task_child_fn (stmt);
 	      if (fn)
 		ipa_record_reference ((symtab_node)node,
-				      (symtab_node) cgraph_get_create_node (fn),
+				      (symtab_node) cgraph_get_create_real_symbol_node (fn),
 				      IPA_REF_ADDR, stmt);
 	      fn = gimple_omp_task_copy_fn (stmt);
 	      if (fn)
 		ipa_record_reference ((symtab_node)node,
-				      (symtab_node)cgraph_get_create_node (fn),
+				      (symtab_node)cgraph_get_create_real_symbol_node (fn),
 				      IPA_REF_ADDR, stmt);
 	    }
 	}
@@ -370,6 +369,7 @@ struct gimple_opt_pass pass_build_cgraph_edges =
  {
   GIMPLE_PASS,
   "*build_cgraph_edges",			/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,					/* gate */
   build_cgraph_edges,			/* execute */
   NULL,					/* sub */
@@ -392,7 +392,7 @@ void
 record_references_in_initializer (tree decl, bool only_vars)
 {
   struct pointer_set_t *visited_nodes = pointer_set_create ();
-  struct varpool_node *node = varpool_node (decl);
+  struct varpool_node *node = varpool_node_for_decl (decl);
   struct record_reference_ctx ctx = {false, NULL};
 
   ctx.varpool_node = node;
@@ -487,6 +487,7 @@ struct gimple_opt_pass pass_rebuild_cgraph_edges =
  {
   GIMPLE_PASS,
   "*rebuild_cgraph_edges",		/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,					/* gate */
   rebuild_cgraph_edges,			/* execute */
   NULL,					/* sub */
@@ -514,6 +515,7 @@ struct gimple_opt_pass pass_remove_cgraph_callee_edges =
  {
   GIMPLE_PASS,
   "*remove_cgraph_callee_edges",		/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,					/* gate */
   remove_cgraph_callee_edges,		/* execute */
   NULL,					/* sub */

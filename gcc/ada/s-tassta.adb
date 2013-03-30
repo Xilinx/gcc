@@ -33,6 +33,10 @@ pragma Polling (Off);
 --  Turn off polling, we do not want ATC polling to take place during tasking
 --  operations. It causes infinite loops and other problems.
 
+pragma Partition_Elaboration_Policy (Concurrent);
+--  This package only implements the concurrent elaboration policy. This pragma
+--  will enforce it (and detect conflicts with user specified policy).
+
 with Ada.Exceptions;
 with Ada.Unchecked_Deallocation;
 
@@ -86,9 +90,6 @@ package body System.Tasking.Stages is
 
    procedure Free is new
      Ada.Unchecked_Deallocation (Ada_Task_Control_Block, Task_Id);
-
-   procedure Free_Entry_Names (T : Task_Id);
-   --  Deallocate all string names associated with task entries
 
    procedure Trace_Unhandled_Exception_In_Task (Self_Id : Task_Id);
    --  This procedure outputs the task specific message for exception
@@ -483,8 +484,7 @@ package body System.Tasking.Stages is
       Elaborated        : Access_Boolean;
       Chain             : in out Activation_Chain;
       Task_Image        : String;
-      Created_Task      : out Task_Id;
-      Build_Entry_Names : Boolean)
+      Created_Task      : out Task_Id)
    is
       T, P          : Task_Id;
       Self_ID       : constant Task_Id := STPO.Self;
@@ -702,14 +702,6 @@ package body System.Tasking.Stages is
            Dispatching_Domain_Tasks (Base_CPU) + 1;
       end if;
 
-      --  Note: we should not call 'new' while holding locks since new may use
-      --  locks (e.g. RTS_Lock under Windows) itself and cause a deadlock.
-
-      if Build_Entry_Names then
-         T.Entry_Names :=
-           new Entry_Names_Array (1 .. Entry_Index (Num_Entries));
-      end if;
-
       --  Create TSD as early as possible in the creation of a task, since it
       --  may be used by the operation of Ada code within the task.
 
@@ -814,8 +806,9 @@ package body System.Tasking.Stages is
    procedure Finalize_Global_Tasks is
       Self_ID : constant Task_Id := STPO.Self;
 
-      Ignore  : Boolean;
-      pragma Unreferenced (Ignore);
+      Ignore_1 : Boolean;
+      Ignore_2 : Boolean;
+      pragma Unreferenced (Ignore_1, Ignore_2);
 
       function State
         (Int : System.Interrupt_Management.Interrupt_ID) return Character;
@@ -885,7 +878,7 @@ package body System.Tasking.Stages is
 
             Timed_Sleep
               (Self_ID, 0.01, System.OS_Primitives.Relative,
-               Self_ID.Common.State, Ignore, Ignore);
+               Self_ID.Common.State, Ignore_1, Ignore_2);
          end loop;
       end if;
 
@@ -894,7 +887,7 @@ package body System.Tasking.Stages is
 
       Timed_Sleep
         (Self_ID, 0.01, System.OS_Primitives.Relative,
-         Self_ID.Common.State, Ignore, Ignore);
+         Self_ID.Common.State, Ignore_1, Ignore_2);
 
       Unlock (Self_ID);
 
@@ -938,26 +931,6 @@ package body System.Tasking.Stages is
 
    end Finalize_Global_Tasks;
 
-   ----------------------
-   -- Free_Entry_Names --
-   ----------------------
-
-   procedure Free_Entry_Names (T : Task_Id) is
-      Names : Entry_Names_Array_Access := T.Entry_Names;
-
-      procedure Free_Entry_Names_Array_Access is new
-        Ada.Unchecked_Deallocation
-          (Entry_Names_Array, Entry_Names_Array_Access);
-
-   begin
-      if Names = null then
-         return;
-      end if;
-
-      Free_Entry_Names_Array (Names.all);
-      Free_Entry_Names_Array_Access (Names);
-   end Free_Entry_Names;
-
    ---------------
    -- Free_Task --
    ---------------
@@ -979,7 +952,6 @@ package body System.Tasking.Stages is
 
          Initialization.Task_Unlock (Self_Id);
 
-         Free_Entry_Names (T);
          System.Task_Primitives.Operations.Finalize_TCB (T);
 
       else
@@ -1036,23 +1008,6 @@ package body System.Tasking.Stages is
 
       Initialization.Undefer_Abort (Self_ID);
    end Move_Activation_Chain;
-
-   --  Compiler interface only. Do not call from within the RTS
-
-   --------------------
-   -- Set_Entry_Name --
-   --------------------
-
-   procedure Set_Entry_Name
-     (T   : Task_Id;
-      Pos : Task_Entry_Index;
-      Val : String_Access)
-   is
-   begin
-      pragma Assert (T.Entry_Names /= null);
-
-      T.Entry_Names (Entry_Index (Pos)) := Val;
-   end Set_Entry_Name;
 
    ------------------
    -- Task_Wrapper --
@@ -1905,7 +1860,16 @@ package body System.Tasking.Stages is
       C := All_Tasks_List;
       P := null;
       while C /= null loop
-         if C.Common.Parent = Self_ID and then C.Master_of_Task >= CM then
+
+         --  If Free_On_Termination is set, do nothing here, and let the
+         --  task free itself if not already done, otherwise we risk a race
+         --  condition where Vulnerable_Free_Task is called in the loop below,
+         --  while the task calls Free_Task itself, in Terminate_Task.
+
+         if C.Common.Parent = Self_ID
+           and then C.Master_of_Task >= CM
+           and then not C.Free_On_Termination
+         then
             if P /= null then
                P.Common.All_Tasks_Link := C.Common.All_Tasks_Link;
             else
@@ -2088,9 +2052,7 @@ package body System.Tasking.Stages is
    --  is called from Expunge_Unactivated_Tasks.
 
    --  For tasks created by elaboration of task object declarations it is
-   --  called from the finalization code of the Task_Wrapper procedure. It is
-   --  also called from Ada.Unchecked_Deallocation, for objects that are or
-   --  contain tasks.
+   --  called from the finalization code of the Task_Wrapper procedure.
 
    procedure Vulnerable_Free_Task (T : Task_Id) is
    begin
@@ -2108,7 +2070,6 @@ package body System.Tasking.Stages is
          Unlock_RTS;
       end if;
 
-      Free_Entry_Names (T);
       System.Task_Primitives.Operations.Finalize_TCB (T);
    end Vulnerable_Free_Task;
 

@@ -1,6 +1,6 @@
 // Profiling iterator implementation -*- C++ -*-
 
-// Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2009-2013 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -93,7 +93,7 @@ namespace __profile
 	return *this;
       }
 
-      __iterator_tracker&
+      __iterator_tracker
       operator++(int)
       {
 	_M_ds->_M_profile_iterate();
@@ -110,7 +110,7 @@ namespace __profile
 	return *this;
       }
 
-      __iterator_tracker&
+      __iterator_tracker
       operator--(int)
       {
 	_M_ds->_M_profile_iterate(1);

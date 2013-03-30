@@ -141,7 +141,7 @@ Parse::expression_list(Expression* first, bool may_be_sink,
   while (true)
     {
       ret->push_back(this->expression(PRECEDENCE_NORMAL, may_be_sink,
-				      may_be_composite_lit, NULL));
+				      may_be_composite_lit, NULL, NULL));
 
       const Token* token = this->peek_token();
       if (!token->is_op(OPERATOR_COMMA))
@@ -394,7 +394,7 @@ Parse::array_type(bool may_use_ellipsis)
   else
     {
       if (!token->is_op(OPERATOR_ELLIPSIS))
-	length = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+	length = this->expression(PRECEDENCE_NORMAL, false, true, NULL, NULL);
       else if (may_use_ellipsis)
 	{
 	  // An ellipsis is used in composite literals to represent a
@@ -975,13 +975,13 @@ Parse::parameter_list(bool* is_varargs)
   this->parameter_decl(parameters_have_names, ret, is_varargs, &mix_error);
   while (this->peek_token()->is_op(OPERATOR_COMMA))
     {
+      if (this->advance_token()->is_op(OPERATOR_RPAREN))
+	break;
       if (is_varargs != NULL && *is_varargs)
 	{
 	  error_at(this->location(), "%<...%> must be last parameter");
 	  saw_error = true;
 	}
-      if (this->advance_token()->is_op(OPERATOR_RPAREN))
-	break;
       this->parameter_decl(parameters_have_names, ret, is_varargs, &mix_error);
     }
   if (mix_error)
@@ -1280,6 +1280,12 @@ void
 Parse::declaration()
 {
   const Token* token = this->peek_token();
+
+  bool saw_nointerface = this->lex_->get_and_clear_nointerface();
+  if (saw_nointerface && !token->is_keyword(KEYWORD_FUNC))
+    warning_at(token->location(), 0,
+	       "ignoring magic //go:nointerface comment before non-method");
+
   if (token->is_keyword(KEYWORD_CONST))
     this->const_decl();
   else if (token->is_keyword(KEYWORD_TYPE))
@@ -1287,7 +1293,7 @@ Parse::declaration()
   else if (token->is_keyword(KEYWORD_VAR))
     this->var_decl();
   else if (token->is_keyword(KEYWORD_FUNC))
-    this->function_decl();
+    this->function_decl(saw_nointerface);
   else
     {
       error_at(this->location(), "expected declaration");
@@ -1631,12 +1637,16 @@ Parse::init_vars(const Typed_identifier_list* til, Type* type,
 
   // Note that INIT was already parsed with the old name bindings, so
   // we don't have to worry that it will accidentally refer to the
-  // newly declared variables.
+  // newly declared variables.  But we do have to worry about a mix of
+  // newly declared variables and old variables if the old variables
+  // appear in the initializations.
 
   Expression_list::const_iterator pexpr;
   if (init != NULL)
     pexpr = init->begin();
   bool any_new = false;
+  Expression_list* vars = new Expression_list();
+  Expression_list* vals = new Expression_list();
   for (Typed_identifier_list::const_iterator p = til->begin();
        p != til->end();
        ++p)
@@ -1644,7 +1654,7 @@ Parse::init_vars(const Typed_identifier_list* til, Type* type,
       if (init != NULL)
 	go_assert(pexpr != init->end());
       this->init_var(*p, type, init == NULL ? NULL : *pexpr, is_coloneq,
-		     false, &any_new);
+		     false, &any_new, vars, vals);
       if (init != NULL)
 	++pexpr;
     }
@@ -1652,6 +1662,7 @@ Parse::init_vars(const Typed_identifier_list* til, Type* type,
     go_assert(pexpr == init->end());
   if (is_coloneq && !any_new)
     error_at(location, "variables redeclared but no variable is new");
+  this->finish_init_vars(vars, vals, location);
 }
 
 // See if we need to initialize a list of variables from a function
@@ -1674,13 +1685,15 @@ Parse::init_vars_from_call(const Typed_identifier_list* vars, Type* type,
   Named_object* first_var = NULL;
   unsigned int index = 0;
   bool any_new = false;
+  Expression_list* ivars = new Expression_list();
+  Expression_list* ivals = new Expression_list();
   for (Typed_identifier_list::const_iterator pv = vars->begin();
        pv != vars->end();
        ++pv, ++index)
     {
       Expression* init = Expression::make_call_result(call, index);
       Named_object* no = this->init_var(*pv, type, init, is_coloneq, false,
-					&any_new);
+					&any_new, ivars, ivals);
 
       if (this->gogo_->in_global_scope() && no->is_variable())
 	{
@@ -1699,6 +1712,8 @@ Parse::init_vars_from_call(const Typed_identifier_list* vars, Type* type,
 
   if (is_coloneq && !any_new)
     error_at(location, "variables redeclared but no variable is new");
+
+  this->finish_init_vars(ivars, ivals, location);
 
   return true;
 }
@@ -1725,7 +1740,7 @@ Parse::init_vars_from_map(const Typed_identifier_list* vars, Type* type,
   Typed_identifier_list::const_iterator p = vars->begin();
   Expression* init = type == NULL ? index : NULL;
   Named_object* val_no = this->init_var(*p, type, init, is_coloneq,
-					type == NULL, &any_new);
+					type == NULL, &any_new, NULL, NULL);
   if (type == NULL && any_new && val_no->is_variable())
     val_no->var_value()->set_type_from_init_tuple();
   Expression* val_var = Expression::make_var_reference(val_no, location);
@@ -1735,7 +1750,7 @@ Parse::init_vars_from_map(const Typed_identifier_list* vars, Type* type,
   if (var_type == NULL)
     var_type = Type::lookup_bool_type();
   Named_object* no = this->init_var(*p, var_type, NULL, is_coloneq, false,
-				    &any_new);
+				    &any_new, NULL, NULL);
   Expression* present_var = Expression::make_var_reference(no, location);
 
   if (is_coloneq && !any_new)
@@ -1790,7 +1805,7 @@ Parse::init_vars_from_receive(const Typed_identifier_list* vars, Type* type,
   Typed_identifier_list::const_iterator p = vars->begin();
   Expression* init = type == NULL ? receive : NULL;
   Named_object* val_no = this->init_var(*p, type, init, is_coloneq,
-					type == NULL, &any_new);
+					type == NULL, &any_new, NULL, NULL);
   if (type == NULL && any_new && val_no->is_variable())
     val_no->var_value()->set_type_from_init_tuple();
   Expression* val_var = Expression::make_var_reference(val_no, location);
@@ -1800,7 +1815,7 @@ Parse::init_vars_from_receive(const Typed_identifier_list* vars, Type* type,
   if (var_type == NULL)
     var_type = Type::lookup_bool_type();
   Named_object* no = this->init_var(*p, var_type, NULL, is_coloneq, false,
-				    &any_new);
+				    &any_new, NULL, NULL);
   Expression* received_var = Expression::make_var_reference(no, location);
 
   if (is_coloneq && !any_new)
@@ -1857,7 +1872,7 @@ Parse::init_vars_from_type_guard(const Typed_identifier_list* vars,
   if (var_type == NULL)
     var_type = type_guard->type();
   Named_object* val_no = this->init_var(*p, var_type, NULL, is_coloneq, false,
-					&any_new);
+					&any_new, NULL, NULL);
   Expression* val_var = Expression::make_var_reference(val_no, location);
 
   ++p;
@@ -1865,7 +1880,7 @@ Parse::init_vars_from_type_guard(const Typed_identifier_list* vars,
   if (var_type == NULL)
     var_type = Type::lookup_bool_type();
   Named_object* no = this->init_var(*p, var_type, NULL, is_coloneq, false,
-				    &any_new);
+				    &any_new, NULL, NULL);
   Expression* ok_var = Expression::make_var_reference(no, location);
 
   Expression* texpr = type_guard->expr();
@@ -1904,7 +1919,8 @@ Parse::init_vars_from_type_guard(const Typed_identifier_list* vars,
 
 Named_object*
 Parse::init_var(const Typed_identifier& tid, Type* type, Expression* init,
-		bool is_coloneq, bool type_from_init, bool* is_new)
+		bool is_coloneq, bool type_from_init, bool* is_new,
+		Expression_list* vars, Expression_list* vals)
 {
   Location location = tid.location();
 
@@ -1946,9 +1962,9 @@ Parse::init_var(const Typed_identifier& tid, Type* type, Expression* init,
 	  // like v, ok := x.(int).
 	  if (!type_from_init && init != NULL)
 	    {
-	      Expression *v = Expression::make_var_reference(no, location);
-	      Statement *s = Statement::make_assignment(v, init, location);
-	      this->gogo_->add_statement(s);
+	      go_assert(vars != NULL && vals != NULL);
+	      vars->push_back(Expression::make_var_reference(no, location));
+	      vals->push_back(init);
 	    }
 	  return no;
 	}
@@ -1981,6 +1997,36 @@ Parse::create_dummy_global(Type* type, Expression* init,
   snprintf(buf, sizeof buf, "_.%d", count);
   ++count;
   return this->gogo_->add_variable(buf, var);
+}
+
+// Finish the variable initialization by executing any assignments to
+// existing variables when using :=.  These must be done as a tuple
+// assignment in case of something like n, a, b := 1, b, a.
+
+void
+Parse::finish_init_vars(Expression_list* vars, Expression_list* vals,
+			Location location)
+{
+  if (vars->empty())
+    {
+      delete vars;
+      delete vals;
+    }
+  else if (vars->size() == 1)
+    {
+      go_assert(!this->gogo_->in_global_scope());
+      this->gogo_->add_statement(Statement::make_assignment(vars->front(),
+							    vals->front(),
+							    location));
+      delete vars;
+      delete vals;
+    }
+  else
+    {
+      go_assert(!this->gogo_->in_global_scope());
+      this->gogo_->add_statement(Statement::make_tuple_assignment(vars, vals,
+								  location));
+    }
 }
 
 // SimpleVarDecl = identifier ":=" Expression .
@@ -2091,7 +2137,7 @@ Parse::simple_var_decl_or_assignment(const std::string& name,
       bool is_type_switch = false;
       Expression* expr = this->expression(PRECEDENCE_NORMAL, false,
 					  may_be_composite_lit,
-					  &is_type_switch);
+					  &is_type_switch, NULL);
       if (is_type_switch)
 	{
 	  p_type_switch->found = true;
@@ -2126,8 +2172,11 @@ Parse::simple_var_decl_or_assignment(const std::string& name,
 // inside the asm.  This extension will be removed at some future
 // date.  It has been replaced with //extern comments.
 
+// SAW_NOINTERFACE is true if we saw a magic //go:nointerface comment,
+// which means that we omit the method from the type descriptor.
+
 void
-Parse::function_decl()
+Parse::function_decl(bool saw_nointerface)
 {
   go_assert(this->peek_token()->is_keyword(KEYWORD_FUNC));
   Location location = this->location();
@@ -2139,6 +2188,12 @@ Parse::function_decl()
     {
       rec = this->receiver();
       token = this->peek_token();
+    }
+  else if (saw_nointerface)
+    {
+      warning_at(location, 0,
+		 "ignoring magic //go:nointerface comment before non-method");
+      saw_nointerface = false;
     }
 
   if (!token->is_identifier())
@@ -2216,6 +2271,11 @@ Parse::function_decl()
 		}
 	    }
 	}
+
+      if (saw_nointerface)
+	warning_at(location, 0,
+		   ("ignoring magic //go:nointerface comment "
+		    "before declaration"));
     }
   else
     {
@@ -2228,9 +2288,13 @@ Parse::function_decl()
 	    this->gogo_->add_erroneous_name(name);
 	  name = this->gogo_->pack_hidden_name("_", false);
 	}
-      this->gogo_->start_function(name, fntype, true, location);
+      named_object = this->gogo_->start_function(name, fntype, true, location);
       Location end_loc = this->block();
       this->gogo_->finish_function(end_loc);
+      if (saw_nointerface
+	  && !this->is_erroneous_function_
+	  && named_object->is_function())
+	named_object->func_value()->set_nointerface();
       this->is_erroneous_function_ = hold_is_erroneous_function;
     }
 }
@@ -2340,8 +2404,11 @@ Parse::receiver()
 
 // If MAY_BE_SINK is true, this operand may be "_".
 
+// If IS_PARENTHESIZED is not NULL, *IS_PARENTHESIZED is set to true
+// if the entire expression is in parentheses.
+
 Expression*
-Parse::operand(bool may_be_sink)
+Parse::operand(bool may_be_sink, bool* is_parenthesized)
 {
   const Token* token = this->peek_token();
   Expression* ret;
@@ -2517,11 +2584,14 @@ Parse::operand(bool may_be_sink)
       if (token->is_op(OPERATOR_LPAREN))
 	{
 	  this->advance_token();
-	  ret = this->expression(PRECEDENCE_NORMAL, may_be_sink, true, NULL);
+	  ret = this->expression(PRECEDENCE_NORMAL, may_be_sink, true, NULL,
+				 NULL);
 	  if (!this->peek_token()->is_op(OPERATOR_RPAREN))
 	    error_at(this->location(), "missing %<)%>");
 	  else
 	    this->advance_token();
+	  if (is_parenthesized != NULL)
+	    *is_parenthesized = true;
 	  return ret;
 	}
       else if (token->is_op(OPERATOR_LSQUARE))
@@ -2644,11 +2714,12 @@ Parse::composite_lit(Type* type, int depth, Location location)
 	      this->unget_token(Token::make_identifier_token(identifier,
 							     is_exported,
 							     location));
-	      val = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+	      val = this->expression(PRECEDENCE_NORMAL, false, true, NULL,
+				     NULL);
 	    }
 	}
       else if (!token->is_op(OPERATOR_LCURLY))
-	val = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+	val = this->expression(PRECEDENCE_NORMAL, false, true, NULL, NULL);
       else
 	{
 	  // This must be a composite literal inside another composite
@@ -2694,7 +2765,7 @@ Parse::composite_lit(Type* type, int depth, Location location)
 	  vals->push_back(val);
 
 	  if (!token->is_op(OPERATOR_LCURLY))
-	    val = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+	    val = this->expression(PRECEDENCE_NORMAL, false, true, NULL, NULL);
 	  else
 	    {
 	      // This must be a composite literal inside another
@@ -2723,7 +2794,11 @@ Parse::composite_lit(Type* type, int depth, Location location)
 	}
       else
 	{
-	  error_at(this->location(), "expected %<,%> or %<}%>");
+	  if (token->is_op(OPERATOR_SEMICOLON))
+	    error_at(this->location(),
+		     "need trailing comma before newline in composite literal");
+	  else
+	    error_at(this->location(), "expected %<,%> or %<}%>");
 
 	  this->gogo_->mark_locals_used();
 	  int depth = 0;
@@ -2863,19 +2938,25 @@ Parse::create_closure(Named_object* function, Enclosing_vars* enclosing_vars,
 // If IS_TYPE_SWITCH is not NULL, this will recognize a type switch
 // guard (var := expr.("type") using the literal keyword "type").
 
+// If IS_PARENTHESIZED is not NULL, *IS_PARENTHESIZED is set to true
+// if the entire expression is in parentheses.
+
 Expression*
 Parse::primary_expr(bool may_be_sink, bool may_be_composite_lit,
-		    bool* is_type_switch)
+		    bool* is_type_switch, bool* is_parenthesized)
 {
   Location start_loc = this->location();
-  bool is_parenthesized = this->peek_token()->is_op(OPERATOR_LPAREN);
+  bool operand_is_parenthesized = false;
+  bool whole_is_parenthesized = false;
 
-  Expression* ret = this->operand(may_be_sink);
+  Expression* ret = this->operand(may_be_sink, &operand_is_parenthesized);
+
+  whole_is_parenthesized = operand_is_parenthesized;
 
   // An unknown name followed by a curly brace must be a composite
   // literal, and the unknown name must be a type.
   if (may_be_composite_lit
-      && !is_parenthesized
+      && !operand_is_parenthesized
       && ret->unknown_expression() != NULL
       && this->peek_token()->is_op(OPERATOR_LCURLY))
     {
@@ -2891,26 +2972,30 @@ Parse::primary_expr(bool may_be_sink, bool may_be_composite_lit,
     {
       if (this->peek_token()->is_op(OPERATOR_LCURLY))
 	{
+	  whole_is_parenthesized = false;
 	  if (!may_be_composite_lit)
 	    {
 	      Type* t = ret->type();
 	      if (t->named_type() != NULL
 		  || t->forward_declaration_type() != NULL)
 		error_at(start_loc,
-			 _("parentheses required around this composite literal"
+			 _("parentheses required around this composite literal "
 			   "to avoid parsing ambiguity"));
 	    }
-	  else if (is_parenthesized)
+	  else if (operand_is_parenthesized)
 	    error_at(start_loc,
 		     "cannot parenthesize type in composite literal");
 	  ret = this->composite_lit(ret->type(), 0, ret->location());
 	}
       else if (this->peek_token()->is_op(OPERATOR_LPAREN))
 	{
+	  whole_is_parenthesized = false;
 	  Location loc = this->location();
 	  this->advance_token();
 	  Expression* expr = this->expression(PRECEDENCE_NORMAL, false, true,
-					      NULL);
+					      NULL, NULL);
+	  if (this->peek_token()->is_op(OPERATOR_COMMA))
+	    this->advance_token();
 	  if (this->peek_token()->is_op(OPERATOR_ELLIPSIS))
 	    {
 	      error_at(this->location(),
@@ -2944,18 +3029,28 @@ Parse::primary_expr(bool may_be_sink, bool may_be_composite_lit,
     {
       const Token* token = this->peek_token();
       if (token->is_op(OPERATOR_LPAREN))
-	ret = this->call(this->verify_not_sink(ret));
+	{
+	  whole_is_parenthesized = false;
+	  ret = this->call(this->verify_not_sink(ret));
+	}
       else if (token->is_op(OPERATOR_DOT))
 	{
+	  whole_is_parenthesized = false;
 	  ret = this->selector(this->verify_not_sink(ret), is_type_switch);
 	  if (is_type_switch != NULL && *is_type_switch)
 	    break;
 	}
       else if (token->is_op(OPERATOR_LSQUARE))
-	ret = this->index(this->verify_not_sink(ret));
+	{
+	  whole_is_parenthesized = false;
+	  ret = this->index(this->verify_not_sink(ret));
+	}
       else
 	break;
     }
+
+  if (whole_is_parenthesized && is_parenthesized != NULL)
+    *is_parenthesized = true;
 
   return ret;
 }
@@ -3038,7 +3133,7 @@ Parse::index(Expression* expr)
 
   Expression* start;
   if (!this->peek_token()->is_op(OPERATOR_COLON))
-    start = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+    start = this->expression(PRECEDENCE_NORMAL, false, true, NULL, NULL);
   else
     {
       mpz_t zero;
@@ -3054,7 +3149,7 @@ Parse::index(Expression* expr)
       if (this->advance_token()->is_op(OPERATOR_RSQUARE))
 	end = Expression::make_nil(this->location());
       else
-	end = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+	end = this->expression(PRECEDENCE_NORMAL, false, true, NULL, NULL);
     }
   if (!this->peek_token()->is_op(OPERATOR_RSQUARE))
     error_at(this->location(), "missing %<]%>");
@@ -3163,12 +3258,16 @@ Parse::id_to_expression(const std::string& name, Location location)
 // If IS_TYPE_SWITCH is not NULL, this will recognize a type switch
 // guard (var := expr.("type") using the literal keyword "type").
 
+// If IS_PARENTHESIZED is not NULL, *IS_PARENTHESIZED is set to true
+// if the entire expression is in parentheses.
+
 Expression*
 Parse::expression(Precedence precedence, bool may_be_sink,
-		  bool may_be_composite_lit, bool* is_type_switch)
+		  bool may_be_composite_lit, bool* is_type_switch,
+		  bool *is_parenthesized)
 {
   Expression* left = this->unary_expr(may_be_sink, may_be_composite_lit,
-				      is_type_switch);
+				      is_type_switch, is_parenthesized);
 
   while (true)
     {
@@ -3225,6 +3324,9 @@ Parse::expression(Precedence precedence, bool may_be_sink,
 	  return left;
 	}
 
+      if (is_parenthesized != NULL)
+	*is_parenthesized = false;
+      
       Operator op = token->op();
       Location binop_location = token->location();
 
@@ -3240,7 +3342,7 @@ Parse::expression(Precedence precedence, bool may_be_sink,
       left = this->verify_not_sink(left);
       Expression* right = this->expression(right_precedence, false,
 					   may_be_composite_lit,
-					   NULL);
+					   NULL, NULL);
       left = Expression::make_binary(op, left, right, binop_location);
     }
 }
@@ -3306,11 +3408,69 @@ Parse::expression_may_start_here()
 // If IS_TYPE_SWITCH is not NULL, this will recognize a type switch
 // guard (var := expr.("type") using the literal keyword "type").
 
+// If IS_PARENTHESIZED is not NULL, *IS_PARENTHESIZED is set to true
+// if the entire expression is in parentheses.
+
 Expression*
 Parse::unary_expr(bool may_be_sink, bool may_be_composite_lit,
-		  bool* is_type_switch)
+		  bool* is_type_switch, bool* is_parenthesized)
 {
   const Token* token = this->peek_token();
+
+  // There is a complex parse for <- chan.  The choices are
+  // Convert x to type <- chan int:
+  //   (<- chan int)(x)         
+  // Receive from (x converted to type chan <- chan int):
+  //   (<- chan <- chan int (x))
+  // Convert x to type <- chan (<- chan int).
+  //   (<- chan <- chan int)(x)
+  if (token->is_op(OPERATOR_CHANOP))
+    {
+      Location location = token->location();
+      if (this->advance_token()->is_keyword(KEYWORD_CHAN))
+	{
+	  Expression* expr = this->primary_expr(false, may_be_composite_lit,
+						NULL, NULL);
+	  if (expr->is_error_expression())
+	    return expr;
+	  else if (!expr->is_type_expression())
+	    return Expression::make_receive(expr, location);
+	  else
+	    {
+	      if (expr->type()->is_error_type())
+		return expr;
+
+	      // We picked up "chan TYPE", but it is not a type
+	      // conversion.
+	      Channel_type* ct = expr->type()->channel_type();
+	      if (ct == NULL)
+		{
+		  // This is probably impossible.
+		  error_at(location, "expected channel type");
+		  return Expression::make_error(location);
+		}
+	      else if (ct->may_receive())
+		{
+		  // <- chan TYPE.
+		  Type* t = Type::make_channel_type(false, true,
+						    ct->element_type());
+		  return Expression::make_type(t, location);
+		}
+	      else
+		{
+		  // <- chan <- TYPE.  Because we skipped the leading
+		  // <-, we parsed this as chan <- TYPE.  With the
+		  // leading <-, we parse it as <- chan (<- TYPE).
+		  Type *t = this->reassociate_chan_direction(ct, location);
+		  return Expression::make_type(t, location);
+		}
+	    }
+	}
+
+      this->unget_token(Token::make_operator_token(OPERATOR_CHANOP, location));
+      token = this->peek_token();
+    }
+
   if (token->is_op(OPERATOR_PLUS)
       || token->is_op(OPERATOR_MINUS)
       || token->is_op(OPERATOR_NOT)
@@ -3323,15 +3483,8 @@ Parse::unary_expr(bool may_be_sink, bool may_be_composite_lit,
       Operator op = token->op();
       this->advance_token();
 
-      if (op == OPERATOR_CHANOP
-	  && this->peek_token()->is_keyword(KEYWORD_CHAN))
-	{
-	  // This is "<- chan" which must be the start of a type.
-	  this->unget_token(Token::make_operator_token(op, location));
-	  return Expression::make_type(this->type(), location);
-	}
-
-      Expression* expr = this->unary_expr(false, may_be_composite_lit, NULL);
+      Expression* expr = this->unary_expr(false, may_be_composite_lit, NULL,
+					  NULL);
       if (expr->is_error_expression())
 	;
       else if (op == OPERATOR_MULT && expr->is_type_expression())
@@ -3347,7 +3500,33 @@ Parse::unary_expr(bool may_be_sink, bool may_be_composite_lit,
     }
   else
     return this->primary_expr(may_be_sink, may_be_composite_lit,
-			      is_type_switch);
+			      is_type_switch, is_parenthesized);
+}
+
+// This is called for the obscure case of
+//   (<- chan <- chan int)(x)
+// In unary_expr we remove the leading <- and parse the remainder,
+// which gives us
+//   chan <- (chan int)
+// When we add the leading <- back in, we really want
+//   <- chan (<- chan int)
+// This means that we need to reassociate.
+
+Type*
+Parse::reassociate_chan_direction(Channel_type *ct, Location location)
+{
+  Channel_type* ele = ct->element_type()->channel_type();
+  if (ele == NULL)
+    {
+      error_at(location, "parse error");
+      return Type::make_error_type();
+    }
+  Type* sub = ele;
+  if (ele->may_send())
+    sub = Type::make_channel_type(false, true, ele->element_type());
+  else
+    sub = this->reassociate_chan_direction(ele, location);
+  return Type::make_channel_type(false, true, sub);
 }
 
 // Statement =
@@ -3604,7 +3783,8 @@ Parse::simple_stat(bool may_be_composite_lit, bool* return_exp,
 				     may_be_composite_lit,
 				     (p_type_switch == NULL
 				      ? NULL
-				      : &p_type_switch->found));
+				      : &p_type_switch->found),
+				     NULL);
   if (p_type_switch != NULL && p_type_switch->found)
     {
       p_type_switch->name.clear();
@@ -3714,7 +3894,8 @@ Parse::send_stmt(Expression* channel)
   go_assert(this->peek_token()->is_op(OPERATOR_CHANOP));
   Location loc = this->location();
   this->advance_token();
-  Expression* val = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+  Expression* val = this->expression(PRECEDENCE_NORMAL, false, true, NULL,
+				     NULL);
   Statement* s = Statement::make_send_statement(channel, val, loc);
   this->gogo_->add_statement(s);
 }
@@ -3948,13 +4129,17 @@ Parse::go_or_defer_stat()
 	     || this->peek_token()->is_keyword(KEYWORD_DEFER));
   bool is_go = this->peek_token()->is_keyword(KEYWORD_GO);
   Location stat_location = this->location();
+
   this->advance_token();
   Location expr_location = this->location();
-  Expression* expr = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+
+  bool is_parenthesized = false;
+  Expression* expr = this->expression(PRECEDENCE_NORMAL, false, true, NULL,
+				      &is_parenthesized);
   Call_expression* call_expr = expr->call_expression();
-  if (call_expr == NULL)
+  if (is_parenthesized || call_expr == NULL)
     {
-      error_at(expr_location, "expected call expression");
+      error_at(expr_location, "argument to go/defer must be function call");
       return;
     }
 
@@ -4052,7 +4237,7 @@ Parse::if_stat()
 	  cond = Expression::make_error(this->location());
 	}
       if (cond == NULL)
-	cond = this->expression(PRECEDENCE_NORMAL, false, false, NULL);
+	cond = this->expression(PRECEDENCE_NORMAL, false, false, NULL, NULL);
     }
 
   this->gogo_->start_block(this->location());
@@ -4183,7 +4368,7 @@ Parse::switch_stat(Label* label)
 	  if (switch_val == NULL && !type_switch.found)
 	    {
 	      switch_val = this->expression(PRECEDENCE_NORMAL, false, false,
-					    &type_switch.found);
+					    &type_switch.found, NULL);
 	      if (type_switch.found)
 		{
 		  type_switch.name.clear();
@@ -4205,7 +4390,7 @@ Parse::switch_stat(Label* label)
 	  error_at(token_loc, "invalid variable name");
 	  this->advance_token();
 	  this->expression(PRECEDENCE_NORMAL, false, false,
-			   &type_switch.found);
+			   &type_switch.found, NULL);
 	  if (this->peek_token()->is_op(OPERATOR_SEMICOLON))
 	    this->advance_token();
 	  if (!this->peek_token()->is_op(OPERATOR_LCURLY))
@@ -4708,7 +4893,7 @@ Parse::send_or_recv_stmt(bool* is_send, Expression** channel, Expression** val,
 	  // case rv := <-c:
 	  this->advance_token();
 	  Expression* e = this->expression(PRECEDENCE_NORMAL, false, false,
-					   NULL);
+					   NULL, NULL);
 	  Receive_expression* re = e->receive_expression();
 	  if (re == NULL)
 	    {
@@ -4743,7 +4928,7 @@ Parse::send_or_recv_stmt(bool* is_send, Expression** channel, Expression** val,
 		  // case rv, rc := <-c:
 		  this->advance_token();
 		  Expression* e = this->expression(PRECEDENCE_NORMAL, false,
-						   false, NULL);
+						   false, NULL, NULL);
 		  Receive_expression* re = e->receive_expression();
 		  if (re == NULL)
 		    {
@@ -4791,13 +4976,13 @@ Parse::send_or_recv_stmt(bool* is_send, Expression** channel, Expression** val,
 
   Expression* e;
   if (saw_comma || !this->peek_token()->is_op(OPERATOR_CHANOP))
-    e = this->expression(PRECEDENCE_NORMAL, true, true, NULL);
+    e = this->expression(PRECEDENCE_NORMAL, true, true, NULL, NULL);
   else
     {
       // case <-c:
       *is_send = false;
       this->advance_token();
-      *channel = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+      *channel = this->expression(PRECEDENCE_NORMAL, false, true, NULL, NULL);
 
       // The next token should be ':'.  If it is '<-', then we have
       // case <-c <- v:
@@ -4817,7 +5002,7 @@ Parse::send_or_recv_stmt(bool* is_send, Expression** channel, Expression** val,
 	}
       *is_send = false;
       this->advance_token();
-      *channel = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+      *channel = this->expression(PRECEDENCE_NORMAL, false, true, NULL, NULL);
       if (saw_comma)
 	{
 	  // case v, e = <-c:
@@ -4849,7 +5034,7 @@ Parse::send_or_recv_stmt(bool* is_send, Expression** channel, Expression** val,
       *is_send = true;
       *channel = this->verify_not_sink(e);
       this->advance_token();
-      *val = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+      *val = this->expression(PRECEDENCE_NORMAL, false, true, NULL, NULL);
       return true;
     }
 
@@ -4996,7 +5181,7 @@ Parse::for_clause(Expression** cond, Block** post)
       return;
     }
   else
-    *cond = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+    *cond = this->expression(PRECEDENCE_NORMAL, false, true, NULL, NULL);
   if (!this->peek_token()->is_op(OPERATOR_SEMICOLON))
     error_at(this->location(), "expected semicolon");
   else
@@ -5030,13 +5215,15 @@ Parse::range_clause_decl(const Typed_identifier_list* til,
     error_at(this->location(), "too many variables for range clause");
 
   this->advance_token();
-  Expression* expr = this->expression(PRECEDENCE_NORMAL, false, false, NULL);
+  Expression* expr = this->expression(PRECEDENCE_NORMAL, false, false, NULL,
+				      NULL);
   p_range_clause->range = expr;
 
   bool any_new = false;
 
   const Typed_identifier* pti = &til->front();
-  Named_object* no = this->init_var(*pti, NULL, expr, true, true, &any_new);
+  Named_object* no = this->init_var(*pti, NULL, expr, true, true, &any_new,
+				    NULL, NULL);
   if (any_new && no->is_variable())
     no->var_value()->set_type_from_range_index();
   p_range_clause->index = Expression::make_var_reference(no, location);
@@ -5047,7 +5234,7 @@ Parse::range_clause_decl(const Typed_identifier_list* til,
     {
       pti = &til->back();
       bool is_new = false;
-      no = this->init_var(*pti, NULL, expr, true, true, &is_new);
+      no = this->init_var(*pti, NULL, expr, true, true, &is_new, NULL, NULL);
       if (is_new && no->is_variable())
 	no->var_value()->set_type_from_range_value();
       if (is_new)
@@ -5076,7 +5263,7 @@ Parse::range_clause_expr(const Expression_list* vals,
 
   this->advance_token();
   p_range_clause->range = this->expression(PRECEDENCE_NORMAL, false, false,
-					   NULL);
+					   NULL, NULL);
 
   p_range_clause->index = vals->front();
   if (vals->size() == 1)
@@ -5337,7 +5524,8 @@ Parse::import_spec(void*)
 
   if (!token->is_string())
     {
-      error_at(this->location(), "missing import package name");
+      error_at(this->location(), "import statement not a string");
+      this->advance_token();
       return;
     }
 

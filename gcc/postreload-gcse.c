@@ -1,6 +1,5 @@
 /* Post reload partially redundant load elimination
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2004-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -519,10 +518,7 @@ oprs_unchanged_p (rtx x, rtx insn, bool after_insn)
     case PC:
     case CC0: /*FIXME*/
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case ADDR_VEC:
@@ -739,10 +735,9 @@ record_opr_changes (rtx insn)
     {
       unsigned int regno;
       rtx link, x;
-
-      for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
-	if (TEST_HARD_REG_BIT (regs_invalidated_by_call, regno))
-	  record_last_reg_set_info_regno (insn, regno);
+      hard_reg_set_iterator hrsi;
+      EXECUTE_IF_SET_IN_HARD_REG_SET (regs_invalidated_by_call, 0, regno, hrsi)
+	record_last_reg_set_info_regno (insn, regno);
 
       for (link = CALL_INSN_FUNCTION_USAGE (insn); link; link = XEXP (link, 1))
 	if (GET_CODE (XEXP (link, 0)) == CLOBBER)
@@ -923,7 +918,7 @@ bb_has_well_behaved_predecessors (basic_block bb)
       if ((pred->flags & EDGE_ABNORMAL_CALL) && cfun->has_nonlocal_label)
 	return false;
 
-      if (JUMP_TABLE_DATA_P (BB_END (pred->src)))
+      if (tablejump_p (BB_END (pred->src), NULL, NULL))
 	return false;
     }
   return true;
@@ -1332,6 +1327,7 @@ struct rtl_opt_pass pass_gcse2 =
  {
   RTL_PASS,
   "gcse2",                              /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_gcse2,                    /* gate */
   rest_of_handle_gcse2,                 /* execute */
   NULL,                                 /* sub */

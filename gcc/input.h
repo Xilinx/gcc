@@ -1,7 +1,6 @@
 /* Declarations for variables relating to reading the source file.
    Used by parsers, lexical analyzers, and error message routines.
-   Copyright (C) 1993, 1997, 1998, 2000, 2003, 2004, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 1993-2013 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -51,6 +50,11 @@ extern location_t input_location;
 #define LOCATION_FILE(LOC) ((expand_location (LOC)).file)
 #define LOCATION_LINE(LOC) ((expand_location (LOC)).line)
 #define LOCATION_COLUMN(LOC)((expand_location (LOC)).column)
+#define LOCATION_LOCUS(LOC) \
+  ((IS_ADHOC_LOC(LOC)) ? get_location_from_adhoc_loc (line_table, LOC) : (LOC))
+#define LOCATION_BLOCK(LOC) \
+  ((tree) ((IS_ADHOC_LOC (LOC)) ? get_data_from_adhoc_loc (line_table, (LOC)) \
+  : NULL))
 
 #define input_line LOCATION_LINE (input_location)
 #define input_filename LOCATION_FILE (input_location)

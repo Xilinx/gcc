@@ -76,6 +76,7 @@ package body Back_End is
 
       type File_Info_Type is record
          File_Name        : File_Name_Type;
+         Instance         : Instance_Id;
          Num_Source_Lines : Nat;
       end record;
 
@@ -119,6 +120,7 @@ package body Back_End is
 
       for J in 1 .. Last_Source_File loop
          File_Info_Array (J).File_Name        := Full_Debug_Name (J);
+         File_Info_Array (J).Instance         := Instance (J);
          File_Info_Array (J).Num_Source_Lines :=
            Nat (Physical_To_Logical (Last_Source_Line (J), J));
       end loop;
@@ -242,6 +244,7 @@ package body Back_End is
 
             elsif Switch_Chars (First .. Last) = "fdump-scos" then
                Opt.Generate_SCO := True;
+               Opt.Generate_SCO_Instance_Table := True;
 
             end if;
          end if;
@@ -266,7 +269,7 @@ package body Back_End is
             Argv_Ptr : constant Big_String_Ptr := save_argv (Arg);
             Argv_Len : constant Nat            := Len_Arg (Arg);
             Argv     : constant String         :=
-                         Argv_Ptr (1 .. Natural (Argv_Len));
+              Argv_Ptr (1 .. Natural (Argv_Len));
          begin
             Args (Positive (Arg)) := new String'(Argv);
          end;

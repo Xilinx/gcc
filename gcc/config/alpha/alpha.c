@@ -1,7 +1,5 @@
 /* Subroutines used for code generation on the DEC Alpha.
-   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 1992-2013 Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
 This file is part of GCC.
@@ -963,7 +961,7 @@ alpha_legitimize_address_1 (rtx x, rtx scratch, enum machine_mode mode)
 	  scratch = gen_reg_rtx (Pmode);
 	  dest = gen_reg_rtx (Pmode);
 
-	  emit_insn (gen_load_tp (tp));
+	  emit_insn (gen_get_thread_pointerdi (tp));
 	  emit_insn (gen_rtx_SET (VOIDmode, scratch, eqv));
 	  emit_insn (gen_adddi3 (dest, tp, scratch));
 	  return dest;
@@ -973,7 +971,7 @@ alpha_legitimize_address_1 (rtx x, rtx scratch, enum machine_mode mode)
 	  eqv = gen_rtx_CONST (Pmode, eqv);
 	  tp = gen_reg_rtx (Pmode);
 
-	  emit_insn (gen_load_tp (tp));
+	  emit_insn (gen_get_thread_pointerdi (tp));
 	  if (alpha_tls_size == 32)
 	    {
 	      insn = gen_rtx_HIGH (Pmode, eqv);
@@ -1036,6 +1034,17 @@ alpha_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 {
   rtx new_x = alpha_legitimize_address_1 (x, NULL_RTX, mode);
   return new_x ? new_x : x;
+}
+
+/* Return true if ADDR has an effect that depends on the machine mode it
+   is used for.  On the Alpha this is true only for the unaligned modes.
+   We can simplify the test since we know that the address must be valid.  */
+
+static bool
+alpha_mode_dependent_address_p (const_rtx addr,
+				addr_space_t as ATTRIBUTE_UNUSED)
+{
+  return GET_CODE (addr) == AND;
 }
 
 /* Primarily this is required for TLS symbols, but given that our move
@@ -5932,7 +5941,7 @@ alpha_stdarg_optimize_hook (struct stdarg_info *si, const_gimple stmt)
 
   base = get_base_address (base);
   if (TREE_CODE (base) != VAR_DECL
-      || !bitmap_bit_p (si->va_list_vars, DECL_UID (base)))
+      || !bitmap_bit_p (si->va_list_vars, DECL_UID (base) + num_ssa_names))
     return false;
 
   offset = gimple_op (stmt, 1 + offset_arg);
@@ -6317,8 +6326,6 @@ enum alpha_builtin
   ALPHA_BUILTIN_AMASK,
   ALPHA_BUILTIN_IMPLVER,
   ALPHA_BUILTIN_RPCC,
-  ALPHA_BUILTIN_THREAD_POINTER,
-  ALPHA_BUILTIN_SET_THREAD_POINTER,
   ALPHA_BUILTIN_ESTABLISH_VMS_CONDITION_HANDLER,
   ALPHA_BUILTIN_REVERT_VMS_CONDITION_HANDLER,
 
@@ -6374,8 +6381,6 @@ static enum insn_code const code_for_builtin[ALPHA_BUILTIN_max] = {
   CODE_FOR_builtin_amask,
   CODE_FOR_builtin_implver,
   CODE_FOR_builtin_rpcc,
-  CODE_FOR_load_tp,
-  CODE_FOR_set_tp,
   CODE_FOR_builtin_establish_vms_condition_handler,
   CODE_FOR_builtin_revert_vms_condition_handler,
 
@@ -6532,14 +6537,6 @@ alpha_init_builtins (void)
   ftype = build_function_type_list (alpha_dimode_u, alpha_dimode_u,
 				    alpha_dimode_u, NULL_TREE);
   alpha_add_builtins (two_arg_builtins, ARRAY_SIZE (two_arg_builtins), ftype);
-
-  ftype = build_function_type_list (ptr_type_node, NULL_TREE);
-  alpha_builtin_function ("__builtin_thread_pointer", ftype,
-			  ALPHA_BUILTIN_THREAD_POINTER, ECF_NOTHROW);
-
-  ftype = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
-  alpha_builtin_function ("__builtin_set_thread_pointer", ftype,
-			  ALPHA_BUILTIN_SET_THREAD_POINTER, ECF_NOTHROW);
 
   if (TARGET_ABI_OPEN_VMS)
     {
@@ -7077,8 +7074,6 @@ alpha_fold_builtin (tree fndecl, int n_args, tree *op,
     case ALPHA_BUILTIN_AMASK:
     case ALPHA_BUILTIN_IMPLVER:
     case ALPHA_BUILTIN_RPCC:
-    case ALPHA_BUILTIN_THREAD_POINTER:
-    case ALPHA_BUILTIN_SET_THREAD_POINTER:
       /* None of these are foldable at compile-time.  */
     default:
       return NULL;
@@ -7459,7 +7454,6 @@ alpha_does_function_need_gp (void)
 
   for (; insn; insn = NEXT_INSN (insn))
     if (NONDEBUG_INSN_P (insn)
-	&& ! JUMP_TABLE_DATA_P (insn)
 	&& GET_CODE (PATTERN (insn)) != USE
 	&& GET_CODE (PATTERN (insn)) != CLOBBER
 	&& get_attr_usegp (insn))
@@ -8352,7 +8346,6 @@ alpha_output_mi_thunk_osf (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
      instruction scheduling worth while.  Note that use_thunk calls
      assemble_start_function and assemble_end_function.  */
   insn = get_insns ();
-  insn_locators_alloc ();
   shorten_branches (insn);
   final_start_function (insn, file, 1);
   final (insn, file, 1);
@@ -9248,31 +9241,35 @@ alpha_align_insns (unsigned int max_align,
     }
 }
 
-/* Insert an unop between a noreturn function call and GP load.  */
+/* Insert an unop between sibcall or noreturn function call and GP load.  */
 
 static void
-alpha_pad_noreturn (void)
+alpha_pad_function_end (void)
 {
   rtx insn, next;
 
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     {
-      if (! (CALL_P (insn)
-	     && find_reg_note (insn, REG_NORETURN, NULL_RTX)))
+      if (!CALL_P (insn)
+	  || !(SIBLING_CALL_P (insn)
+	       || find_reg_note (insn, REG_NORETURN, NULL_RTX)))
         continue;
 
       /* Make sure we do not split a call and its corresponding
 	 CALL_ARG_LOCATION note.  */
-      if (CALL_P (insn))
+      next = NEXT_INSN (insn);
+      if (next == NULL)
+	continue;
+      if (BARRIER_P (next))
 	{
-	  next = NEXT_INSN (insn);
-	  if (next && NOTE_P (next)
-	      && NOTE_KIND (next) == NOTE_INSN_CALL_ARG_LOCATION)
-	    insn = next;
+	  next = NEXT_INSN (next);
+	  if (next == NULL)
+	    continue;
 	}
+      if (NOTE_P (next) && NOTE_KIND (next) == NOTE_INSN_CALL_ARG_LOCATION)
+	insn = next;
 
       next = next_active_insn (insn);
-
       if (next)
 	{
 	  rtx pat = PATTERN (next);
@@ -9290,8 +9287,28 @@ alpha_pad_noreturn (void)
 static void
 alpha_reorg (void)
 {
-  /* Workaround for a linker error that triggers when an
-     exception handler immediatelly follows a noreturn function.
+  /* Workaround for a linker error that triggers when an exception
+     handler immediatelly follows a sibcall or a noreturn function.
+
+In the sibcall case:
+
+     The instruction stream from an object file:
+
+ 1d8:   00 00 fb 6b     jmp     (t12)
+ 1dc:   00 00 ba 27     ldah    gp,0(ra)
+ 1e0:   00 00 bd 23     lda     gp,0(gp)
+ 1e4:   00 00 7d a7     ldq     t12,0(gp)
+ 1e8:   00 40 5b 6b     jsr     ra,(t12),1ec <__funcZ+0x1ec>
+
+     was converted in the final link pass to:
+
+   12003aa88:   67 fa ff c3     br      120039428 <...>
+   12003aa8c:   00 00 fe 2f     unop
+   12003aa90:   00 00 fe 2f     unop
+   12003aa94:   48 83 7d a7     ldq     t12,-31928(gp)
+   12003aa98:   00 40 5b 6b     jsr     ra,(t12),12003aa9c <__func+0x1ec>
+
+And in the noreturn case:
 
      The instruction stream from an object file:
 
@@ -9311,11 +9328,11 @@ alpha_reorg (void)
 
      GP load instructions were wrongly cleared by the linker relaxation
      pass.  This workaround prevents removal of GP loads by inserting
-     an unop instruction between a noreturn function call and
+     an unop instruction between a sibcall or noreturn function call and
      exception handler prologue.  */
 
   if (current_function_has_exception_handlers ())
-    alpha_pad_noreturn ();
+    alpha_pad_function_end ();
 
   if (alpha_tp != ALPHA_TP_PROG || flag_exceptions)
     alpha_handle_trap_shadows ();
@@ -9666,6 +9683,30 @@ alpha_conditional_register_usage (void)
     for (i = 32; i < 63; i++)
       fixed_regs[i] = call_used_regs[i] = 1;
 }
+
+/* Canonicalize a comparison from one we don't have to one we do have.  */
+
+static void
+alpha_canonicalize_comparison (int *code, rtx *op0, rtx *op1,
+			       bool op0_preserve_value)
+{
+  if (!op0_preserve_value
+      && (*code == GE || *code == GT || *code == GEU || *code == GTU)
+      && (REG_P (*op1) || *op1 == const0_rtx))
+    {
+      rtx tem = *op0;
+      *op0 = *op1;
+      *op1 = tem;
+      *code = (int)swap_condition ((enum rtx_code)*code);
+    }
+
+  if ((*code == LT || *code == LTU)
+      && CONST_INT_P (*op1) && INTVAL (*op1) == 256)
+    {
+      *code = *code == LT ? LE : LEU;
+      *op1 = GEN_INT (255);
+    }
+}
 
 /* Initialize the GCC target structure.  */
 #if TARGET_ABI_OPEN_VMS
@@ -9709,6 +9750,8 @@ alpha_conditional_register_usage (void)
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS alpha_legitimize_address
+#undef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P alpha_mode_dependent_address_p
 
 #undef TARGET_ASM_FILE_START
 #define TARGET_ASM_FILE_START alpha_file_start
@@ -9762,7 +9805,7 @@ alpha_conditional_register_usage (void)
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS alpha_rtx_costs
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
+#define TARGET_ADDRESS_COST hook_int_rtx_mode_as_bool_0
 
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG alpha_reorg
@@ -9828,8 +9871,14 @@ alpha_conditional_register_usage (void)
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P alpha_legitimate_address_p
 
+#undef TARGET_LRA_P
+#define TARGET_LRA_P hook_bool_void_true
+
 #undef TARGET_CONDITIONAL_REGISTER_USAGE
 #define TARGET_CONDITIONAL_REGISTER_USAGE alpha_conditional_register_usage
+
+#undef TARGET_CANONICALIZE_COMPARISON
+#define TARGET_CANONICALIZE_COMPARISON alpha_canonicalize_comparison
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

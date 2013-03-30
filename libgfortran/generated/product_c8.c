@@ -1,5 +1,5 @@
 /* Implementation of the PRODUCT intrinsic
-   Copyright 2002, 2007, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2002-2013 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran runtime library (libgfortran).
@@ -323,18 +323,13 @@ mproduct_c8 (gfc_array_c8 * const restrict retarray,
       {
 
   result = 1;
-	if (len <= 0)
-	  *dest = 1;
-	else
+	for (n = 0; n < len; n++, src += delta, msrc += mdelta)
 	  {
-	    for (n = 0; n < len; n++, src += delta, msrc += mdelta)
-	      {
 
   if (*msrc)
     result *= *src;
-	      }
-	    *dest = result;
 	  }
+	*dest = result;
       }
       /* Advance to the next element.  */
       count[0]++;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Free Software Foundation, Inc.
+ * Copyright (C) 2012-2013 Free Software Foundation, Inc.
  *
  * This file is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -21,6 +21,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#ifndef _SOFT_FLOAT
 #include "sfp-machine.h"
 
 struct fenv
@@ -46,7 +47,7 @@ __sfp_handle_exceptions (int _fex)
   if (_fex & FP_EX_INVALID)
     {
       float f = 0.0f;
-#ifdef __SSE__
+#ifdef __x86_64__
       asm volatile ("%vdivss\t{%0, %d0|%d0, %0}" : "+x" (f));
 #else
       asm volatile ("fdiv\t{%y0, %0|%0, %y0}" : "+t" (f));
@@ -56,7 +57,7 @@ __sfp_handle_exceptions (int _fex)
   if (_fex & FP_EX_DIVZERO)
     {
       float f = 1.0f, g = 0.0f;
-#ifdef __SSE__
+#ifdef __x86_64__
       asm volatile ("%vdivss\t{%1, %d0|%d0, %1}" : "+x" (f) : "xm" (g));
 #else
       asm volatile ("fdivs\t%1" : "+t" (f) : "m" (g));
@@ -88,3 +89,4 @@ __sfp_handle_exceptions (int _fex)
       asm volatile ("fwait");
     }
 };
+#endif

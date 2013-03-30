@@ -1165,6 +1165,7 @@ package body Uintp is
             Divisor_Dig1 : Int;
             Divisor_Dig2 : Int;
             Q_Guess      : Int;
+            R_Guess      : Int;
 
          begin
             --  [ NORMALIZE ] (step D1 in the algorithm). First calculate the
@@ -1188,7 +1189,7 @@ package body Uintp is
 
             if D > Int_1 then
 
-               --  Multiply Dividend by D
+               --  Multiply Dividend by d
 
                Carry := 0;
                for J in reverse Dividend'Range loop
@@ -1216,23 +1217,28 @@ package body Uintp is
 
                --  [ CALCULATE Q (hat) ] (step D3 in the algorithm)
 
+               --  Note: this version of step D3 is from the original published
+               --  algorithm, which is known to have a bug causing overflows.
+               --  See: http://www-cs-faculty.stanford.edu/~uno/err2-2e.ps.gz
+               --  and http://www-cs-faculty.stanford.edu/~uno/all2-pre.ps.gz.
+               --  The code below is the fixed version of this step.
+
                Tmp_Int := Dividend (J) * Base + Dividend (J + 1);
 
                --  Initial guess
 
-               if Dividend (J) = Divisor_Dig1 then
-                  Q_Guess := Base - 1;
-               else
-                  Q_Guess := Tmp_Int / Divisor_Dig1;
-               end if;
+               Q_Guess := Tmp_Int / Divisor_Dig1;
+               R_Guess := Tmp_Int rem Divisor_Dig1;
 
                --  Refine the guess
 
-               while Divisor_Dig2 * Q_Guess >
-                     (Tmp_Int - Q_Guess * Divisor_Dig1) * Base +
-                                                          Dividend (J + 2)
+               while Q_Guess >= Base
+                 or else Divisor_Dig2 * Q_Guess >
+                           R_Guess * Base + Dividend (J + 2)
                loop
                   Q_Guess := Q_Guess - 1;
+                  R_Guess := R_Guess + Divisor_Dig1;
+                  exit when R_Guess >= Base;
                end loop;
 
                --  [ MULTIPLY & SUBTRACT ] (step D4). Q_Guess * Divisor is
@@ -2213,6 +2219,8 @@ package body Uintp is
    ----------------
 
    function UI_To_Int (Input : Uint) return Int is
+      pragma Assert (Input /= No_Uint);
+
    begin
       if Direct (Input) then
          return Direct_Val (Input);

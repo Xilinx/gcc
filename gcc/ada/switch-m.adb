@@ -214,6 +214,12 @@ package body Switch.M is
                then
                   Add_Switch_Component (Switch_Chars);
 
+               --  Special case for -fstack-check (alias for
+               --  -fstack-check=specific)
+
+               elsif Switch_Chars = "-fstack-check" then
+                  Add_Switch_Component ("-fstack-check=specific");
+
                --  Take only into account switches that are transmitted to
                --  gnat1 by the gcc driver and stored by gnat1 in the ALI file.
 
@@ -236,9 +242,9 @@ package body Switch.M is
                   --  One-letter switches
 
                   when 'a' | 'A' | 'b' | 'B' | 'c' | 'C' | 'E' | 'f' |
-                       'F' | 'g' | 'h' | 'H' | 'I' | 'L' | 'N' |
-                       'o' | 'p' | 'P' | 'q' | 'Q' | 'r' | 's' | 'S' |
-                       't' | 'u' | 'U' | 'v' | 'x' | 'X' | 'Z' =>
+                       'F' | 'g' | 'h' | 'H' | 'I' | 'L' | 'N' | 'p' |
+                       'P' | 'q' | 'Q' | 'r' | 's' | 'S' | 't' | 'u' |
+                       'U' | 'v' | 'x' | 'X' | 'Z' =>
                      Storing (First_Stored) := C;
                      Add_Switch_Component
                        (Storing (Storing'First .. First_Stored));
@@ -423,7 +429,7 @@ package body Switch.M is
                         return;
                      end if;
 
-                  --  -gnatn may be -gnatn, -gnatn1 or -gnat2
+                  --  -gnatn may be -gnatn, -gnatn1, or -gnatn2
 
                   when 'n' =>
                      Last_Stored := First_Stored;
@@ -436,6 +442,32 @@ package body Switch.M is
                         Last_Stored := Last_Stored + 1;
                         Storing (Last_Stored) := Switch_Chars (Ptr);
                         Ptr := Ptr + 1;
+                     end if;
+
+                     Add_Switch_Component
+                       (Storing (Storing'First .. Last_Stored));
+
+                  --  -gnato may be -gnatox or -gnatoxx, with x=0/1/2/3
+
+                  when 'o' =>
+                     Last_Stored := First_Stored;
+                     Storing (Last_Stored) := 'o';
+                     Ptr := Ptr + 1;
+
+                     if Ptr <= Max
+                       and then Switch_Chars (Ptr) in '0' .. '3'
+                     then
+                        Last_Stored := Last_Stored + 1;
+                        Storing (Last_Stored) := Switch_Chars (Ptr);
+                        Ptr := Ptr + 1;
+
+                        if Ptr <= Max
+                          and then Switch_Chars (Ptr) in '0' .. '3'
+                        then
+                           Last_Stored := Last_Stored + 1;
+                           Storing (Last_Stored) := Switch_Chars (Ptr);
+                           Ptr := Ptr + 1;
+                        end if;
                      end if;
 
                      Add_Switch_Component

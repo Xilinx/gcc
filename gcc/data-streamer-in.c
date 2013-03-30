@@ -1,7 +1,7 @@
 /* Routines for restoring various data types from a file stream.  This deals
    with various data types like strings, integers, enums, etc.
 
-   Copyright 2011 Free Software Foundation, Inc.
+   Copyright (C) 2011-2013 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@google.com>
 
 This file is part of GCC.
@@ -86,6 +86,35 @@ streamer_read_string (struct data_in *data_in, struct lto_input_block *ib)
 }
 
 
+/* Read a string from the string table in DATA_IN using the bitpack BP.
+   Write the length to RLEN.  */
+
+const char *
+bp_unpack_indexed_string (struct data_in *data_in,
+			  struct bitpack_d *bp, unsigned int *rlen)
+{
+  return string_for_index (data_in, bp_unpack_var_len_unsigned (bp), rlen);
+}
+
+
+/* Read a NULL terminated string from the string table in DATA_IN.  */
+
+const char *
+bp_unpack_string (struct data_in *data_in, struct bitpack_d *bp)
+{
+  unsigned int len;
+  const char *ptr;
+
+  ptr = bp_unpack_indexed_string (data_in, bp, &len);
+  if (!ptr)
+    return NULL;
+  if (ptr[len - 1] != '\0')
+    internal_error ("bytecode stream: found non-null terminated string");
+
+  return ptr;
+}
+
+
 /* Read an unsigned HOST_WIDE_INT number from IB.  */
 
 unsigned HOST_WIDE_INT
@@ -128,4 +157,14 @@ streamer_read_hwi (struct lto_input_block *ib)
 	  return result;
 	}
     }
+}
+
+/* Read gcov_type value from IB.  */
+
+gcov_type
+streamer_read_gcov_count (struct lto_input_block *ib)
+{
+  gcov_type ret = streamer_read_hwi (ib);
+  gcc_assert (ret >= 0);
+  return ret;
 }
