@@ -6467,6 +6467,10 @@ conv_isocbinding_subroutine (gfc_code *code)
   tmp = fold_build2_loc (input_location, TRUNC_DIV_EXPR,
 			 gfc_array_index_type, sm,
 			 fold_convert (TREE_TYPE (sm), tmp));
+  gfc_add_modify (&body, offset,
+		  fold_build2_loc (input_location, PLUS_EXPR,
+				   gfc_array_index_type, offset, tmp));
+
   /* Update stride multiplier.  */
   gfc_add_modify (&body, sm,
 		  fold_build2_loc (input_location, MULT_EXPR,

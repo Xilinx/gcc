@@ -53,22 +53,16 @@ module c_f_pointer_tests
     shapeArray(1) = arrayLen
     call c_f_pointer(derivedArray, myF90DerivedArray, shapeArray)
 
-print *, myF90DerivedArray(1)
-!end
     ! upper bound of each dim is arrayLen2
-!    shapeArray2(1) = dim1
-!    shapeArray2(2) = dim2
-!    call c_f_pointer(derived2DArray, derivedArray2D, shapeArray2)
-!print *, derivedArray2D(dim1, dim2)%cInt
-!print *, derivedArray2D(dim1, dim2)%cDouble
-!print *, derivedArray2D(dim1, dim2)%cFloat
-!print *, derivedArray2D(dim1, dim2)%cShort
+    shapeArray2(1) = dim1
+    shapeArray2(2) = dim2
+    call c_f_pointer(derived2DArray, derivedArray2D, shapeArray2)
     ! make sure the last element is ok
-!    if((derivedArray2D(dim1, dim2)%cInt .ne. 4) .or. &
-!         (derivedArray2D(dim1, dim2)%cDouble .ne. 4.0d0) .or. &
-!         (derivedArray2D(dim1, dim2)%cFloat .ne. 4.0) .or. &
-!         (derivedArray2D(dim1, dim2)%cShort .ne. 4)) then
-!       call abort()
-!    endif
+    if((derivedArray2D(dim1, dim2)%cInt .ne. 4) .or. &
+         (derivedArray2D(dim1, dim2)%cDouble .ne. 4.0d0) .or. &
+         (derivedArray2D(dim1, dim2)%cFloat .ne. 4.0) .or. &
+         (derivedArray2D(dim1, dim2)%cShort .ne. 4)) then
+       call abort()
+    endif
   end subroutine testDerivedPtrs
 end module c_f_pointer_tests

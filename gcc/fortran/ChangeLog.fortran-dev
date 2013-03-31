@@ -1,5 +1,10 @@
 2013-03-31  Tobias Burnus  <burnus@net-b.de>
 
+	* trans-intrinsic.c (conv_isocbinding_subroutine): Fix
+	merge-resolution bug.
+
+2013-03-31  Tobias Burnus  <burnus@net-b.de>
+
 	* trans-array.c (VERSION_FIELD): New define.
 	(ELEM_LEN_FIELD): Renamed from SIZE_FIELD, reordered the fields.
 	(gfc_build_null_descriptor): Also set version field (to 1).
