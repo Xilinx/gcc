@@ -124,11 +124,12 @@ gfc_array_dataptr_type (tree desc)
    Don't forget to #undef these!  */
 
 #define DATA_FIELD 0
-#define OFFSET_FIELD 1
-#define DTYPE_FIELD 2
-#define SIZE_FIELD 3
-#define DIMENSION_FIELD 4
-#define CAF_TOKEN_FIELD 5
+#define ELEM_LEN_FIELD 1
+#define VERSION_FIELD 2
+#define OFFSET_FIELD 3
+#define DTYPE_FIELD 4
+#define DIMENSION_FIELD 5
+#define CAF_TOKEN_FIELD 6
 
 #define LBOUND_SUBFIELD 0
 #define EXTENT_SUBFIELD 1
@@ -487,15 +488,23 @@ gfc_build_null_descriptor (tree type)
 {
   tree field;
   tree tmp;
+  vec<constructor_elt, va_gc> *init = NULL;
 
   gcc_assert (GFC_DESCRIPTOR_TYPE_P (type));
   gcc_assert (DATA_FIELD == 0);
-  field = TYPE_FIELDS (type);
 
   /* Set a NULL data pointer.  */
-  tmp = build_constructor_single (type, field, null_pointer_node);
-  TREE_CONSTANT (tmp) = 1;
+  field = TYPE_FIELDS (type);
+  CONSTRUCTOR_APPEND_ELT (init, field, null_pointer_node);
+
+  /* Set version to 1. */
+  field = gfc_advance_chain (field, VERSION_FIELD);
+  CONSTRUCTOR_APPEND_ELT (init, field,
+			  build_int_cst (integer_type_node, 1));
+
   /* All other fields are ignored.  */
+  tmp = build_constructor (type, init);
+  TREE_CONSTANT (tmp) = 1;
 
   return tmp;
 }
@@ -535,9 +544,10 @@ gfc_conv_shift_descriptor_lbound (stmtblock_t* block, tree desc,
 /* Cleanup those #defines.  */
 
 #undef DATA_FIELD
+#undef ELEM_LEN_FIELD
+#undef VERSION_FIELD
 #undef OFFSET_FIELD
 #undef DTYPE_FIELD
-#undef SIZE_FIELD
 #undef DIMENSION_FIELD
 #undef CAF_TOKEN_FIELD
 #undef STRIDE_SUBFIELD

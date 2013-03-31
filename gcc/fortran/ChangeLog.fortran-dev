@@ -1,3 +1,11 @@
+2013-03-31  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-array.c (VERSION_FIELD): New define.
+	(ELEM_LEN_FIELD): Renamed from SIZE_FIELD, reordered the fields.
+	(gfc_build_null_descriptor): Also set version field (to 1).
+	* trans-types.c (gfc_get_array_descriptor_base): Rename "size" to
+	"elem_len" and move up, add "version" field.
+
 2012-07-20  Tobias Burnus  <burnus@net-b.de>
 
 	* trans-expr.c (conv_isocbinding_procedure): For C_F_Pointer,

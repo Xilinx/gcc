@@ -1,5 +1,5 @@
 /* ISO_Fortran_binding.h of GCC's GNU Fortran compiler.
-   Copyright (C) 2012 Free Software Foundation, Inc.
+   Copyright (C) 2013 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran runtime library (libgfortran)
 Libgfortran is free software; you can redistribute it and/or
@@ -18,7 +18,7 @@ not, write to the Free Software Foundation, Inc., 51 Franklin Street - Fifth Flo
 Boston, MA 02110-1301, USA.  */
 
 
-/* Definitions as defined by ISO/IEC Technical Specification TS 29113
+/* Definitions as defined by ISO/IEC Technical Specification TS 29113:2012
    on Further Interoperability of Fortran with C.
    Note: The technical specification only mandates the presence of certain
    members; there might be additional compiler-specific fields.  */
@@ -139,9 +139,10 @@ CFI_cdesc_t;
 #define CFI_GFC_CDESC_T(r, type) \
 struct {\
   type *base_addr;\
+  size_t elem_len;\
+  int version; \
   size_t offset;\
   CFI_index_t dtype;\
-  CFI_index_t size;\
   CFI_dim_t dim[r];\
 }
 

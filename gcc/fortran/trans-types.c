@@ -1725,7 +1725,19 @@ gfc_get_array_descriptor_base (int dimen, int codimen, bool restricted,
 				     ? prvoid_type_node
 				     : ptr_type_node), &chain);
 
-  /* Add the base component.  */
+  /* Add the elem_len component.  */
+  decl = gfc_add_field_to_struct_1 (fat_type,
+				    get_identifier ("elem_len"),
+				    size_type_node, &chain);
+  TREE_NO_WARNING (decl) = 1;
+
+  /* Add the version component.  */
+  decl = gfc_add_field_to_struct_1 (fat_type,
+				    get_identifier ("version"),
+				    integer_type_node, &chain);
+  TREE_NO_WARNING (decl) = 1;
+
+  /* Add the offset component.  */
   decl = gfc_add_field_to_struct_1 (fat_type,
 				    get_identifier ("offset"),
 				    gfc_array_index_type, &chain);
@@ -1737,11 +1749,6 @@ gfc_get_array_descriptor_base (int dimen, int codimen, bool restricted,
 				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
 
-  /* Add the size component.  */
-  decl = gfc_add_field_to_struct_1 (fat_type,
-				    get_identifier ("size"),
-				    gfc_array_index_type, &chain);
-  TREE_NO_WARNING (decl) = 1;
 
 
   /* Build the array type for the stride and bound components.  */

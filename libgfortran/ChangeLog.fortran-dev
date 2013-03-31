@@ -1,3 +1,8 @@
+2013-03-31  Tobias Burnus  <burnus@net-b.de>
+
+	* ISO_Fortran_binding.h (CFI_cdesc_t): Change size to elem_len
+	and move up, add version field.
+
 2012-07-15  Tobias Burnus  <burnus@net-b.de>
 
 	* m4/cshift1.m4 (cshift1): Correctly set stride multiplier.
