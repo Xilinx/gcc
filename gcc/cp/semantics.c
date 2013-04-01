@@ -2741,8 +2741,7 @@ finish_member_declaration (tree decl)
   /* Put functions on the TYPE_METHODS list and everything else on the
      TYPE_FIELDS list.  Note that these are built up in reverse order.
      We reverse them (to obtain declaration order) in finish_struct.  */
-  if (TREE_CODE (decl) == FUNCTION_DECL
-      || DECL_FUNCTION_TEMPLATE_P (decl))
+  if (DECL_DECLARES_FUNCTION_P (decl))
     {
       /* We also need to add this function to the
 	 CLASSTYPE_METHOD_VEC.  */
@@ -8271,11 +8270,10 @@ maybe_constant_value (tree t)
 {
   tree r;
 
-  if (type_dependent_expression_p (t)
+  if (instantiation_dependent_expression_p (t)
       || type_unknown_p (t)
       || BRACE_ENCLOSED_INITIALIZER_P (t)
-      || !potential_constant_expression (t)
-      || value_dependent_expression_p (t))
+      || !potential_constant_expression (t))
     {
       if (TREE_OVERFLOW_P (t))
 	{

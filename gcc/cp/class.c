@@ -1045,6 +1045,12 @@ add_method (tree type, tree method, tree using_decl)
 	 overloaded if any of them is a static member
 	 function declaration.
 
+	 [over.load] Member function declarations with the same name and
+	 the same parameter-type-list as well as member function template
+	 declarations with the same name, the same parameter-type-list, and
+	 the same template parameter lists cannot be overloaded if any of
+	 them, but not all, have a ref-qualifier.
+
 	 [namespace.udecl] When a using-declaration brings names
 	 from a base class into a derived class scope, member
 	 functions in the derived class override and/or hide member
@@ -1060,11 +1066,13 @@ add_method (tree type, tree method, tree using_decl)
 	 coming from the using class in overload resolution.  */
       if (! DECL_STATIC_FUNCTION_P (fn)
 	  && ! DECL_STATIC_FUNCTION_P (method)
-	  && TREE_TYPE (TREE_VALUE (parms1)) != error_mark_node
-	  && TREE_TYPE (TREE_VALUE (parms2)) != error_mark_node
-	  && (cp_type_quals (TREE_TYPE (TREE_VALUE (parms1)))
-	      != cp_type_quals (TREE_TYPE (TREE_VALUE (parms2)))))
-	continue;
+	  /* Either both or neither need to be ref-qualified for
+	     differing quals to allow overloading.  */
+	  && (FUNCTION_REF_QUALIFIED (fn_type)
+	      == FUNCTION_REF_QUALIFIED (method_type))
+	  && (type_memfn_quals (fn_type) != type_memfn_quals (method_type)
+	      || type_memfn_rqual (fn_type) != type_memfn_rqual (method_type)))
+	  continue;
 
       /* For templates, the return type and template parameters
 	 must be identical.  */
@@ -2058,12 +2066,12 @@ same_signature_p (const_tree fndecl, const_tree base_fndecl)
 	  && same_type_p (DECL_CONV_FN_TYPE (fndecl),
 			  DECL_CONV_FN_TYPE (base_fndecl))))
     {
-      tree types, base_types;
-      types = TYPE_ARG_TYPES (TREE_TYPE (fndecl));
-      base_types = TYPE_ARG_TYPES (TREE_TYPE (base_fndecl));
-      if ((cp_type_quals (TREE_TYPE (TREE_VALUE (base_types)))
-	   == cp_type_quals (TREE_TYPE (TREE_VALUE (types))))
-	  && compparms (TREE_CHAIN (base_types), TREE_CHAIN (types)))
+      tree fntype = TREE_TYPE (fndecl);
+      tree base_fntype = TREE_TYPE (base_fndecl);
+      if (type_memfn_quals (fntype) == type_memfn_quals (base_fntype)
+	  && type_memfn_rqual (fntype) == type_memfn_rqual (base_fntype)
+	  && compparms (FUNCTION_FIRST_USER_PARMTYPE (fndecl),
+			FUNCTION_FIRST_USER_PARMTYPE (base_fndecl)))
 	return 1;
     }
   return 0;

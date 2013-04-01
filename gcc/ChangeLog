@@ -1,3 +1,34 @@
+2013-04-01  Wei Mi  <wmi@google.com>
+
+	* config/i386/i386.md (*ashl<mode>3_mask): Rewrite as define_insn.
+	Truncate operand 2 using %b asm operand modifier.
+	(*<shift_insn><mode>3_mask): Ditto.
+	(*<rotate_insn><mode>3_mask): Ditto.
+
+2013-04-01  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR middle-end/56798
+	* cfgbuild.c (inside_basic_block_p): Restore check broken at r197234.
+
+2013-03-31  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.md (casesi_worker_1): Use next_active_insn instead
+	of next_real_insn.
+	(casesi_worker_2, casesi_shift_media, casesi_load_media): Likewise.
+
+2013-03-30  Lawrence Crowl  <crowl@google.com>
+
+	* dse.c (clear_alias_sets): Remove never set.
+	(disqualified_clear_alias_sets): Remove never set.
+	(clear_alias_mode_pool): Remove never set.
+	(dse_step0): Remove condition that is never true.
+	(canon_address): Remove condition that is never true.
+	(dse_step7): Remove condition that is never true.
+	(rest_of_handle_dse): Remove condition that is never true.
+	(rest_of_handle_dse::did_global): Remove never read from above.
+	(dse_step2_spill): Remove never called from above.
+	(dse_step5_spill): Remove never called from above.
+
 2013-03-30  Steven Bosscher  <steven@gcc.gnu.org>
 
 	* doc/md.texi (Standard Names) <casesi>: Update documentation for

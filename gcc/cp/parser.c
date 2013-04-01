@@ -1234,7 +1234,7 @@ clear_decl_specs (cp_decl_specifier_seq *decl_specs)
    VAR_DECLs or FUNCTION_DECLs) should do that directly.  */
 
 static cp_declarator *make_call_declarator
-  (cp_declarator *, tree, cp_cv_quals, cp_virt_specifiers, tree, tree);
+  (cp_declarator *, tree, cp_cv_quals, cp_virt_specifiers, cp_ref_qualifier, tree, tree);
 static cp_declarator *make_array_declarator
   (cp_declarator *, tree);
 static cp_declarator *make_pointer_declarator
@@ -1413,6 +1413,7 @@ make_call_declarator (cp_declarator *target,
 		      tree parms,
 		      cp_cv_quals cv_qualifiers,
 		      cp_virt_specifiers virt_specifiers,
+		      cp_ref_qualifier ref_qualifier,
 		      tree exception_specification,
 		      tree late_return_type)
 {
@@ -1423,6 +1424,7 @@ make_call_declarator (cp_declarator *target,
   declarator->u.function.parameters = parms;
   declarator->u.function.qualifiers = cv_qualifiers;
   declarator->u.function.virt_specifiers = virt_specifiers;
+  declarator->u.function.ref_qualifier = ref_qualifier;
   declarator->u.function.exception_specification = exception_specification;
   declarator->u.function.late_return_type = late_return_type;
   if (target)
@@ -2017,6 +2019,8 @@ static enum tree_code cp_parser_ptr_operator
 static cp_cv_quals cp_parser_cv_qualifier_seq_opt
   (cp_parser *);
 static cp_virt_specifiers cp_parser_virt_specifier_seq_opt
+  (cp_parser *);
+static cp_ref_qualifier cp_parser_ref_qualifier_seq_opt
   (cp_parser *);
 static tree cp_parser_late_return_type_opt
   (cp_parser *, cp_cv_quals);
@@ -8640,6 +8644,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
 	     ? TYPE_UNQUALIFIED : TYPE_QUAL_CONST);
     declarator = make_call_declarator (declarator, param_list, quals,
 				       VIRT_SPEC_UNSPECIFIED,
+                                       REF_QUAL_NONE,
 				       exception_spec,
                                        /*late_return_type=*/NULL_TREE);
     declarator->id_loc = LAMBDA_EXPR_LOCATION (lambda_expr);
@@ -9610,7 +9615,10 @@ cp_parser_range_for (cp_parser *parser, tree scope, tree init, tree range_decl)
 	range_expr = error_mark_node;
       stmt = begin_range_for_stmt (scope, init);
       finish_range_for_decl (stmt, range_decl, range_expr);
-      if (!type_dependent_expression_p (range_expr)
+      if (range_expr != error_mark_node
+	  && !type_dependent_expression_p (range_expr)
+	  /* The length of an array might be dependent.  */
+	  && COMPLETE_TYPE_P (TREE_TYPE (range_expr))
 	  /* do_auto_deduction doesn't mess with template init-lists.  */
 	  && !BRACE_ENCLOSED_INITIALIZER_P (range_expr))
 	do_range_for_auto_deduction (range_decl, range_expr);
@@ -16309,6 +16317,7 @@ cp_parser_declarator (cp_parser* parser,
      declarator-id
      direct-declarator ( parameter-declaration-clause )
        cv-qualifier-seq [opt]
+       ref-qualifier [opt]
        exception-specification [opt]
      direct-declarator [ constant-expression [opt] ]
      ( declarator )
@@ -16317,6 +16326,7 @@ cp_parser_declarator (cp_parser* parser,
      direct-abstract-declarator [opt]
        ( parameter-declaration-clause )
        cv-qualifier-seq [opt]
+       ref-qualifier [opt]
        exception-specification [opt]
      direct-abstract-declarator [opt] [ constant-expression [opt] ]
      ( abstract-declarator )
@@ -16431,12 +16441,13 @@ cp_parser_direct_declarator (cp_parser* parser,
 	      /* Consume the `)'.  */
 	      cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
 
-	      /* If all went well, parse the cv-qualifier-seq and the
-		 exception-specification.  */
+	      /* If all went well, parse the cv-qualifier-seq,
+		 ref-qualifier and the exception-specification.  */
 	      if (member_p || cp_parser_parse_definitely (parser))
 		{
 		  cp_cv_quals cv_quals;
 		  cp_virt_specifiers virt_specifiers;
+		  cp_ref_qualifier ref_qual;
 		  tree exception_specification;
 		  tree late_return;
 		  tree attrs;
@@ -16451,6 +16462,8 @@ cp_parser_direct_declarator (cp_parser* parser,
 
 		  /* Parse the cv-qualifier-seq.  */
 		  cv_quals = cp_parser_cv_qualifier_seq_opt (parser);
+		  /* Parse the ref-qualifier. */
+		  ref_qual = cp_parser_ref_qualifier_seq_opt (parser);
 		  /* And the exception-specification.  */
 		  exception_specification
 		    = cp_parser_exception_specification_opt (parser);
@@ -16468,6 +16481,7 @@ cp_parser_direct_declarator (cp_parser* parser,
 						     params,
 						     cv_quals,
 						     virt_specifiers,
+						     ref_qual,
 						     exception_specification,
 						     late_return);
 		  declarator->std_attributes = attrs;
@@ -17006,6 +17020,38 @@ cp_parser_cv_qualifier_seq_opt (cp_parser* parser)
     }
 
   return cv_quals;
+}
+
+/* Parse an (optional) ref-qualifier
+
+   ref-qualifier:
+     &
+     &&
+
+   Returns cp_ref_qualifier representing ref-qualifier. */
+
+static cp_ref_qualifier
+cp_parser_ref_qualifier_seq_opt (cp_parser* parser)
+{
+  cp_ref_qualifier ref_qual = REF_QUAL_NONE;
+  cp_token *token = cp_lexer_peek_token (parser->lexer);
+  switch (token->type)
+    {
+    case CPP_AND:
+      ref_qual = REF_QUAL_LVALUE;
+      break;
+    case CPP_AND_AND:
+      ref_qual = REF_QUAL_RVALUE;
+      break;
+    }
+
+  if (ref_qual)
+    {
+      maybe_warn_cpp0x (CPP0X_REF_QUALIFIER);
+      cp_lexer_consume_token (parser->lexer);
+    }
+
+  return ref_qual;
 }
 
 /* Parse an (optional) virt-specifier-seq.
@@ -18773,9 +18819,7 @@ cp_parser_class_head (cp_parser* parser,
 
 	  for (scope = TREE_TYPE (type);
 	       scope && TREE_CODE (scope) != NAMESPACE_DECL;
-	       scope = (TYPE_P (scope)
-			? TYPE_CONTEXT (scope)
-			: DECL_CONTEXT (scope)))
+	       scope = get_containing_scope (scope))
 	    if (TYPE_P (scope)
 		&& CLASS_TYPE_P (scope)
 		&& CLASSTYPE_TEMPLATE_INFO (scope)
@@ -21983,8 +22027,7 @@ cp_parser_template_declaration_after_export (cp_parser* parser, bool member_p)
 	  decl = finish_member_template_decl (decl);
 	}
       else if (friend_p && decl
-	       && (TREE_CODE (decl) == TYPE_DECL
-		   || DECL_TYPE_TEMPLATE_P (decl)))
+	       && DECL_DECLARES_TYPE_P (decl))
 	make_friend_class (current_class_type, TREE_TYPE (decl),
 			   /*complain=*/true);
     }
@@ -21998,7 +22041,7 @@ cp_parser_template_declaration_after_export (cp_parser* parser, bool member_p)
 
   /* Check the template arguments for a literal operator template.  */
   if (decl
-      && (TREE_CODE (decl) == FUNCTION_DECL || DECL_FUNCTION_TEMPLATE_P (decl))
+      && DECL_DECLARES_FUNCTION_P (decl)
       && UDLIT_OPER_P (DECL_NAME (decl)))
     {
       bool ok = true;
@@ -22034,8 +22077,7 @@ cp_parser_template_declaration_after_export (cp_parser* parser, bool member_p)
      (Even though there is no definition, there might be default
      arguments that need handling.)  */
   if (member_p && decl
-      && (TREE_CODE (decl) == FUNCTION_DECL
-	  || DECL_FUNCTION_TEMPLATE_P (decl)))
+      && DECL_DECLARES_FUNCTION_P (decl))
     vec_safe_push (unparsed_funs_with_definitions, decl);
 }
 

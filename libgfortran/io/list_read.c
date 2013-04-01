@@ -2078,7 +2078,7 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
   /* The next character in the stream should be the '('.  */
 
   if ((c = next_char (dtp)) == EOF)
-    return false;
+    goto err_ret;
 
   /* Process the qualifier, by dimension and triplet.  */
 
@@ -2092,7 +2092,7 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 
 	  /* Process a potential sign.  */
 	  if ((c = next_char (dtp)) == EOF)
-	    return false;
+	    goto err_ret;
 	  switch (c)
 	    {
 	    case '-':
@@ -2110,11 +2110,12 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 	  /* Process characters up to the next ':' , ',' or ')'.  */
 	  for (;;)
 	    {
-	      if ((c = next_char (dtp)) == EOF)
-		return false;
-
+	      c = next_char (dtp);
 	      switch (c)
 		{
+		case EOF:
+		  goto err_ret;
+
 		case ':':
                   is_array_section = 1;
 		  break;
@@ -2137,10 +2138,8 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 		  push_char (dtp, c);
 		  continue;
 
-		case ' ': case '\t':
+		case ' ': case '\t': case '\r': case '\n':
 		  eat_spaces (dtp);
-		  if ((c = next_char (dtp) == EOF))
-		    return false;
 		  break;
 
 		default:
@@ -2282,6 +2281,15 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 
 err_ret:
 
+  /* The EOF error message is issued by hit_eof. Return true so that the
+     caller does not use parse_err_msg and parse_err_msg_size to generate
+     an unrelated error message.  */
+  if (c == EOF)
+    {
+      hit_eof (dtp);
+      dtp->u.p.input_complete = 1;
+      return true;
+    }
   return false;
 }
 
@@ -2482,9 +2490,9 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
   size_t obj_name_len;
   void * pdata;
 
-  /* This object not touched in name parsing.  */
-
-  if (!nl->touched)
+  /* If we have encountered a previous read error or this object has not been
+     touched in name parsing, just return.  */
+  if (dtp->u.p.nml_read_error || !nl->touched)
     return true;
 
   dtp->u.p.repeat_count = 0;
@@ -2524,10 +2532,8 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 				 - GFC_DESCRIPTOR_LBOUND(nl,dim))
 				   * GFC_DESCRIPTOR_SM(nl,dim));
 
-      /* Reset the error flag and try to read next value, if
-	 dtp->u.p.repeat_count=0  */
+      /* If we are finished with the repeat count, try to read next value.  */
 
-      dtp->u.p.nml_read_error = 0;
       nml_carry = 0;
       if (--dtp->u.p.repeat_count <= 0)
 	{
@@ -2556,8 +2562,8 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	    break;
 
 	  case BT_REAL:
-	    /* Need to copy data back from the real location to the temp in order
-	       to handle nml reads into arrays.  */
+	    /* Need to copy data back from the real location to the temp in
+	       order to handle nml reads into arrays.  */
 	    read_real (dtp, pdata, len);
 	    memcpy (dtp->u.p.value, pdata, dlen);
 	    break;
@@ -2751,12 +2757,12 @@ nml_get_obj_data (st_parameter_dt *dtp, namelist_info **pprev_nl,
     return true;
 
   if ((c = next_char (dtp)) == EOF)
-    return false;
+    goto nml_err_ret;
   switch (c)
     {
     case '=':
       if ((c = next_char (dtp)) == EOF)
-	return false;
+	goto nml_err_ret;
       if (c != '?')
 	{
 	  snprintf (nml_err_msg, nml_err_msg_size, 
@@ -2806,8 +2812,9 @@ get_name:
       if (!is_separator (c))
 	push_char (dtp, tolower(c));
       if ((c = next_char (dtp)) == EOF)
-	return false;
-    } while (!( c=='=' || c==' ' || c=='\t' || c =='(' || c =='%' ));
+	goto nml_err_ret;
+    }
+  while (!( c=='=' || c==' ' || c=='\t' || c =='(' || c =='%' ));
 
   unget_char (dtp, c);
 
@@ -2882,7 +2889,7 @@ get_name:
       qualifier_flag = 1;
 
       if ((c = next_char (dtp)) == EOF)
-	return false;
+	goto nml_err_ret;
       unget_char (dtp, c);
     }
   else if (nl->var_rank > 0)
@@ -2909,7 +2916,7 @@ get_name:
 
       component_flag = 1;
       if ((c = next_char (dtp)) == EOF)
-	return false;
+	goto nml_err_ret;
       goto get_name;
     }
 
@@ -2946,7 +2953,7 @@ get_name:
 	}
 
       if ((c = next_char (dtp)) == EOF)
-	return false;
+	goto nml_err_ret;
       unget_char (dtp, c);
     }
 
@@ -2986,7 +2993,7 @@ get_name:
     return true;
 
   if ((c = next_char (dtp)) == EOF)
-    return false;
+    goto nml_err_ret;
 
   if (c != '=')
     {
@@ -3013,6 +3020,7 @@ get_name:
 	nl = first_nl;
     }
 
+  dtp->u.p.nml_read_error = 0;
   if (!nml_read_obj (dtp, nl, 0, pprev_nl, nml_err_msg, nml_err_msg_size,
 		    clow, chigh))
     goto nml_err_ret;
@@ -3021,6 +3029,16 @@ get_name:
 
 nml_err_ret:
 
+  /* The EOF error message is issued by hit_eof. Return true so that the
+     caller does not use nml_err_msg and nml_err_msg_size to generate
+     an unrelated error message.  */
+  if (c == EOF)
+    {
+      dtp->u.p.input_complete = 1;
+      unget_char (dtp, c);
+      hit_eof (dtp);
+      return true;
+    }
   return false;
 }
 
