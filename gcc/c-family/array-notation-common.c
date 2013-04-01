@@ -29,18 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-iterator.h"
 #include "diagnostic-core.h"
 
-int extract_sec_implicit_index_arg (location_t, tree);
-bool is_sec_implicit_index_fn (tree);
-
-/* Mark the FNDECL as cold, meaning that the function specified by FNDECL is
-   not run as is.  */
-
-static void
-mark_cold (tree fndecl)
-{
-  DECL_ATTRIBUTES (fndecl) = tree_cons (get_identifier ("cold"), NULL_TREE,
-					DECL_ATTRIBUTES (fndecl));
-}
 
 /* Returns true if the function call in FNDECL is
    __sec_implicit_index.  */
@@ -61,25 +49,23 @@ is_sec_implicit_index_fn (tree fndecl)
    sec_implicit_index function.  FN's location in the source file is is 
    indicated by LOCATION.  */
 
-int
+HOST_WIDE_INT
 extract_sec_implicit_index_arg (location_t location, tree fn)
 {
   tree fn_arg;
   HOST_WIDE_INT return_int = 0;
-  if (!fn)
-    return -1;
 
   if (TREE_CODE (fn) == CALL_EXPR)
     {
       fn_arg = CALL_EXPR_ARG (fn, 0);
-      if (really_constant_p (fn_arg))
-	return_int = (int) int_cst_value (fn_arg);
+      if (TREE_CODE (fn_arg) == INTEGER_CST)
+	return_int = int_cst_value (fn_arg);
       else
 	{
 	  if (location == UNKNOWN_LOCATION && EXPR_HAS_LOCATION (fn))
 	    location = EXPR_LOCATION (fn);
 	  error_at (location, "__sec_implicit_index parameter must be a " 
-		    "constant integer expression");
+		    "integer constant expression");
 	  return -1;
 	}
     }

@@ -47,17 +47,17 @@ int main (int argc, char **argv)
     x = 9;
   }
 
-  for (ii = 0; ii < array[:]; ii++) /* { dg-error "array notations cannot be used in a condition for a for-loop." } */
+  for (ii = 0; ii < array[:]; ii++) /* { dg-error "array notations cannot be used in a condition for a for-loop" } */
     {
       x = 2;
     }
 
-  for (ii = 0; ii < array2[:][:]; ii++) /* { dg-error "array notations cannot be used in a condition for a for-loop." } */
+  for (ii = 0; ii < array2[:][:]; ii++) /* { dg-error "array notations cannot be used in a condition for a for-loop" } */
     {
       x = 3;
     }
 
-  for (; array2[:][:] < 2;) /* { dg-error "array notations cannot be used in a condition for a for-loop." } */
+  for (; array2[:][:] < 2;) /* { dg-error "array notations cannot be used in a condition for a for-loop" } */
     x = 4;
 
 

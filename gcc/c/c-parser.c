@@ -56,12 +56,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "plugin.h"
 
 
-extern bool contains_array_notation_expr (tree);
-extern struct c_expr fix_array_notation_expr (location_t, enum tree_code,
-					      struct c_expr);
-extern tree fix_conditional_array_notations (tree);
-extern tree expand_array_notation_exprs (tree);
-
 
 /* Initialization routine for this file.  */
 
@@ -3082,7 +3076,7 @@ c_parser_direct_declarator_inner (c_parser *parser, bool id_present,
 	      dimen = error_mark_node;
 	      star_seen = false;
 	      error_at (c_parser_peek_token (parser)->location,
-			"array notations cannot be used in declaration.");
+			"array notations cannot be used in declaration");
 	      c_parser_consume_token (parser);
 	    }   
 	  else if (c_parser_next_token_is (parser, CPP_MULT))
@@ -3111,7 +3105,7 @@ c_parser_direct_declarator_inner (c_parser *parser, bool id_present,
 	       && c_parser_next_token_is (parser, CPP_COLON))
 	{
 	  error_at (c_parser_peek_token (parser)->location,
-		    "array notations cannot be used in declaration.");
+		    "array notations cannot be used in declaration");
 	  c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE, NULL);
 	  return NULL;
 	}
@@ -5068,10 +5062,11 @@ c_parser_for_statement (c_parser *parser)
 	      if (flag_enable_cilkplus && contains_array_notation_expr (cond))
 		{
 		  error_at (loc, "array notations cannot be used in a "
-			    "condition for a for-loop.");
+			    "condition for a for-loop");
 		  cond = error_mark_node;
 		}
-	      c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
+	      c_parser_skip_until_found (parser, CPP_SEMICOLON,
+					 "expected %<;%>");
 	    }
 	}
       /* Parse the increment expression (the third expression in a
@@ -11023,9 +11018,8 @@ c_parser_array_notation (location_t loc, c_parser *parser, tree initial_index,
   tree start_index = NULL_TREE, end_index = NULL_TREE, stride = NULL_TREE;
   tree value_tree = NULL_TREE, type = NULL_TREE, array_type = NULL_TREE;
   tree array_type_domain = NULL_TREE; 
-  double_int x;
 
-  if (!array_value || array_value == error_mark_node)
+  if (array_value == error_mark_node)
     {
       /* No need to continue.  If either of these 2 were true, then an error
 	 must be emitted already.  Thus, no need to emit them twice.  */
@@ -11038,7 +11032,7 @@ c_parser_array_notation (location_t loc, c_parser *parser, tree initial_index,
   type = TREE_TYPE (array_type);
   token = c_parser_peek_token (parser);
    
-  if (token == NULL)
+  if (token->type == CPP_EOF)
     {
       c_parser_error (parser, "expected %<:%> or numeral");
       return value_tree;
@@ -11052,14 +11046,14 @@ c_parser_array_notation (location_t loc, c_parser *parser, tree initial_index,
 	  if (TREE_CODE (array_type) == POINTER_TYPE)
 	    {
 	      error_at (loc, "start-index and length fields necessary for "
-			"using array notations in pointers.");
+			"using array notations in pointers");
 	      c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE, NULL);
 	      return error_mark_node;
 	    }
 	  if (TREE_CODE (array_type) == FUNCTION_TYPE)
 	    {
 	      error_at (loc, "array notations cannot be used with function "
-			"type.");
+			"type");
 	      c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE, NULL);
 	      return error_mark_node;
 	    }
@@ -11074,7 +11068,7 @@ c_parser_array_notation (location_t loc, c_parser *parser, tree initial_index,
 		  if (subtype && TREE_CODE (subtype) == FUNCTION_TYPE)
 		    {
 		      error_at (loc, "array notations cannot be used with "
-				"function pointer arrays.");
+				"function pointer arrays");
 		      c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE,
 						 NULL);
 		      return error_mark_node;
@@ -11086,7 +11080,7 @@ c_parser_array_notation (location_t loc, c_parser *parser, tree initial_index,
 	  if (!array_type_domain)
 	    {
 	      error_at (loc, "start-index and length fields necessary for "
-			"using array notations in dimensionless arrays.");
+			"using array notations in dimensionless arrays");
 	      c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE, NULL);
 	      return error_mark_node;
 	    }
@@ -11098,13 +11092,13 @@ c_parser_array_notation (location_t loc, c_parser *parser, tree initial_index,
 	      || !TREE_CONSTANT (TYPE_MAXVAL (array_type_domain)))
 	    {
 	      error_at (loc, "start-index and length fields necessary for "
-			"using array notations in variable-length arrays.");
+			"using array notations in variable-length arrays");
 	      c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE, NULL);
 	      return error_mark_node;
 	    }
-	  x = TREE_INT_CST (TYPE_MAXVAL (array_type_domain));
-	  x.low++;
-	  end_index = double_int_to_tree (integer_type_node, x);
+	  end_index = TYPE_MAXVAL (array_type_domain);
+	  end_index = fold_build2 (PLUS_EXPR, TREE_TYPE (end_index),
+				   end_index, integer_one_node);
 	  end_index = fold_build1 (CONVERT_EXPR, ptrdiff_type_node, end_index);
 	  stride = build_int_cst (integer_type_node, 1);
 	  stride = fold_build1 (CONVERT_EXPR, ptrdiff_type_node, stride);
@@ -11120,7 +11114,7 @@ c_parser_array_notation (location_t loc, c_parser *parser, tree initial_index,
 	  if (TREE_CODE (array_type) == FUNCTION_TYPE)
 	    {
 	      error_at (loc, "array notations cannot be used with function "
-			"type.");
+			"type");
 	      c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE, NULL);
 	      return error_mark_node;
 	    }
@@ -11138,7 +11132,7 @@ c_parser_array_notation (location_t loc, c_parser *parser, tree initial_index,
 		  if (subtype && TREE_CODE (subtype) == FUNCTION_TYPE)
 		    {
 		      error_at (loc, "array notations cannot be used with "
-				"function pointer arrays.");
+				"function pointer arrays");
 		      c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE,
 						 NULL);
 		      return error_mark_node;

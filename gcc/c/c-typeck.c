@@ -103,8 +103,6 @@ static void readonly_warning (tree, enum lvalue_use);
 static int lvalue_or_else (location_t, const_tree, enum lvalue_use);
 static void record_maybe_used_decl (tree);
 static int comptypes_internal (const_tree, const_tree, bool *, bool *);
-extern bool contains_array_notation_expr (tree);
-extern tree find_correct_array_notation_type (tree);
 
 /* Return true if EXP is a null pointer constant, false otherwise.  */
 
@@ -2305,14 +2303,15 @@ build_array_ref (location_t loc, tree array, tree index)
   if (TREE_TYPE (array) == error_mark_node
       || TREE_TYPE (index) == error_mark_node)
     return error_mark_node;
-  
+
   if (flag_enable_cilkplus && contains_array_notation_expr (index))
     {
       size_t rank = 0;
-      find_rank (index, true, &rank);
+      if (!find_rank (loc, index, index, true, &rank))
+	return error_mark_node;
       if (rank > 1)
 	{
-	  error_at (loc, "rank of the array's index is greater than 1.");
+	  error_at (loc, "rank of the array's index is greater than 1");
 	  return error_mark_node;
 	}
     }
@@ -5131,6 +5130,7 @@ convert_for_assignment (location_t location, tree type, tree rhs,
   enum tree_code coder;
   tree rname = NULL_TREE;
   bool objc_ok = false;
+
   if (errtype == ic_argpass)
     {
       tree selector;
@@ -8680,6 +8680,7 @@ c_finish_return (location_t loc, tree retval, tree origtype)
   tree valtype = TREE_TYPE (TREE_TYPE (current_function_decl)), ret_stmt;
   bool no_warning = false;
   bool npc = false;
+  size_t rank = 0;
 
   if (TREE_THIS_VOLATILE (current_function_decl))
     warning_at (loc, 0,
@@ -8687,9 +8688,16 @@ c_finish_return (location_t loc, tree retval, tree origtype)
 
   if (flag_enable_cilkplus && contains_array_notation_expr (retval))
     {
-      error_at (loc, "array notation expression cannot be used as a return "
-		"value");
-      return error_mark_node;
+      /* Array notations are allowed in a return statement if it is inside a
+	 built-in array notation reduction function.  */
+      if (!find_rank (loc, retval, retval, false, &rank))
+	return error_mark_node;
+      if (rank >= 1)
+	{
+	  error_at (loc, "array notation expression cannot be used as a "
+		    "return value");
+	  return error_mark_node;
+	}
     }
   if (retval)
     {
@@ -9036,13 +9044,13 @@ c_finish_loop (location_t start_locus, tree cond, tree incr, tree body,
   if (flag_enable_cilkplus && contains_array_notation_expr (cond))
     {
       error_at (start_locus, "array notation expression cannot be used in a "
-		"loop's condition");
+		"loop%'s condition");
       return;
     }
   if (flag_enable_cilkplus && contains_array_notation_expr (incr) && 0)
     {
       error_at (start_locus, "array notation expression cannot be used in a "
-		"loop's increment expression.");
+		"loop's increment expression");
       return;
     }
   
