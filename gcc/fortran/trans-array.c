@@ -126,10 +126,11 @@ gfc_array_dataptr_type (tree desc)
 #define DATA_FIELD 0
 #define ELEM_LEN_FIELD 1
 #define VERSION_FIELD 2
-#define OFFSET_FIELD 3
-#define DTYPE_FIELD 4
-#define DIMENSION_FIELD 5
-#define CAF_TOKEN_FIELD 6
+#define RANK_FIELD 3
+#define OFFSET_FIELD 4
+#define DTYPE_FIELD 5
+#define DIMENSION_FIELD 6
+#define CAF_TOKEN_FIELD 7
 
 #define LBOUND_SUBFIELD 0
 #define EXTENT_SUBFIELD 1
@@ -266,14 +267,17 @@ gfc_dimension_field_from_base_field (tree field)
 tree
 gfc_conv_descriptor_rank (tree desc)
 {
-  tree tmp;
-  tree dtype;
+  tree field;
+  tree type;
 
-  dtype = gfc_conv_descriptor_dtype (desc);
-  tmp = build_int_cst (TREE_TYPE (dtype), GFC_DTYPE_RANK_MASK);
-  tmp = fold_build2_loc (input_location, BIT_AND_EXPR, TREE_TYPE (dtype),
-			 dtype, tmp);
-  return fold_convert (gfc_get_int_type (gfc_default_integer_kind), tmp);
+  type = TREE_TYPE (desc);
+  gcc_assert (GFC_DESCRIPTOR_TYPE_P (type));
+
+  field = gfc_advance_chain (TYPE_FIELDS (type), RANK_FIELD);
+  gcc_assert (field != NULL_TREE && TREE_TYPE (field) == integer_type_node);
+
+  return fold_build3_loc (input_location, COMPONENT_REF, TREE_TYPE (field),
+			  desc, field, NULL_TREE);
 }
 
 
@@ -546,6 +550,7 @@ gfc_conv_shift_descriptor_lbound (stmtblock_t* block, tree desc,
 #undef DATA_FIELD
 #undef ELEM_LEN_FIELD
 #undef VERSION_FIELD
+#undef RANK_FIELD
 #undef OFFSET_FIELD
 #undef DTYPE_FIELD
 #undef DIMENSION_FIELD
@@ -1172,7 +1177,9 @@ gfc_trans_create_temp_array (stmtblock_t * pre, stmtblock_t * post, gfc_ss * ss,
   info->descriptor = desc;
   size = gfc_index_one_node;
 
-  /* Fill in the array dtype.  */
+  /* Fill in the array rank and dtype.  */
+  tmp = gfc_conv_descriptor_rank (desc);
+  gfc_add_modify (pre, tmp, build_int_cst (integer_type_node, total_dim));
   tmp = gfc_conv_descriptor_dtype (desc);
   gfc_add_modify (pre, tmp, gfc_get_dtype (TREE_TYPE (desc)));
 
@@ -4984,7 +4991,10 @@ gfc_array_init_size (tree descriptor, int rank, int corank, tree * poffset,
   stride = gfc_index_one_node;
   offset = gfc_index_zero_node;
 
-  /* Set the dtype.  */
+  /* Set the rank and dtype.  */
+  tmp = gfc_conv_descriptor_rank (descriptor);
+  gfc_add_modify (descriptor_block, tmp, build_int_cst (integer_type_node,
+							rank));
   tmp = gfc_conv_descriptor_dtype (descriptor);
   gfc_add_modify (descriptor_block, tmp, gfc_get_dtype (TREE_TYPE (descriptor)));
 
@@ -6868,7 +6878,10 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
          We don't have to worry about numeric overflows when calculating
          the offsets because all elements are within the array data.  */
 
-      /* Set the dtype.  */
+      /* Set the rank and dtype.  */
+      tmp = gfc_conv_descriptor_rank (parm);
+      gfc_add_modify (&loop.pre, tmp, build_int_cst (integer_type_node,
+						     loop.dimen));
       tmp = gfc_conv_descriptor_dtype (parm);
       gfc_add_modify (&loop.pre, tmp, gfc_get_dtype (parmtype));
 
@@ -8370,6 +8383,9 @@ gfc_alloc_allocatable_for_assignment (gfc_loopinfo *loop,
 			     1, size2);
   gfc_conv_descriptor_data_set (&alloc_block,
 				desc, tmp);
+  tmp = gfc_conv_descriptor_rank (desc);
+  gfc_add_modify (&alloc_block, tmp, build_int_cst (integer_type_node,
+                                                    expr1->rank));
   tmp = gfc_conv_descriptor_dtype (desc);
   gfc_add_modify (&alloc_block, tmp, gfc_get_dtype (TREE_TYPE (desc)));
   if ((expr1->ts.type == BT_DERIVED)

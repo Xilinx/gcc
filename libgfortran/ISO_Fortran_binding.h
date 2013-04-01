@@ -108,7 +108,7 @@ extern "C" {
 typedef ptrdiff_t CFI_index_t;
 typedef int32_t CFI_attribute_t;
 typedef int32_t CFI_type_t;
-typedef int32_t CFI_rank_t;
+typedef int CFI_rank_t;
 
 typedef struct CFI_dim_t
 {
@@ -141,6 +141,7 @@ struct {\
   type *base_addr;\
   size_t elem_len;\
   int version; \
+  CFI_rank_t rank; \
   size_t offset;\
   CFI_index_t dtype;\
   CFI_dim_t dim[r];\

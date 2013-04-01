@@ -67,6 +67,8 @@ gfc_conv_scalar_to_descriptor (gfc_se *se, tree scalar, symbol_attribute attr)
   type = get_scalar_to_descriptor_type (scalar, attr);
   desc = gfc_create_var (type, "desc");
   DECL_ARTIFICIAL (desc) = 1;
+  gfc_add_modify (&se->pre, gfc_conv_descriptor_rank (desc),
+		  build_int_cst (integer_type_node, 0));
   gfc_add_modify (&se->pre, gfc_conv_descriptor_dtype (desc),
 		  gfc_get_dtype (type));
   gfc_conv_descriptor_data_set (&se->pre, desc, scalar);
@@ -235,6 +237,8 @@ class_array_data_assign (stmtblock_t *block, tree lhs_desc, tree rhs_desc,
   gfc_conv_descriptor_offset_set (block, lhs_desc,
 				  gfc_conv_descriptor_offset_get (rhs_desc));
 
+  gfc_add_modify (block, gfc_conv_descriptor_rank (lhs_desc),
+		  gfc_conv_descriptor_rank (rhs_desc));
   gfc_add_modify (block, gfc_conv_descriptor_dtype (lhs_desc),
 		  gfc_conv_descriptor_dtype (rhs_desc));
 
@@ -325,6 +329,8 @@ gfc_conv_derived_to_class (gfc_se *parmse, gfc_expr *e,
 	      tree type;
 	      type = get_scalar_to_descriptor_type (parmse->expr,
 						    gfc_expr_attr (e));
+	      gfc_add_modify (&parmse->pre, gfc_conv_descriptor_rank (ctree),
+			      build_int_cst (integer_type_node, 0));
 	      gfc_add_modify (&parmse->pre, gfc_conv_descriptor_dtype (ctree),
 			      gfc_get_dtype (type));
 	      if (optional)
@@ -593,6 +599,8 @@ gfc_conv_class_to_class (gfc_se *parmse, gfc_expr *e, gfc_typespec class_ts,
 	{
 	  tree type = get_scalar_to_descriptor_type (parmse->expr,
 						     gfc_expr_attr (e));
+	  gfc_add_modify (&block, gfc_conv_descriptor_rank (ctree),
+			  build_int_cst (integer_type_node, 0));
 	  gfc_add_modify (&block, gfc_conv_descriptor_dtype (ctree),
 			  gfc_get_dtype (type));
 
@@ -6485,7 +6493,9 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 	      tree offs, stride;
 	      tree lbound, ubound;
 
-	      /* Set dtype.  */
+	      /* Set rank and dtype.  */
+	      gfc_add_modify (&block, gfc_conv_descriptor_rank (desc),
+			      build_int_cst (integer_type_node, expr1->rank));
 	      dtype = gfc_conv_descriptor_dtype (desc);
 	      tmp = gfc_get_dtype (TREE_TYPE (desc));
 	      gfc_add_modify (&block, dtype, tmp);
@@ -6978,7 +6988,9 @@ fcncall_realloc_result (gfc_se *se, int rank)
   if (POINTER_TYPE_P (TREE_TYPE (desc)))
     desc = build_fold_indirect_ref_loc (input_location, desc);
 
-  /* Unallocated, the descriptor does not have a dtype.  */
+  /* Unallocated, the descriptor does not have a rank and dtype.  */
+  gfc_add_modify (&se->pre, gfc_conv_descriptor_rank (desc),
+                  build_int_cst (integer_type_node, rank));
   tmp = gfc_conv_descriptor_dtype (desc);
   gfc_add_modify (&se->pre, tmp, gfc_get_dtype (TREE_TYPE (desc)));
 

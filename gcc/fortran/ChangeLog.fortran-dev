@@ -1,3 +1,23 @@
+2013-04-01  Tobias Burnus  <burnus@net-b.de>
+
+	* libgfortran.h (GFC_MAX_DIMENSIONS): Change to 15.
+	(GFC_DTYPE_RANK_MASK): Remove.
+	* trans-array.c (RANK_FIELD): New define.
+	(gfc_conv_descriptor_rank): Use rank field.
+	(gfc_trans_create_temp_array, gfc_array_init_size,
+	gfc_conv_expr_descriptor,
+	gfc_alloc_allocatable_for_assignment): Set rank field.
+	* trans-expr.c (gfc_conv_scalar_to_descriptor,
+	class_array_data_assign, gfc_conv_derived_to_class,
+	gfc_conv_class_to_class, gfc_trans_pointer_assignment,
+	fcncall_realloc_result): Ditto.
+	* trans-intrinsic.c (conv_isocbinding_subroutine): Ditto.
+	* trans-io.c (gfc_build_io_library_fndecls,
+	transfer_namelist_element): Pass rank as extra argument.
+	* trans-types.c (gfc_get_element_type, gfc_get_dtype): Don't
+	add the rank to dtype.
+	(gfc_get_array_descriptor_base): New "rank" field.
+
 2013-03-31  Tobias Burnus  <burnus@net-b.de>
 
 	* trans-intrinsic.c (conv_isocbinding_subroutine): Fix

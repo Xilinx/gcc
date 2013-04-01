@@ -95,7 +95,8 @@ sum_c8 (gfc_array_c8 * const restrict retarray,
 	}
 
       retarray->offset = 0;
-      retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
+      retarray->rank = rank;
+      retarray->dtype = array->dtype;
 
       alloc_size = GFC_DESCRIPTOR_SM (retarray, rank-1)
     		   * extent[rank-1];
@@ -276,7 +277,8 @@ msum_c8 (gfc_array_c8 * const restrict retarray,
     		   * extent[rank-1];
 
       retarray->offset = 0;
-      retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
+      retarray->rank = rank;
+      retarray->dtype = array->dtype;
 
       if (alloc_size == 0)
 	{
@@ -427,7 +429,8 @@ ssum_c8 (gfc_array_c8 * const restrict retarray,
 	}
 
       retarray->offset = 0;
-      retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
+      retarray->rank = rank;
+      retarray->dtype = array->dtype;
 
       alloc_size = GFC_DESCRIPTOR_SM (retarray, rank-1)
     		   * extent[rank-1];

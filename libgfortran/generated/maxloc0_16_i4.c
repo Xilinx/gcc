@@ -56,7 +56,8 @@ maxloc0_16_i4 (gfc_array_i16 * const restrict retarray,
   if (retarray->base_addr == NULL)
     {
       GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (GFC_INTEGER_16));
-      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->rank = 1;
+      retarray->dtype = retarray->dtype;
       retarray->offset = 0;
       retarray->base_addr = xmalloc (sizeof (GFC_INTEGER_16) * rank);
     }
@@ -197,7 +198,8 @@ mmaxloc0_16_i4 (gfc_array_i16 * const restrict retarray,
   if (retarray->base_addr == NULL)
     {
       GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (GFC_INTEGER_16));
-      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->rank = 1;
+      retarray->dtype = retarray->dtype;
       retarray->offset = 0;
       retarray->base_addr = xmalloc (sizeof (GFC_INTEGER_16) * rank);
     }
@@ -365,7 +367,8 @@ smaxloc0_16_i4 (gfc_array_i16 * const restrict retarray,
   if (retarray->base_addr == NULL)
     {
       GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (GFC_INTEGER_16));
-      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->rank = 1;
+      retarray->dtype = retarray->dtype;
       retarray->offset = 0;
       retarray->base_addr = xmalloc (sizeof (GFC_INTEGER_16) * rank);
     }

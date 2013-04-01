@@ -6420,9 +6420,11 @@ conv_isocbinding_subroutine (gfc_code *code)
   gfc_add_block_to_block (&block, &fptrse.pre);
   desc = fptrse.expr;
 
-  /* Set data value, dtype, and offset.  */
+  /* Set data value, rank, dtype, and offset.  */
   tmp = GFC_TYPE_ARRAY_DATAPTR_TYPE (TREE_TYPE (desc));
   gfc_conv_descriptor_data_set (&block, desc, fold_convert (tmp, cptrse.expr));
+  gfc_add_modify (&block, gfc_conv_descriptor_rank (desc),
+		  build_int_cst (integer_type_node, arg->next->expr->rank));
   gfc_add_modify (&block, gfc_conv_descriptor_dtype (desc),
 		  gfc_get_dtype (TREE_TYPE (desc)));
 

@@ -277,7 +277,7 @@ struct array_descr_info
       tree lower_bound;
       tree upper_bound;
       tree stride;
-    } dimen[10];
+    } dimen[15];
 };
 
 #endif /* GCC_DWARF2OUT_H */

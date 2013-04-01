@@ -1,0 +1,3 @@
+2013-04-01  Tobias Burnus  <burnus@net-b.de>
+
+	* dwarf2out.h (array_descr_info): Change dim to 15.

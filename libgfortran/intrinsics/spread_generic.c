@@ -73,7 +73,8 @@ spread_internal (gfc_array_char *ret, const gfc_array_char *source,
 
       size_t ext, sm;
 
-      ret->dtype = (source->dtype & ~GFC_DTYPE_RANK_MASK) | rrank;
+      ret->rank = rrank;
+      ret->dtype = source->dtype;
       dim = 0;
       rs = size;
       for (n = 0; n < rrank; n++)

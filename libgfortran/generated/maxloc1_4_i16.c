@@ -96,7 +96,8 @@ maxloc1_4_i16 (gfc_array_i4 * const restrict retarray,
 	}
 
       retarray->offset = 0;
-      retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
+      retarray->rank = rank;
+      retarray->dtype = array->dtype;
 
       alloc_size = GFC_DESCRIPTOR_SM (retarray, rank-1)
     		   * extent[rank-1];
@@ -298,7 +299,8 @@ mmaxloc1_4_i16 (gfc_array_i4 * const restrict retarray,
     		   * extent[rank-1];
 
       retarray->offset = 0;
-      retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
+      retarray->rank = rank;
+      retarray->dtype = array->dtype;
 
       if (alloc_size == 0)
 	{
@@ -482,7 +484,8 @@ smaxloc1_4_i16 (gfc_array_i4 * const restrict retarray,
 	}
 
       retarray->offset = 0;
-      retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
+      retarray->rank = rank;
+      retarray->dtype = array->dtype;
 
       alloc_size = GFC_DESCRIPTOR_SM (retarray, rank-1)
     		   * extent[rank-1];

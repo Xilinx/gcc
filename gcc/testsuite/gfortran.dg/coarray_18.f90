@@ -19,14 +19,17 @@ program ar
   integer :: ic(2)[*]
   integer :: id(2,2)[2,*]
   integer :: ie(2,2,2)[2,2,*]
-  integer :: ig(2,2,2,2)[2,2,2,*] ! { dg-error "has more than 7 dimensions" }
-  integer :: ih(2,2,2,2,2)[2,2,2,2,*] ! { dg-error "has more than 7 dimensions" }
-  integer :: ij(2,2,2,2,2,2)[2,2,2,2,2,*] ! { dg-error "has more than 7 dimensions" }
-  integer :: ik(2,2,2,2,2,2,2)[2,2,2,2,2,2,*] ! { dg-error "has more than 7 dimensions" }
-  integer :: il[2,2,2,2,2,2,2,*] ! { dg-error "has more than 7 dimensions" }
-  integer :: im[2,2,2,2,2,2,2,2,*] ! { dg-error "has more than 7 dimensions" }
-  integer :: in[2,2,2,2,2,2,2,2,2,*] ! { dg-error "has more than 7 dimensions" }
-  integer :: io[2,2,2,2,2,2,2,2,2,2,*] ! { dg-error "has more than 7 dimensions" }
+  integer :: ig(2,2,2,2)[2,2,2,*]
+  integer :: ih(2,2,2,2,2)[2,2,2,2,*]
+  integer :: ij(2,2,2,2,2,2)[2,2,2,2,2,*]
+  integer :: ik(2,2,2,2,2,2,2)[2,2,2,2,2,2,*]
+  integer :: i2(2,2,2,2,2,2,2)[2,2,2,2,2,2,2,2,*] ! { dg-error "has more than 15 dimensions" }
+  integer :: il[2,2,2,2,2,2,2,*]
+  integer :: im[2,2,2,2,2,2,2,2,*]
+  integer :: in[2,2,2,2,2,2,2,2,2,*]
+  integer :: io[2,2,2,2,2,2,2,2,2,2,*]
+  integer :: ip[2,2,2,2,2,2,2,2,2,2,2,2,2,2,*]
+  integer :: ip[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,*] ! { dg-error "has more than 15 dimensions" }
    real :: x2(2,2,4)[2,*]
    complex :: c2(4,2)[2,*]
    double precision :: d2(1,5,9)[2,*]

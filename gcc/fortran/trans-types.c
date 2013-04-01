@@ -1217,7 +1217,7 @@ gfc_get_element_type (tree type)
    data.  See below for the handling of character types.
 
    The dtype member is formatted as follows:
-    rank = dtype & GFC_DTYPE_RANK_MASK // 3 bits
+    // 3 unused bits (used to be the rank)
     type = (dtype & GFC_DTYPE_TYPE_MASK) >> GFC_DTYPE_TYPE_SHIFT // 3 bits
     size = dtype >> GFC_DTYPE_SIZE_SHIFT
 
@@ -1394,14 +1394,12 @@ gfc_get_dtype (tree type)
   tree tmp;
   tree dtype;
   tree etype;
-  int rank;
 
   gcc_assert (GFC_DESCRIPTOR_TYPE_P (type) || GFC_ARRAY_TYPE_P (type));
 
   if (GFC_TYPE_ARRAY_DTYPE (type))
     return GFC_TYPE_ARRAY_DTYPE (type);
 
-  rank = GFC_TYPE_ARRAY_RANK (type);
   etype = gfc_get_element_type (type);
 
   switch (TREE_CODE (etype))
@@ -1441,10 +1439,9 @@ gfc_get_dtype (tree type)
       return gfc_index_zero_node;
     }
 
-  gcc_assert (rank <= GFC_DTYPE_RANK_MASK);
   size = TYPE_SIZE_UNIT (etype);
 
-  i = rank | (n << GFC_DTYPE_TYPE_SHIFT);
+  i = (n << GFC_DTYPE_TYPE_SHIFT);
   if (size && INTEGER_CST_P (size))
     {
       if (tree_int_cst_lt (gfc_max_array_element_size, size))
@@ -1734,6 +1731,12 @@ gfc_get_array_descriptor_base (int dimen, int codimen, bool restricted,
   /* Add the version component.  */
   decl = gfc_add_field_to_struct_1 (fat_type,
 				    get_identifier ("version"),
+				    integer_type_node, &chain);
+  TREE_NO_WARNING (decl) = 1;
+
+  /* Add the rank component.  */
+  decl = gfc_add_field_to_struct_1 (fat_type,
+				    get_identifier ("rank"),
 				    integer_type_node, &chain);
   TREE_NO_WARNING (decl) = 1;
 

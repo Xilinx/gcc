@@ -74,7 +74,8 @@ spread_i8 (gfc_array_i8 *ret, const gfc_array_i8 *source,
 
       /* The front end has signalled that we need to populate the
 	 return array descriptor.  */
-      ret->dtype = (source->dtype & ~GFC_DTYPE_RANK_MASK) | rrank;
+      ret->rank = rrank;
+      ret->dtype = source->dtype;
       dim = 0;
       rs = 1;
       for (n = 0; n < rrank; n++)

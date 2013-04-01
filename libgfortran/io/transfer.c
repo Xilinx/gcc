@@ -3745,14 +3745,15 @@ st_wait (st_parameter_wait *wtp __attribute__((unused)))
    in a linked list of namelist_info types.  */
 
 extern void st_set_nml_var (st_parameter_dt *dtp, void *, char *,
-			    GFC_INTEGER_4, gfc_charlen_type, GFC_INTEGER_4);
+			    GFC_INTEGER_4, gfc_charlen_type, int,
+			    GFC_INTEGER_4);
 export_proto(st_set_nml_var);
 
 
 void
 st_set_nml_var (st_parameter_dt *dtp, void * var_addr, char * var_name,
 		GFC_INTEGER_4 len, gfc_charlen_type string_length,
-		GFC_INTEGER_4 dtype)
+		int rank, GFC_INTEGER_4 dtype)
 {
   namelist_info *t1 = NULL;
   namelist_info *nml;
@@ -3769,7 +3770,7 @@ st_set_nml_var (st_parameter_dt *dtp, void * var_addr, char * var_name,
   nml->len = (int) len;
   nml->string_length = (index_type) string_length;
 
-  nml->var_rank = (int) (dtype & GFC_DTYPE_RANK_MASK);
+  nml->var_rank = rank;
   nml->size = (index_type) (dtype >> GFC_DTYPE_SIZE_SHIFT);
   nml->type = (bt) ((dtype & GFC_DTYPE_TYPE_MASK) >> GFC_DTYPE_TYPE_SHIFT);
 

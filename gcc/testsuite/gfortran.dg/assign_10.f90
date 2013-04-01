@@ -23,6 +23,6 @@ end
 ! cases will all yield a temporary, so that atmp appears 18 times.
 ! Note that it is the kind conversion that generates the temp.
 !
-! { dg-final { scan-tree-dump-times "parm" 20 "original" } }
-! { dg-final { scan-tree-dump-times "atmp" 20 "original" } }
+! { dg-final { scan-tree-dump-times "parm" 22 "original" } }
+! { dg-final { scan-tree-dump-times "atmp" 22 "original" } }
 ! { dg-final { cleanup-tree-dump "original" } }

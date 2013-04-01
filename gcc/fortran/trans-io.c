@@ -457,8 +457,9 @@ gfc_build_io_library_fndecls (void)
 
   iocall[IOCALL_SET_NML_VAL] = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("st_set_nml_var")), ".w.R",
-	void_type_node, 6, dt_parm_type, pvoid_type_node, pvoid_type_node,
-	void_type_node, gfc_charlen_type_node, gfc_int4_type_node);
+	void_type_node, 7, dt_parm_type, pvoid_type_node, pvoid_type_node,
+	void_type_node, gfc_charlen_type_node, integer_type_node,
+	gfc_int4_type_node);
 
   iocall[IOCALL_SET_NML_VAL_DIM] = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("st_set_nml_var_dim")), ".w",
@@ -1587,9 +1588,10 @@ transfer_namelist_element (stmtblock_t * block, const char * var_name,
   else
     tmp = build_int_cst (gfc_charlen_type_node, 0);
   tmp = build_call_expr_loc (input_location,
-			 iocall[IOCALL_SET_NML_VAL], 6,
+			 iocall[IOCALL_SET_NML_VAL], 7,
 			 dt_parm_addr, addr_expr, string,
-			 IARG (ts->kind), tmp, dtype);
+			 IARG (ts->kind), tmp,
+			 build_int_cst (integer_type_node, rank), dtype);
   gfc_add_expr_to_block (block, tmp);
 
   /* If the object is an array, transfer rank times:

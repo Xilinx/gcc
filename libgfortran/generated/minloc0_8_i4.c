@@ -56,7 +56,8 @@ minloc0_8_i4 (gfc_array_i8 * const restrict retarray,
   if (retarray->base_addr == NULL)
     {
       GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (GFC_INTEGER_8));
-      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->rank = 1;
+      retarray->dtype = retarray->dtype;
       retarray->offset = 0;
       retarray->base_addr = xmalloc (sizeof (GFC_INTEGER_8) * rank);
     }
@@ -197,7 +198,8 @@ mminloc0_8_i4 (gfc_array_i8 * const restrict retarray,
   if (retarray->base_addr == NULL)
     {
       GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (GFC_INTEGER_8));
-      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->rank = 1;
+      retarray->dtype = retarray->dtype;
       retarray->offset = 0;
       retarray->base_addr = xmalloc (sizeof (GFC_INTEGER_8) * rank);
     }
@@ -365,7 +367,8 @@ sminloc0_8_i4 (gfc_array_i8 * const restrict retarray,
   if (retarray->base_addr == NULL)
     {
       GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (GFC_INTEGER_8));
-      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->rank = 1;
+      retarray->dtype = retarray->dtype;
       retarray->offset = 0;
       retarray->base_addr = xmalloc (sizeof (GFC_INTEGER_8) * rank);
     }

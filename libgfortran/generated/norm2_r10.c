@@ -99,7 +99,8 @@ norm2_r10 (gfc_array_r10 * const restrict retarray,
 	}
 
       retarray->offset = 0;
-      retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
+      retarray->rank = rank;
+      retarray->dtype = array->dtype;
 
       alloc_size = GFC_DESCRIPTOR_SM (retarray, rank-1)
     		   * extent[rank-1];
