@@ -8770,6 +8770,7 @@ GCC provides support for the following built-in reduction funtions if Cilk Plus
 is enabled. Cilk Plus can be enabled using the @option{-fcilkplus} flag.
 
 @itemize @bullet
+@item __sec_implicit_index
 @item __sec_reduce
 @item __sec_reduce_add
 @item __sec_reduce_all_nonzero
