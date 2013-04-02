@@ -1,6 +1,11 @@
 
 2013-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (outpucod_hookroutine): More, still
+	incomplete.
+
+2013-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (outdeclinit_objinithook): New method
 	for output_c_declinit on class_objinithook instances.
 	(outcinitfill_objinithook): New incomplete stub method for

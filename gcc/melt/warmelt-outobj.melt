@@ -2194,9 +2194,68 @@ MELT_EXTERN  void* melt_start_this_module (void*);
   (debug "outpucod_hookroutine start phook=" phook
 	 "\n of discrim=" (discrim phook))
   (assert_msg "check phook" (is_a phook class_hookroutineobj))
+  (let ( (hookname (get_field :named_name phook))
+	 (nhookproc (get_field :obrout_proc phook))
+	 (obody (get_field :obrout_body phook))
+	 (nbval (get_field :obrout_nbval phook))
+	 (nblongs (get_field :obrout_nblong phook))
+	 (othervars (get_field :obrout_others phook))
+	 (oretval (get_field :obrout_retval phook))
+	 (oretctype (get_field :obv_type oretval))
+	 (oretctycname (get_field :ctype_cname oretctype))
+	 ;(ocntciter (get_field :obrout_cntciter phook))
+	 ;(ocntletrec (get_field :obrout_cntletrec phook))
+	 (ohkdatarg (get_field :ohookrout_datarg phook))
+	 (ohkdatacname (get_field :oformal_name ohkdatarg))
+	 (ohkinargs (get_field :ohookrout_inargs phook))
+	 (ohkoutargs (get_field :ohookrout_outargs phook))
+	 (ohkepilog (get_field :ohookrout_epilog phook))
+	)
+  (debug "outpucod_hookroutine hookname=" hookname 
+	 "\n ohkdatarg=" ohkdatarg 
+	 "\n oretctype=" oretctype
+	 "\n ohkinargs=" ohkinargs
+	 "\n ohkoutargs=" ohkoutargs
+	 "\n oretval=" oretval
+	 "\n oretctype=" oretctype
+	 "\n obody=" obody
+	 "\n ohkepilog=" ohkepilog)
   ;;; should generate the marking routine, and the hook routine
+  (add2out 
+   declbuf 
+   ##{ /* declare hook routine $HOOKNAME */
+   MELT_EXTERN $ORETCTYCNAME $HOOKNAME (melt_ptr_t $OHKDATACNAME}#)
+   ;; declare the input arguments
+  (foreach_in_multiple
+   (ohkinargs)
+   (curinarg :long inix)
+   (debug "outpucod_hookroutine curinarg=" curinarg " inix=" inix)
+   (add2sbuf_strconst declbuf ",")
+   (add2sbuf_indentnl declbuf 20)
+   (let ( (curinctyp (get_field :obv_type curinarg))
+	  (curformalname (get_field :oformal_name curinarg))
+	  (curinctycname (get_field :ctype_cname curinctyp))
+	  )
+     (add2out declbuf ##{$CURINCTYCNAME $CURFORMALNAME}#)
+   ))
+  ;; declare the output arguments
+  (foreach_in_multiple
+   (ohkoutargs)
+   (curoutarg :long outix)
+   (debug "outpucod_hookroutine curoutarg=" curoutarg " outix=" outix)
+   (add2sbuf_strconst declbuf ",")
+   (add2sbuf_indentnl declbuf 20)
+   (let ( (curoutctyp (get_field :obv_type curoutarg))
+	  (curformalname (get_field :oformal_name curoutarg))
+	  (curoutctycname (get_field :ctype_cname curoutctyp))
+	  )
+     (add2out declbuf ##{$CUROUTCTYCNAME* $CURFORMALNAME}#)
+  ))
+  (add2out declbuf ##{); /*declared $HOOKNAME*/}#)
+  (add2sbuf_indentnl declbuf 0)
+  ;;
   (assert_msg "@$@unimplemented outpucod_hookroutine")
-  )
+  ))
 (install_method class_hookroutineobj output_c_code outpucod_hookroutine)
 
 
