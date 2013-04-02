@@ -736,6 +736,25 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 (install_method class_objinitroutine output_c_initial_fill outcinitfill_objinitroutine)
 
 
+;;;;;;;;;; hooks
+
+(defun outdeclinit_objinithook (recv sbuf)
+  (add2sbuf_strconst sbuf " struct MELT_HOOK_STRUCT(")
+  (add2sbuf_longdec sbuf (get_int recv))
+  (add2sbuf_strconst sbuf ") ")
+  (add2sbuf_string sbuf (get_field :oie_cname recv))
+  (add2sbuf_strconst sbuf ";")
+  )
+(install_method class_objinithook output_c_declinit outdeclinit_objinithook)
+
+;;;;
+(defun outcinitfill_objinithook (recv sbuf ptrstr :long depth)
+  (assert_msg "outcinitfill_objinithook check recv" (is_a recv class_objinithook))
+  (debug recv "outcinitfill_objinithook recv=" recv " ptrstr=" ptrstr)
+  (assert_msg "@$@unimplemented outcinitfill_objinithook")
+)
+(install_method class_objinithook  output_c_initial_fill outcinitfill_objinithook)
+
 ;;;; strings
 (defun outdeclinit_objinitstring (recv sbuf)
   (add2sbuf_strconst sbuf " struct MELT_STRING_STRUCT(")
