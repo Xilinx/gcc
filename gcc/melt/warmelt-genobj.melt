@@ -538,6 +538,14 @@
   :fields (
 	   ))
 
+;; put a constant value inside a hook
+(defclass class_objputhookconst
+  :super class_objinstr
+  :fields (ophconst_hook	 ;the routine data
+	   ophconst_off		 ;the boxed offset
+	   ophconst_cval	 ;the constant value
+	   ))
+
 ;; put a constant value inside a routine
 (defclass class_objputroutconst
   :super class_objinstr
@@ -700,6 +708,7 @@
  class_objputpair
  class_objputpairhead
  class_objputpairtail
+ class_objputhookconst
  class_objputroutconst
  class_objputroutconstnotnull
  class_objputslot
@@ -5720,12 +5729,16 @@ $SBUF.}#
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
 	 (chobj (mapobject_get compicache ndhook))
+	 (nloc (get_field :nrep_loc ndhook))
 	 )
     (assert_msg "check compicache" (is_mapobject compicache))
     (when chobj
       (debug "compilobj_datahook return chobj=" chobj)
       (return chobj))
+    (debug "compilobj_datahook inirout=" inirout)
+    (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (let ( (nclotup (get_field :ndhook_closv ndhook))
+	   (inibody (get_field :obrout_body inirout))
 	   (:long nbclo (multiple_length nclotup))
 	   (nhpro (get_field :ndhook_proc ndhook))
 	   (hname (get_field :ndata_name ndhook)) ;a string
@@ -5738,12 +5751,12 @@ $SBUF.}#
 	   (onam (string4out discr_verbatim_string
 			     ##{dhook__$HNAME#__$NRANK}#))
 	   (oihook (instance class_objinithook
-			    :obv_type ctype_value
-			    :oie_cname onam
-			    :oie_data ndhook
-			    :oie_discr odiscr
-			    :oihk_prochook nhpro
-			    ))
+			     :obv_type ctype_value
+			     :oie_cname onam
+			     :oie_data ndhook
+			     :oie_discr odiscr
+			     :oihk_prochook nhpro
+			     ))
 	   (oclo
 	    (multiple_map 
 	     nclotup
@@ -5756,8 +5769,31 @@ $SBUF.}#
       (mapobject_put compicache ndhook oihook)
       (put_int oihook nbclo)
       (debug "compilobj_datahook nclotup=" nclotup "\n nhpro=" nhpro
-	     "\n oihook=" oihook "\n oclo=" oclo)
-      (assert_msg "@$@unimplemented compilobj_datahook"))))
+	     "\n oihook=" oihook "\n oclo=" oclo "\n inibody=" inibody)
+      (foreach_in_multiple
+       (oclo)
+       (curobc :long obix)
+       (let ( (curnc (multiple_nth nclotup obix))
+	      (iput (instance class_objputhookconst
+			      :obi_loc nloc
+			      :ophconst_hook oihook
+			      :ophconst_off (constant_box obix)
+			      :ophconst_cval curobc
+			      ))
+	      )
+	 (debug "compilobj_datahook obix=" obix ".. curobc=" curobc "\n curnc=" curnc
+		"\n.. iput=" iput)
+	 (list_append inibody iput)
+	 ))
+      (when (multiple_length oclo)
+	(list_append inibody (instance class_objtouch
+				       :obi_loc nloc
+				       :otouch_val oihook
+				       :otouch_comment hname
+				       )))
+      (debug "compilobj_datahook updated inibody=" inibody "\n.. final oihook=" oihook)
+      (return oihook)
+      )))
 
 (install_method class_nrep_datahook compile_obj compilobj_datahook)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
