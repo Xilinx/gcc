@@ -4453,6 +4453,13 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
   )
 (install_method class_objputroutconstnotnull output_c_code outpucod_objputroutconstnotnull)
 
+;; output the putting of a constant value inside a hook
+(defun outpucod_objputhookconst (ophconst declbuf implbuf :long depth)
+  (assert_msg "check ophconst" (is_a ophconst class_objputhookconst))
+  (debug "outpucod_objputhookconst ophconst=" ophconst)
+  (assert_msg "@$@unimplemented outpucod_objputhookconst")
+  )
+(install_method class_objputhookconst output_c_code outpucod_objputhookconst)
 
 
 ;;; output the put of an extra returned result

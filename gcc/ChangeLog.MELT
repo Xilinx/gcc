@@ -1,6 +1,13 @@
 
 2013-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (outpucod_objputhookconst): New
+	incomplete stub method for output_c_code on class_objputhookconst
+	instances.
+
+
+2013-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-genobj.melt (class_objputhookconst): New class with
 	fields ophconst_hook ophconst_off ophconst_cval.
 	(compilobj_datahook): Complete, with more debug.
