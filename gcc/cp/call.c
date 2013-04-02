@@ -2289,7 +2289,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 	     T&      operator*(T*);  */
 
     case INDIRECT_REF:
-      if (TREE_CODE (type1) == POINTER_TYPE
+      if (TYPE_PTR_P (type1)
 	  && !uses_template_parms (TREE_TYPE (type1))
 	  && (TYPE_PTROB_P (type1)
 	      || TREE_CODE (TREE_TYPE (type1)) == FUNCTION_TYPE))
@@ -2305,7 +2305,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 	     T       operator-(T);  */
 
     case UNARY_PLUS_EXPR: /* unary + */
-      if (TREE_CODE (type1) == POINTER_TYPE)
+      if (TYPE_PTR_P (type1))
 	break;
     case NEGATE_EXPR:
       if (ARITHMETIC_TYPE_P (type1))
@@ -2329,8 +2329,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
      where CV12 is the union of CV1 and CV2.  */
 
     case MEMBER_REF:
-      if (TREE_CODE (type1) == POINTER_TYPE
-	  && TYPE_PTRMEM_P (type2))
+      if (TYPE_PTR_P (type1) && TYPE_PTRMEM_P (type2))
 	{
 	  tree c1 = TREE_TYPE (type1);
 	  tree c2 = TYPE_PTRMEM_CLASS_TYPE (type2);
@@ -2550,7 +2549,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 	      || (TYPE_PTR_P (type1) && TYPE_PTR_P (type2))
 	      || (TYPE_PTRDATAMEM_P (type1) && TYPE_PTRDATAMEM_P (type2))
 	      || ((TYPE_PTRMEMFUNC_P (type1)
-		   || TREE_CODE (type1) == POINTER_TYPE)
+		   || TYPE_PTR_P (type1))
 		  && null_ptr_cst_p (args[1])))
 	    {
 	      type2 = type1;
@@ -2909,7 +2908,8 @@ add_template_candidate_real (struct z_candidate **candidates, tree tmpl,
   fn = fn_type_unification (tmpl, explicit_targs, targs,
 			    args_without_in_chrg,
 			    nargs_without_in_chrg,
-			    return_type, strict, flags, false);
+			    return_type, strict, flags, false,
+			    complain & tf_decltype);
 
   if (fn == error_mark_node)
     {
@@ -3225,7 +3225,7 @@ print_z_candidate (location_t loc, const char *msgstr,
 			       r->u.template_unification.return_type,
 			       r->u.template_unification.strict,
 			       r->u.template_unification.flags,
-			       true);
+			       true, false);
 	  break;
 	case rr_invalid_copy:
 	  inform (cloc,
@@ -4088,13 +4088,10 @@ build_op_call_1 (tree obj, vec<tree, va_gc> **args, enum call_context spawning,
       tree fns = TREE_VALUE (convs);
       tree totype = TREE_TYPE (convs);
 
-      if ((TREE_CODE (totype) == POINTER_TYPE
-	   && TREE_CODE (TREE_TYPE (totype)) == FUNCTION_TYPE)
+      if (TYPE_PTRFN_P (totype)
+	  || TYPE_REFFN_P (totype)
 	  || (TREE_CODE (totype) == REFERENCE_TYPE
-	      && TREE_CODE (TREE_TYPE (totype)) == FUNCTION_TYPE)
-	  || (TREE_CODE (totype) == REFERENCE_TYPE
-	      && TREE_CODE (TREE_TYPE (totype)) == POINTER_TYPE
-	      && TREE_CODE (TREE_TYPE (TREE_TYPE (totype))) == FUNCTION_TYPE))
+	      && TYPE_PTRFN_P (TREE_TYPE (totype))))
 	for (; fns; fns = OVL_NEXT (fns))
 	  {
 	    tree fn = OVL_CURRENT (fns);
@@ -4851,6 +4848,8 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
 	 lvalue, we must add a NON_LVALUE_EXPR.  */
       result = rvalue (result);
     }
+  else
+    result = force_paren_expr (result);
 
   return result;
 }
@@ -5857,11 +5856,11 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	;
       else
 	{
-	  permerror (input_location, "invalid conversion from %qT to %qT",
-		     TREE_TYPE (expr), totype);
-	  if (fn)
-	    permerror (DECL_SOURCE_LOCATION (fn),
-		       "  initializing argument %P of %qD", argnum, fn);
+	  if (permerror (loc, "invalid conversion from %qT to %qT",
+			 TREE_TYPE (expr), totype)
+	      && fn)
+	    inform (DECL_SOURCE_LOCATION (fn),
+		    "initializing argument %P of %qD", argnum, fn);
 	}
       return cp_convert (totype, expr, complain);
     }
@@ -5964,7 +5963,8 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  build_user_type_conversion (totype, convs->u.expr, LOOKUP_NORMAL,
 				      complain);
 	  if (fn)
-	    error ("  initializing argument %P of %q+D", argnum, fn);
+	    inform (input_location, "initializing argument %P of %q+D",
+		    argnum, fn);
 	}
       return error_mark_node;
 
@@ -6095,7 +6095,8 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	    error_at (loc, "cannot bind %qT lvalue to %qT",
 		      TREE_TYPE (expr), totype);
 	    if (fn)
-	      error ("  initializing argument %P of %q+D", argnum, fn);
+	      inform (input_location,
+		      "initializing argument %P of %q+D", argnum, fn);
 	    return error_mark_node;
 	  }
 
@@ -6783,7 +6784,7 @@ build_over_call (struct z_candidate *cand, int flags,
 
 	 So we can assume that anything passed as 'this' is non-null, and
 	 optimize accordingly.  */
-      gcc_assert (TREE_CODE (parmtype) == POINTER_TYPE);
+      gcc_assert (TYPE_PTR_P (parmtype));
       /* Convert to the base in which the function was declared.  */
       gcc_assert (cand->conversion_path != NULL_TREE);
       converted_arg = build_base_path (PLUS_EXPR,
@@ -7188,7 +7189,7 @@ build_java_interface_fn_ref (tree fn, tree instance)
   /* Get the java.lang.Class pointer for the interface being called.  */
   iface = DECL_CONTEXT (fn);
   iface_ref = lookup_field (iface, get_identifier ("class$"), 0, false);
-  if (!iface_ref || TREE_CODE (iface_ref) != VAR_DECL
+  if (!iface_ref || !VAR_P (iface_ref)
       || DECL_CONTEXT (iface_ref) != iface)
     {
       error ("could not find class$ field in java interface type %qT",
@@ -7498,11 +7499,11 @@ build_new_method_call_1 (tree instance, tree fns, vec<tree, va_gc> **args,
       if (! (complain & tf_error))
 	return error_mark_node;
 
-      permerror (input_location,
-		 "cannot call constructor %<%T::%D%> directly",
-		 basetype, name);
-      permerror (input_location, "  for a function-style cast, remove the "
-		 "redundant %<::%D%>", name);
+      if (permerror (input_location,
+		     "cannot call constructor %<%T::%D%> directly",
+		     basetype, name))
+	inform (input_location, "for a function-style cast, remove the "
+		"redundant %<::%D%>", name);
       call = build_functional_cast (basetype, build_tree_list_vec (user_args),
 				    complain);
       return call;
@@ -7761,7 +7762,7 @@ build_new_method_call_1 (tree instance, tree fns, vec<tree, va_gc> **args,
 	  cast_to_void = true;
 	  call = TREE_OPERAND (call, 0);
 	}
-      if (TREE_CODE (call) == INDIRECT_REF)
+      if (INDIRECT_REF_P (call))
 	call = TREE_OPERAND (call, 0);
       call = (build_min_non_dep_call_vec
 	      (call,
@@ -8163,8 +8164,8 @@ compare_ics (conversion *ics1, conversion *ics2)
 	   conversion of B* to A* is better than conversion of B* to
 	   void*, and conversion of A* to void* is better than
 	   conversion of B* to void*.  */
-      if (TREE_CODE (deref_to_type1) == VOID_TYPE
-	  && TREE_CODE (deref_to_type2) == VOID_TYPE)
+      if (VOID_TYPE_P (deref_to_type1)
+	  && VOID_TYPE_P (deref_to_type2))
 	{
 	  if (is_properly_derived_from (deref_from_type1,
 					deref_from_type2))
@@ -8173,12 +8174,12 @@ compare_ics (conversion *ics1, conversion *ics2)
 					     deref_from_type1))
 	    return 1;
 	}
-      else if (TREE_CODE (deref_to_type1) == VOID_TYPE
-	       || TREE_CODE (deref_to_type2) == VOID_TYPE)
+      else if (VOID_TYPE_P (deref_to_type1)
+	       || VOID_TYPE_P (deref_to_type2))
 	{
 	  if (same_type_p (deref_from_type1, deref_from_type2))
 	    {
-	      if (TREE_CODE (deref_to_type2) == VOID_TYPE)
+	      if (VOID_TYPE_P (deref_to_type2))
 		{
 		  if (is_properly_derived_from (deref_from_type1,
 						deref_to_type1))
@@ -8682,13 +8683,15 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn,
 		{
 		  if (complain & tf_error)
 		    {
-		      permerror (input_location,
-				 "default argument mismatch in "
-				 "overload resolution");
-		      inform (input_location,
-			      " candidate 1: %q+#F", cand1->fn);
-		      inform (input_location,
-			      " candidate 2: %q+#F", cand2->fn);
+		      if (permerror (input_location,
+				     "default argument mismatch in "
+				     "overload resolution"))
+			{
+			  inform (input_location,
+				  " candidate 1: %q+#F", cand1->fn);
+			  inform (input_location,
+				  " candidate 2: %q+#F", cand2->fn);
+			}
 		    }
 		  else
 		    return 0;
@@ -9037,7 +9040,7 @@ make_temporary_var_for_ref_to_temp (tree decl, tree type)
   var = create_temporary_var (type);
 
   /* Register the variable.  */
-  if (TREE_CODE (decl) == VAR_DECL
+  if (VAR_P (decl)
       && (TREE_STATIC (decl) || DECL_THREAD_LOCAL_P (decl)))
     {
       /* Namespace-scope or local static; give it a mangled name.  */

@@ -95,12 +95,12 @@ along with GCC; see the file COPYING3.  If not see
    : TARGET_64BIT ? 0x100 : 0x400)
 
 /* True if INSN is a mips.md pattern or asm statement.  */
+/* ???	This test exists through the compiler, perhaps it should be
+	moved to rtl.h.  */
 #define USEFUL_INSN_P(INSN)						\
   (NONDEBUG_INSN_P (INSN)						\
    && GET_CODE (PATTERN (INSN)) != USE					\
-   && GET_CODE (PATTERN (INSN)) != CLOBBER				\
-   && GET_CODE (PATTERN (INSN)) != ADDR_VEC				\
-   && GET_CODE (PATTERN (INSN)) != ADDR_DIFF_VEC)
+   && GET_CODE (PATTERN (INSN)) != CLOBBER)
 
 /* If INSN is a delayed branch sequence, return the first instruction
    in the sequence, otherwise return INSN itself.  */
@@ -14648,13 +14648,15 @@ mips16_emit_constants (struct mips16_constant *constants, rtx insn)
 static int
 mips16_insn_length (rtx insn)
 {
-  if (JUMP_P (insn))
+  if (JUMP_TABLE_DATA_P (insn))
     {
       rtx body = PATTERN (insn);
       if (GET_CODE (body) == ADDR_VEC)
 	return GET_MODE_SIZE (GET_MODE (body)) * XVECLEN (body, 0);
-      if (GET_CODE (body) == ADDR_DIFF_VEC)
+      else if (GET_CODE (body) == ADDR_DIFF_VEC)
 	return GET_MODE_SIZE (GET_MODE (body)) * XVECLEN (body, 1);
+      else
+	gcc_unreachable ();
     }
   return get_attr_length (insn);
 }
@@ -16183,7 +16185,6 @@ mips_has_long_branch_p (void)
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     FOR_EACH_SUBINSN (subinsn, insn)
       if (JUMP_P (subinsn)
-	  && USEFUL_INSN_P (subinsn)
 	  && get_attr_length (subinsn) > normal_length
 	  && (any_condjump_p (subinsn) || any_uncondjump_p (subinsn)))
 	return true;
@@ -16285,7 +16286,6 @@ mips16_split_long_branches (void)
       something_changed = false;
       for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
 	if (JUMP_P (insn)
-	    && USEFUL_INSN_P (insn)
 	    && get_attr_length (insn) > 8
 	    && (any_condjump_p (insn) || any_uncondjump_p (insn)))
 	  {
@@ -16910,6 +16910,21 @@ mips_option_override (void)
     }
   else if (TARGET_BRANCHLIKELY && !ISA_HAS_BRANCHLIKELY)
     warning (0, "the %qs architecture does not support branch-likely"
+	     " instructions", mips_arch_info->name);
+
+  /* If the user hasn't specified -mimadd or -mno-imadd set
+     MASK_IMADD based on the target architecture and tuning
+     flags.  */
+  if ((target_flags_explicit & MASK_IMADD) == 0)
+    {
+      if (ISA_HAS_MADD_MSUB &&
+          (mips_tune_info->tune_flags & PTF_AVOID_IMADD) == 0)
+	target_flags |= MASK_IMADD;
+      else
+	target_flags &= ~MASK_IMADD;
+    }
+  else if (TARGET_IMADD && !ISA_HAS_MADD_MSUB)
+    warning (0, "the %qs architecture does not support madd or msub"
 	     " instructions", mips_arch_info->name);
 
   /* The effect of -mabicalls isn't defined for the EABI.  */

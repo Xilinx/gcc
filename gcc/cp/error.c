@@ -708,7 +708,7 @@ dump_type_prefix (tree t, int flags)
 	    pp_c_attributes_display (pp_c_base (cxx_pp),
 				     TYPE_ATTRIBUTES (sub));
 	  }
-	if (TREE_CODE (t) == POINTER_TYPE)
+	if (TYPE_PTR_P (t))
 	  pp_character(cxx_pp, '*');
 	else if (TREE_CODE (t) == REFERENCE_TYPE)
 	{
@@ -916,7 +916,7 @@ dump_simple_decl (tree t, tree type, int flags)
 {
   if (flags & TFF_DECL_SPECIFIERS)
     {
-      if (TREE_CODE (t) == VAR_DECL
+      if (VAR_P (t)
 	  && DECL_DECLARED_CONSTEXPR_P (t))
 	pp_cxx_ws_string (cxx_pp, "constexpr");
       dump_type_prefix (type, flags & ~TFF_UNQUALIFIED_NAME);
@@ -1249,7 +1249,7 @@ dump_template_decl (tree t, int flags)
 	       ((flags & ~TFF_CLASS_KEY_OR_ENUM) | TFF_TEMPLATE_NAME
 		| (flags & TFF_DECL_SPECIFIERS ? TFF_CLASS_KEY_OR_ENUM : 0)));
   else if (DECL_TEMPLATE_RESULT (t)
-           && (TREE_CODE (DECL_TEMPLATE_RESULT (t)) == VAR_DECL
+           && (VAR_P (DECL_TEMPLATE_RESULT (t))
 	       /* Alias template.  */
 	       || DECL_TYPE_TEMPLATE_P (t)))
     dump_decl (DECL_TEMPLATE_RESULT (t), flags | TFF_TEMPLATE_NAME);
@@ -1988,7 +1988,7 @@ dump_expr (tree t, int flags)
     case COMPONENT_REF:
       {
 	tree ob = TREE_OPERAND (t, 0);
-	if (TREE_CODE (ob) == INDIRECT_REF)
+	if (INDIRECT_REF_P (ob))
 	  {
 	    ob = TREE_OPERAND (ob, 0);
 	    if (TREE_CODE (ob) != PARM_DECL
@@ -2108,7 +2108,7 @@ dump_expr (tree t, int flags)
 	{
 	  tree next = TREE_TYPE (TREE_TYPE (t));
 
-	  while (TREE_CODE (next) == POINTER_TYPE)
+	  while (TYPE_PTR_P (next))
 	    next = TREE_TYPE (next);
 
 	  if (TREE_CODE (next) == FUNCTION_TYPE)
@@ -2243,7 +2243,7 @@ dump_expr (tree t, int flags)
 	  }
 	else
 	  {
-	    if (TREE_CODE (ob) == INDIRECT_REF)
+	    if (INDIRECT_REF_P (ob))
 	      {
 		dump_expr (TREE_OPERAND (ob, 0), flags | TFF_EXPR_IN_PARENS);
 		pp_cxx_arrow (cxx_pp);
@@ -2504,6 +2504,12 @@ dump_expr (tree t, int flags)
 
     case LAMBDA_EXPR:
       pp_string (cxx_pp, M_("<lambda>"));
+      break;
+
+    case PAREN_EXPR:
+      pp_cxx_left_paren (cxx_pp);
+      dump_expr (TREE_OPERAND (t, 0), flags | TFF_EXPR_IN_PARENS);
+      pp_cxx_right_paren (cxx_pp);
       break;
 
       /*  This list is incomplete, but should suffice for now.
@@ -3283,7 +3289,7 @@ cp_printer (pretty_printer *pp, text_info *text, const char *spec,
     case 'D':
       {
 	tree temp = next_tree;
-	if (TREE_CODE (temp) == VAR_DECL
+	if (VAR_P (temp)
 	    && DECL_HAS_DEBUG_EXPR_P (temp))
 	  {
 	    temp = DECL_DEBUG_EXPR (temp);
