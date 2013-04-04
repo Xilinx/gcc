@@ -1,5 +1,16 @@
 
 2013-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (output_curframe_declstruct): The
+	generated struct name is fixed to melt_initial_frame_st for
+	initial routines. Use the meltframe_ prefix otherwise.
+	(output_curframe_declstruct_init): Use the meltframe_ prefix.
+	(outpucod_initialmoduleroutine): Declare the opaque initial frame.
+	Generate it in the implementation buffer, using
+	meltinitial_frame_t name. Generate appropriately the initial
+	routines' chunk's signatures and calls.
+	(outpucod_hookroutine): Incomplete, but a bit more.
+
+2013-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}
 	* melt/generated/meltrunsup.h: Regenerate.
@@ -12621,7 +12632,7 @@
 {{{{previous changelog entries for MELT in gcc/ are in file ChangeLog.MELT-2008-2011}}}}
 
 
-Copyright (C) 2012 Free Software Foundation, Inc.
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
 
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright

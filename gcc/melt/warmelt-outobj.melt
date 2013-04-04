@@ -1310,11 +1310,17 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     ;; output the current frame
     (add2sbuf_indentnl dsbuf 0)
     (add2sbuf_strconst dsbuf " struct ")
-    (if (is_a rou class_named)
-	(progn
-	  (add2sbuf_strconst dsbuf "frame_")
-	  (add2sbuf_string dsbuf (unsafe_get_field :named_name rou))
-	  (add2sbuf_strconst dsbuf "_st ")))
+    (cond
+     ((is_a rou class_initialroutineobj)
+      (add2sbuf_strconst dsbuf "melt_initial_frame_st")
+      )
+     ((is_a rou class_named)
+      (add2sbuf_strconst dsbuf "meltframe_")
+      (add2sbuf_string dsbuf (unsafe_get_field :named_name rou))
+      (add2sbuf_strconst dsbuf "_st "))
+     (:else
+      (assert_msg "unexpected routine")
+      ))
     (add2sbuf_strconst dsbuf "{")
     (add2sbuf_indentnl dsbuf 0)
     (add2sbuf_strconst dsbuf "  int mcfr_nbvar;")
@@ -1526,7 +1532,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(add2sbuf_strconst implbuf "int ix=0;")
 	(add2sbuf_indentnl implbuf 3)
 	(if rouname
-	    (add2out implbuf "meltframptr_ = (struct frame_" rouname "_st*) meltfirstargp_;")
+	    (add2out implbuf "meltframptr_ = (struct meltframe_" rouname "_st*) meltfirstargp_;")
 	  (add2sbuf_strconst implbuf "meltframptr_ = (void*)meltfirstargp_;"))
 	(add2sbuf_indentnl implbuf 3)
 	(add2out implbuf ##{  /* use arguments output_curframe_declstruct_init */
@@ -1847,16 +1853,22 @@ MELT_EXTERN  void* melt_start_this_module (void*);
  }#)
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "typedef ")
+    (add2out declbuf
+	     "/*declare opaque initial frame: */")
+    (add2sbuf_indentnl declbuf 0)
+    (add2out declbuf
+	     "typedef struct melt_initial_frame_st meltinitial_frame_t;")
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_strconst implbuf "/* the frame for initial routine */")
     (output_curframe_declstruct pini implbuf)
-    (add2sbuf_strconst implbuf " initial_frame_st;")
+    (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "static void initialize_module_meltdata_")
     (add2sbuf_cident implbuf omodnam)
-    (add2sbuf_strconst implbuf " (initial_frame_st *iniframp__, char meltpredefinited[])")
+    (add2sbuf_strconst implbuf " (meltinitial_frame_t *iniframp__, char meltpredefinited[])")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "{")
     (add2sbuf_indentnl implbuf 0)
@@ -1949,7 +1961,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (output_curframe_declstruct_init 
      (lambda (rou dsbuf)
        (add2sbuf_indentnl dsbuf 0)
-       (add2sbuf_strconst dsbuf "initial_frame_st ")
+       (add2sbuf_strconst dsbuf "melt_initial_frame_st ")
        )
      pini implbuf)
 ;;; output the prologue
@@ -2037,12 +2049,8 @@ MELT_EXTERN  void* melt_start_this_module (void*);
       (unsafe_put_fields previmplbuf_container :referenced_value ())
       (let ( (chunktup (list_to_multiple chunkbuflist discr_multiple)) 
 	     )
-	;; declare each chunk and call it notice that the name
-	;; frame_melt_start_this_module_st is constructed from name
-	;; melt_start_this_module which is built inside our MELT function
-	;; compile2obj_initproc.
+	;; declare each chunk and call it.
 	(add2sbuf_indentnl declbuf 0)
-	(add2sbuf_strconst declbuf "struct frame_melt_start_this_module_st;")
 	(foreach_in_multiple
 	 (chunktup)
 	 (curchunk :long chunkix)
@@ -2051,7 +2059,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 (add2sbuf_cident declbuf omodnam)
 	 (add2sbuf_strconst declbuf "__initialmeltchunk_")
 	 (add2sbuf_longdec declbuf chunkix)
-	 (add2sbuf_strconst declbuf " (struct frame_melt_start_this_module_st*, char*);")
+	 (add2sbuf_strconst declbuf " (meltinitial_frame_t*, char*);")
 	 (add2sbuf_indentnl implbuf 1)
 	 (add2sbuf_strconst implbuf "meltmod__")
 	 (add2sbuf_cident implbuf omodnam)
@@ -2103,7 +2111,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 (add2sbuf_cident implbuf omodnam)
 	 (add2sbuf_strconst implbuf "__initialmeltchunk_")
 	 (add2sbuf_longdec implbuf chunkix)
-	 (add2sbuf_strconst implbuf " (struct frame_melt_start_this_module_st* meltmeltframptr__, char meltpredefinited[]) {")
+	 (add2sbuf_strconst implbuf " (meltinitial_frame_t* meltmeltframptr__, char meltpredefinited[]) {")
 	 (add2sbuf_indentnl implbuf 0)
 	 (add2sbuf_strconst implbuf "#define meltfram__ (*meltmeltframptr__)")
 	 (add2sbuf_indentnl implbuf 0)
@@ -2151,7 +2159,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf "int ix=0;")
     (add2sbuf_indentnl implbuf 1)
-    (add2sbuf_strconst implbuf "initial_frame_st* meltframptr_= (initial_frame_st*)fp;")
+    (add2sbuf_strconst implbuf "melt_initial_frame_st* meltframptr_= (melt_initial_frame_st*)fp;")
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf " melt_assertmsg (\"check module frame\", meltframptr_->mcfr_nbvar == /*minihash*/ -")
     (add2sbuf_longdec implbuf minihash)
@@ -2256,6 +2264,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
   (assert_msg "check phook" (is_a phook class_hookroutineobj))
   (let ( (hookname (get_field :named_name phook))
 	 (nhookproc (get_field :obrout_proc phook))
+	 (nrawhookname (get_field :nrhook_name nhookproc))
 	 (obody (get_field :obrout_body phook))
 	 (nbval (get_field :obrout_nbval phook))
 	 (nblongs (get_field :obrout_nblong phook))
@@ -2272,6 +2281,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 (ohkepilog (get_field :ohookrout_epilog phook))
 	)
   (debug "outpucod_hookroutine hookname=" hookname 
+	 "\n nrawhookname=" nrawhookname
 	 "\n ohkdatarg=" ohkdatarg 
 	 "\n oretctype=" oretctype
 	 "\n ohkinargs=" ohkinargs
@@ -2282,8 +2292,31 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 "\n ohkepilog=" ohkepilog)
   ;;; should generate the marking routine, and the hook routine
   (output_centraldecl_hookroutine phook declbuf "declaration of" "MELT_EXTERN")
+  (add2out declbuf ##{/* declare frame for $HOOKNAME hook:*/}#)
+  (add2sbuf_indentnl declbuf 0);
+  (add2out declbuf 
+	   ##{struct melthookframe_$NRAWHOOKNAME#_st; /* opaque frame for  $HOOKNAME hook */}#
+	   )
+  (add2sbuf_indentnl declbuf 0)
+  (add2out declbuf
+	   ##{/* declare frame marking routine for $HOOKNAME hook */
+	   void melthookmark_$NRAWHOOKNAME#_rout (struct melt_callframe_st*, int) 
+	                 MELT_MODULE_VISIBILITY;}#
+			 )
+  (add2sbuf_indentnl declbuf 0)
+  (add2out 
+   implbuf ##{/* frame for $HOOKNAME hook: */
+   typedef struct melthookframe_$NRAWHOOKNAME#_st { }#)
+  (output_curframe_declstruct phook implbuf)
+  (add2out implbuf "} melthookframe_" nrawhookname "_t;")
+  (add2sbuf_indentnl implbuf 0)
+  (add2sbuf_indentnl implbuf 0)
   (output_centraldecl_hookroutine phook implbuf "implementation of" (the_null_cstring))
+  (add2out implbuf "{ /* body of hook " hookname " */")
+  (add2sbuf_indentnl implbuf 0)
   ;;
+  (debug "outpucod_hookroutine incomplete\n.. declbuf=" declbuf
+	 "\n.. implbuf=" implbuf "\n.~~~~~~\n")
   (assert_msg "@$@unimplemented outpucod_hookroutine")
   ))
 (install_method class_hookroutineobj output_c_code outpucod_hookroutine)
