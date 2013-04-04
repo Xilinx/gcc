@@ -2467,6 +2467,9 @@ union meltparam_un *meltxrestab_);
 
 MELT_EXTERN void *melt_start_this_module (void *);
 
+/*declare opaque initial frame: */
+typedef struct melt_initial_frame_st meltinitial_frame_t;
+
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
@@ -2478,83 +2481,45 @@ MELT_EXTERN const char meltmodule_warmelt_outobj__melt_have_debug_disabled[];
 #endif /*!MELT_HAVE_DEBUG */
 
 
-struct frame_melt_start_this_module_st;
+
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_0 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_0 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_1 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_1 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_2 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_2 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_3 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_3 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_4 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_4 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_5 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_5 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_6 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_6 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_7 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_7 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_8 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_8 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_9 (struct
-					     frame_melt_start_this_module_st
-					     *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_9 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_10 (struct
-					      frame_melt_start_this_module_st
-					      *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_10 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_11 (struct
-					      frame_melt_start_this_module_st
-					      *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_11 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_12 (struct
-					      frame_melt_start_this_module_st
-					      *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_12 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_13 (struct
-					      frame_melt_start_this_module_st
-					      *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_13 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_14 (struct
-					      frame_melt_start_this_module_st
-					      *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_14 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_15 (struct
-					      frame_melt_start_this_module_st
-					      *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_15 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_16 (struct
-					      frame_melt_start_this_module_st
-					      *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_16 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_17 (struct
-					      frame_melt_start_this_module_st
-					      *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_17 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_outobj__initialmeltchunk_18 (struct
-					      frame_melt_start_this_module_st
-					      *, char *);
+meltmod__warmelt_outobj__initialmeltchunk_18 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_outobj__forward_or_mark_module_start_frame (struct
 							     melt_callframe_st
@@ -2592,7 +2557,7 @@ meltrout_8_warmelt_outobj_OUTPUT_PREDEF (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_8_warmelt_outobj_OUTPUT_PREDEF_st
+  struct meltframe_meltrout_8_warmelt_outobj_OUTPUT_PREDEF_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -2619,7 +2584,7 @@ meltrout_8_warmelt_outobj_OUTPUT_PREDEF (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_8_warmelt_outobj_OUTPUT_PREDEF_st *)
+	(struct meltframe_meltrout_8_warmelt_outobj_OUTPUT_PREDEF_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -3391,7 +3356,7 @@ meltrout_9_warmelt_outobj_OUTPUCOD_PREDEF (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_9_warmelt_outobj_OUTPUCOD_PREDEF_st
+  struct meltframe_meltrout_9_warmelt_outobj_OUTPUCOD_PREDEF_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -3418,7 +3383,7 @@ meltrout_9_warmelt_outobj_OUTPUCOD_PREDEF (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_9_warmelt_outobj_OUTPUCOD_PREDEF_st *)
+	(struct meltframe_meltrout_9_warmelt_outobj_OUTPUCOD_PREDEF_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -3649,7 +3614,7 @@ meltrout_10_warmelt_outobj_OUTPUCOD_NIL (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_10_warmelt_outobj_OUTPUCOD_NIL_st
+  struct meltframe_meltrout_10_warmelt_outobj_OUTPUCOD_NIL_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -3676,7 +3641,7 @@ meltrout_10_warmelt_outobj_OUTPUCOD_NIL (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_10_warmelt_outobj_OUTPUCOD_NIL_st *)
+	(struct meltframe_meltrout_10_warmelt_outobj_OUTPUCOD_NIL_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -3864,7 +3829,7 @@ meltrout_11_warmelt_outobj_OUTPUCOD_OBJEXPANDPUREVAL (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_11_warmelt_outobj_OUTPUCOD_OBJEXPANDPUREVAL_st
+  struct meltframe_meltrout_11_warmelt_outobj_OUTPUCOD_OBJEXPANDPUREVAL_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -3893,8 +3858,9 @@ meltrout_11_warmelt_outobj_OUTPUCOD_OBJEXPANDPUREVAL (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_11_warmelt_outobj_OUTPUCOD_OBJEXPANDPUREVAL_st
-	 *) meltfirstargp_;
+	(struct
+	 meltframe_meltrout_11_warmelt_outobj_OUTPUCOD_OBJEXPANDPUREVAL_st *)
+	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -5051,7 +5017,7 @@ meltrout_12_warmelt_outobj_OUTDECLINIT_OBJINITOBJECT (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_12_warmelt_outobj_OUTDECLINIT_OBJINITOBJECT_st
+  struct meltframe_meltrout_12_warmelt_outobj_OUTDECLINIT_OBJINITOBJECT_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -5078,8 +5044,9 @@ meltrout_12_warmelt_outobj_OUTDECLINIT_OBJINITOBJECT (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_12_warmelt_outobj_OUTDECLINIT_OBJINITOBJECT_st
-	 *) meltfirstargp_;
+	(struct
+	 meltframe_meltrout_12_warmelt_outobj_OUTDECLINIT_OBJINITOBJECT_st *)
+	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -5233,7 +5200,7 @@ meltrout_13_warmelt_outobj_OUTCINITFILL_OBJINITOBJECT (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_13_warmelt_outobj_OUTCINITFILL_OBJINITOBJECT_st
+  struct meltframe_meltrout_13_warmelt_outobj_OUTCINITFILL_OBJINITOBJECT_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -5260,8 +5227,9 @@ meltrout_13_warmelt_outobj_OUTCINITFILL_OBJINITOBJECT (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_13_warmelt_outobj_OUTCINITFILL_OBJINITOBJECT_st
-	 *) meltfirstargp_;
+	(struct
+	 meltframe_meltrout_13_warmelt_outobj_OUTCINITFILL_OBJINITOBJECT_st *)
+	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -7914,7 +7882,7 @@ meltrout_14_warmelt_outobj_OUTCINITPREDEF_OBJINITOBJECT (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_14_warmelt_outobj_OUTCINITPREDEF_OBJINITOBJECT_st
+  struct meltframe_meltrout_14_warmelt_outobj_OUTCINITPREDEF_OBJINITOBJECT_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -7942,8 +7910,8 @@ meltrout_14_warmelt_outobj_OUTCINITPREDEF_OBJINITOBJECT (meltclosure_ptr_t
       int ix = 0;
       meltframptr_ =
 	(struct
-	 frame_meltrout_14_warmelt_outobj_OUTCINITPREDEF_OBJINITOBJECT_st *)
-	meltfirstargp_;
+	 meltframe_meltrout_14_warmelt_outobj_OUTCINITPREDEF_OBJINITOBJECT_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -9873,7 +9841,7 @@ meltrout_15_warmelt_outobj_OUTDECLINIT_OBJINITMULTIPLE (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_15_warmelt_outobj_OUTDECLINIT_OBJINITMULTIPLE_st
+  struct meltframe_meltrout_15_warmelt_outobj_OUTDECLINIT_OBJINITMULTIPLE_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -9901,8 +9869,8 @@ meltrout_15_warmelt_outobj_OUTDECLINIT_OBJINITMULTIPLE (meltclosure_ptr_t
       int ix = 0;
       meltframptr_ =
 	(struct
-	 frame_meltrout_15_warmelt_outobj_OUTDECLINIT_OBJINITMULTIPLE_st *)
-	meltfirstargp_;
+	 meltframe_meltrout_15_warmelt_outobj_OUTDECLINIT_OBJINITMULTIPLE_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -10056,7 +10024,7 @@ meltrout_16_warmelt_outobj_OUTCINITFILL_OBJINITMULTIPLE (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_16_warmelt_outobj_OUTCINITFILL_OBJINITMULTIPLE_st
+  struct meltframe_meltrout_16_warmelt_outobj_OUTCINITFILL_OBJINITMULTIPLE_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -10084,8 +10052,8 @@ meltrout_16_warmelt_outobj_OUTCINITFILL_OBJINITMULTIPLE (meltclosure_ptr_t
       int ix = 0;
       meltframptr_ =
 	(struct
-	 frame_meltrout_16_warmelt_outobj_OUTCINITFILL_OBJINITMULTIPLE_st *)
-	meltfirstargp_;
+	 meltframe_meltrout_16_warmelt_outobj_OUTCINITFILL_OBJINITMULTIPLE_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -11077,7 +11045,7 @@ meltrout_17_warmelt_outobj_OUTDECLINIT_OBJINITCLOSURE (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_17_warmelt_outobj_OUTDECLINIT_OBJINITCLOSURE_st
+  struct meltframe_meltrout_17_warmelt_outobj_OUTDECLINIT_OBJINITCLOSURE_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -11104,8 +11072,9 @@ meltrout_17_warmelt_outobj_OUTDECLINIT_OBJINITCLOSURE (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_17_warmelt_outobj_OUTDECLINIT_OBJINITCLOSURE_st
-	 *) meltfirstargp_;
+	(struct
+	 meltframe_meltrout_17_warmelt_outobj_OUTDECLINIT_OBJINITCLOSURE_st *)
+	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -11259,7 +11228,7 @@ meltrout_18_warmelt_outobj_OUTCINITFILL_OBJINITCLOSURE (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_18_warmelt_outobj_OUTCINITFILL_OBJINITCLOSURE_st
+  struct meltframe_meltrout_18_warmelt_outobj_OUTCINITFILL_OBJINITCLOSURE_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -11287,8 +11256,8 @@ meltrout_18_warmelt_outobj_OUTCINITFILL_OBJINITCLOSURE (meltclosure_ptr_t
       int ix = 0;
       meltframptr_ =
 	(struct
-	 frame_meltrout_18_warmelt_outobj_OUTCINITFILL_OBJINITCLOSURE_st *)
-	meltfirstargp_;
+	 meltframe_meltrout_18_warmelt_outobj_OUTCINITFILL_OBJINITCLOSURE_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -12407,7 +12376,7 @@ meltrout_19_warmelt_outobj_OUTDECLINIT_OBJINITROUTINE (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_19_warmelt_outobj_OUTDECLINIT_OBJINITROUTINE_st
+  struct meltframe_meltrout_19_warmelt_outobj_OUTDECLINIT_OBJINITROUTINE_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -12434,8 +12403,9 @@ meltrout_19_warmelt_outobj_OUTDECLINIT_OBJINITROUTINE (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_19_warmelt_outobj_OUTDECLINIT_OBJINITROUTINE_st
-	 *) meltfirstargp_;
+	(struct
+	 meltframe_meltrout_19_warmelt_outobj_OUTDECLINIT_OBJINITROUTINE_st *)
+	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -12589,7 +12559,7 @@ meltrout_20_warmelt_outobj_OUTCINITFILL_OBJINITROUTINE (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_20_warmelt_outobj_OUTCINITFILL_OBJINITROUTINE_st
+  struct meltframe_meltrout_20_warmelt_outobj_OUTCINITFILL_OBJINITROUTINE_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -12617,8 +12587,8 @@ meltrout_20_warmelt_outobj_OUTCINITFILL_OBJINITROUTINE (meltclosure_ptr_t
       int ix = 0;
       meltframptr_ =
 	(struct
-	 frame_meltrout_20_warmelt_outobj_OUTCINITFILL_OBJINITROUTINE_st *)
-	meltfirstargp_;
+	 meltframe_meltrout_20_warmelt_outobj_OUTCINITFILL_OBJINITROUTINE_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -14472,7 +14442,7 @@ meltrout_21_warmelt_outobj_OUTDECLINIT_OBJINITHOOK (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_21_warmelt_outobj_OUTDECLINIT_OBJINITHOOK_st
+  struct meltframe_meltrout_21_warmelt_outobj_OUTDECLINIT_OBJINITHOOK_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -14499,7 +14469,8 @@ meltrout_21_warmelt_outobj_OUTDECLINIT_OBJINITHOOK (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_21_warmelt_outobj_OUTDECLINIT_OBJINITHOOK_st *)
+	(struct
+	 meltframe_meltrout_21_warmelt_outobj_OUTDECLINIT_OBJINITHOOK_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -14670,7 +14641,7 @@ meltrout_22_warmelt_outobj_OUTCINITFILL_OBJINITHOOK (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_22_warmelt_outobj_OUTCINITFILL_OBJINITHOOK_st
+  struct meltframe_meltrout_22_warmelt_outobj_OUTCINITFILL_OBJINITHOOK_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -14697,8 +14668,9 @@ meltrout_22_warmelt_outobj_OUTCINITFILL_OBJINITHOOK (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_22_warmelt_outobj_OUTCINITFILL_OBJINITHOOK_st
-	 *) meltfirstargp_;
+	(struct
+	 meltframe_meltrout_22_warmelt_outobj_OUTCINITFILL_OBJINITHOOK_st *)
+	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -15070,7 +15042,7 @@ meltrout_23_warmelt_outobj_OUTDECLINIT_OBJINITSTRING (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_23_warmelt_outobj_OUTDECLINIT_OBJINITSTRING_st
+  struct meltframe_meltrout_23_warmelt_outobj_OUTDECLINIT_OBJINITSTRING_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -15097,8 +15069,9 @@ meltrout_23_warmelt_outobj_OUTDECLINIT_OBJINITSTRING (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_23_warmelt_outobj_OUTDECLINIT_OBJINITSTRING_st
-	 *) meltfirstargp_;
+	(struct
+	 meltframe_meltrout_23_warmelt_outobj_OUTDECLINIT_OBJINITSTRING_st *)
+	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -15252,7 +15225,7 @@ meltrout_24_warmelt_outobj_OUTCINITFILL_OBJINITSTRING (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_24_warmelt_outobj_OUTCINITFILL_OBJINITSTRING_st
+  struct meltframe_meltrout_24_warmelt_outobj_OUTCINITFILL_OBJINITSTRING_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -15279,8 +15252,9 @@ meltrout_24_warmelt_outobj_OUTCINITFILL_OBJINITSTRING (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_24_warmelt_outobj_OUTCINITFILL_OBJINITSTRING_st
-	 *) meltfirstargp_;
+	(struct
+	 meltframe_meltrout_24_warmelt_outobj_OUTCINITFILL_OBJINITSTRING_st *)
+	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -18216,7 +18190,7 @@ meltrout_25_warmelt_outobj_OUTDECLINIT_OBJINITBOXEDINTEGER (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_25_warmelt_outobj_OUTDECLINIT_OBJINITBOXEDINTEGER_st
+  struct meltframe_meltrout_25_warmelt_outobj_OUTDECLINIT_OBJINITBOXEDINTEGER_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -18244,7 +18218,7 @@ meltrout_25_warmelt_outobj_OUTDECLINIT_OBJINITBOXEDINTEGER (meltclosure_ptr_t
       int ix = 0;
       meltframptr_ =
 	(struct
-	 frame_meltrout_25_warmelt_outobj_OUTDECLINIT_OBJINITBOXEDINTEGER_st
+	 meltframe_meltrout_25_warmelt_outobj_OUTDECLINIT_OBJINITBOXEDINTEGER_st
 	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -18382,7 +18356,7 @@ meltrout_26_warmelt_outobj_OUTCINITFILL_OBJINITBOXEDINTEGER (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_26_warmelt_outobj_OUTCINITFILL_OBJINITBOXEDINTEGER_st
+  struct meltframe_meltrout_26_warmelt_outobj_OUTCINITFILL_OBJINITBOXEDINTEGER_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -18410,7 +18384,7 @@ meltrout_26_warmelt_outobj_OUTCINITFILL_OBJINITBOXEDINTEGER (meltclosure_ptr_t
       int ix = 0;
       meltframptr_ =
 	(struct
-	 frame_meltrout_26_warmelt_outobj_OUTCINITFILL_OBJINITBOXEDINTEGER_st
+	 meltframe_meltrout_26_warmelt_outobj_OUTCINITFILL_OBJINITBOXEDINTEGER_st
 	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -19420,7 +19394,7 @@ meltrout_27_warmelt_outobj_OUTDECLINIT_OBJINITPAIR (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_27_warmelt_outobj_OUTDECLINIT_OBJINITPAIR_st
+  struct meltframe_meltrout_27_warmelt_outobj_OUTDECLINIT_OBJINITPAIR_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -19447,7 +19421,8 @@ meltrout_27_warmelt_outobj_OUTDECLINIT_OBJINITPAIR (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_27_warmelt_outobj_OUTDECLINIT_OBJINITPAIR_st *)
+	(struct
+	 meltframe_meltrout_27_warmelt_outobj_OUTDECLINIT_OBJINITPAIR_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;

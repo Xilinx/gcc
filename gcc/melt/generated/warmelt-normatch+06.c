@@ -2216,6 +2216,9 @@ meltrout_141_warmelt_normatch_LAMBDA___34__ (meltclosure_ptr_t meltclosp_,
 
 MELT_EXTERN void *melt_start_this_module (void *);
 
+/*declare opaque initial frame: */
+typedef struct melt_initial_frame_st meltinitial_frame_t;
+
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
@@ -2228,147 +2231,102 @@ MELT_EXTERN const char
 #endif /*!MELT_HAVE_DEBUG */
 
 
-struct frame_melt_start_this_module_st;
+
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_0 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_0 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_1 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_1 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_2 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_2 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_3 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_3 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_4 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_4 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_5 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_5 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_6 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_6 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_7 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_7 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_8 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_8 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_9 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_9 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_10 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_10 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_11 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_11 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_12 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_12 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_13 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_13 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_14 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_14 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_15 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_15 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_16 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_16 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_17 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_17 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_18 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_18 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_19 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_19 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_20 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_20 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_21 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_21 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_22 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_22 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_23 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_23 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_24 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_24 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_25 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_25 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_26 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_26 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_27 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_27 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_28 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_28 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_29 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_29 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_30 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_30 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_31 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_31 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_32 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_32 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_33 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_33 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_34 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_34 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__forward_or_mark_module_start_frame (struct
 							       melt_callframe_st
@@ -2407,7 +2365,7 @@ meltrout_137_warmelt_normatch_LAMBDA___30__ (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_137_warmelt_normatch_LAMBDA___30___st
+  struct meltframe_meltrout_137_warmelt_normatch_LAMBDA___30___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -2434,7 +2392,7 @@ meltrout_137_warmelt_normatch_LAMBDA___30__ (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_137_warmelt_normatch_LAMBDA___30___st *)
+	(struct meltframe_meltrout_137_warmelt_normatch_LAMBDA___30___st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -3323,7 +3281,7 @@ meltrout_138_warmelt_normatch_LAMBDA___31__ (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_138_warmelt_normatch_LAMBDA___31___st
+  struct meltframe_meltrout_138_warmelt_normatch_LAMBDA___31___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -3350,7 +3308,7 @@ meltrout_138_warmelt_normatch_LAMBDA___31__ (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_138_warmelt_normatch_LAMBDA___31___st *)
+	(struct meltframe_meltrout_138_warmelt_normatch_LAMBDA___31___st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -4237,7 +4195,7 @@ meltrout_139_warmelt_normatch_LAMBDA___32__ (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_139_warmelt_normatch_LAMBDA___32___st
+  struct meltframe_meltrout_139_warmelt_normatch_LAMBDA___32___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -4264,7 +4222,7 @@ meltrout_139_warmelt_normatch_LAMBDA___32__ (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_139_warmelt_normatch_LAMBDA___32___st *)
+	(struct meltframe_meltrout_139_warmelt_normatch_LAMBDA___32___st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -4744,7 +4702,7 @@ meltrout_140_warmelt_normatch_LAMBDA___33__ (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_140_warmelt_normatch_LAMBDA___33___st
+  struct meltframe_meltrout_140_warmelt_normatch_LAMBDA___33___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -4771,7 +4729,7 @@ meltrout_140_warmelt_normatch_LAMBDA___33__ (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_140_warmelt_normatch_LAMBDA___33___st *)
+	(struct meltframe_meltrout_140_warmelt_normatch_LAMBDA___33___st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -4978,7 +4936,7 @@ meltrout_141_warmelt_normatch_LAMBDA___34__ (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_141_warmelt_normatch_LAMBDA___34___st
+  struct meltframe_meltrout_141_warmelt_normatch_LAMBDA___34___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -5005,7 +4963,7 @@ meltrout_141_warmelt_normatch_LAMBDA___34__ (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_141_warmelt_normatch_LAMBDA___34___st *)
+	(struct meltframe_meltrout_141_warmelt_normatch_LAMBDA___34___st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;

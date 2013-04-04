@@ -2216,6 +2216,9 @@ meltrout_141_warmelt_normatch_LAMBDA___34__ (meltclosure_ptr_t meltclosp_,
 
 MELT_EXTERN void *melt_start_this_module (void *);
 
+/*declare opaque initial frame: */
+typedef struct melt_initial_frame_st meltinitial_frame_t;
+
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
@@ -2228,147 +2231,102 @@ MELT_EXTERN const char
 #endif /*!MELT_HAVE_DEBUG */
 
 
-struct frame_melt_start_this_module_st;
+
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_0 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_0 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_1 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_1 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_2 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_2 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_3 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_3 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_4 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_4 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_5 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_5 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_6 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_6 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_7 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_7 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_8 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_8 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_9 (struct
-					       frame_melt_start_this_module_st
-					       *, char *);
+meltmod__warmelt_normatch__initialmeltchunk_9 (meltinitial_frame_t *, char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_10 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_10 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_11 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_11 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_12 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_12 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_13 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_13 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_14 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_14 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_15 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_15 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_16 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_16 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_17 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_17 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_18 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_18 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_19 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_19 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_20 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_20 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_21 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_21 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_22 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_22 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_23 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_23 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_24 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_24 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_25 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_25 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_26 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_26 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_27 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_27 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_28 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_28 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_29 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_29 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_30 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_30 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_31 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_31 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_32 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_32 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_33 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_33 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
-meltmod__warmelt_normatch__initialmeltchunk_34 (struct
-						frame_melt_start_this_module_st
-						*, char *);
+meltmod__warmelt_normatch__initialmeltchunk_34 (meltinitial_frame_t *,
+						char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__forward_or_mark_module_start_frame (struct
 							       melt_callframe_st
@@ -2407,7 +2365,7 @@ meltrout_45_warmelt_normatch_MGLABEL_ANY (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_45_warmelt_normatch_MGLABEL_ANY_st
+  struct meltframe_meltrout_45_warmelt_normatch_MGLABEL_ANY_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -2434,7 +2392,7 @@ meltrout_45_warmelt_normatch_MGLABEL_ANY (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_45_warmelt_normatch_MGLABEL_ANY_st *)
+	(struct meltframe_meltrout_45_warmelt_normatch_MGLABEL_ANY_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -2774,7 +2732,7 @@ meltrout_46_warmelt_normatch_MGLABEL_ANY_TEST (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_46_warmelt_normatch_MGLABEL_ANY_TEST_st
+  struct meltframe_meltrout_46_warmelt_normatch_MGLABEL_ANY_TEST_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -2801,7 +2759,7 @@ meltrout_46_warmelt_normatch_MGLABEL_ANY_TEST (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_46_warmelt_normatch_MGLABEL_ANY_TEST_st *)
+	(struct meltframe_meltrout_46_warmelt_normatch_MGLABEL_ANY_TEST_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -3929,7 +3887,7 @@ meltrout_47_warmelt_normatch_MGLABEL_INSTANCE_TEST (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_47_warmelt_normatch_MGLABEL_INSTANCE_TEST_st
+  struct meltframe_meltrout_47_warmelt_normatch_MGLABEL_INSTANCE_TEST_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -3956,7 +3914,8 @@ meltrout_47_warmelt_normatch_MGLABEL_INSTANCE_TEST (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_47_warmelt_normatch_MGLABEL_INSTANCE_TEST_st *)
+	(struct
+	 meltframe_meltrout_47_warmelt_normatch_MGLABEL_INSTANCE_TEST_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -5188,7 +5147,7 @@ meltrout_48_warmelt_normatch_MGLABEL_SUCCESS_TEST (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_48_warmelt_normatch_MGLABEL_SUCCESS_TEST_st
+  struct meltframe_meltrout_48_warmelt_normatch_MGLABEL_SUCCESS_TEST_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -5215,8 +5174,8 @@ meltrout_48_warmelt_normatch_MGLABEL_SUCCESS_TEST (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_48_warmelt_normatch_MGLABEL_SUCCESS_TEST_st *)
-	meltfirstargp_;
+	(struct meltframe_meltrout_48_warmelt_normatch_MGLABEL_SUCCESS_TEST_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -6130,7 +6089,7 @@ meltrout_49_warmelt_normatch_MATCHGRAPHIC_TESTS (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_49_warmelt_normatch_MATCHGRAPHIC_TESTS_st
+  struct meltframe_meltrout_49_warmelt_normatch_MATCHGRAPHIC_TESTS_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -6157,8 +6116,8 @@ meltrout_49_warmelt_normatch_MATCHGRAPHIC_TESTS (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_49_warmelt_normatch_MATCHGRAPHIC_TESTS_st *)
-	meltfirstargp_;
+	(struct meltframe_meltrout_49_warmelt_normatch_MATCHGRAPHIC_TESTS_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -7091,7 +7050,7 @@ meltrout_50_warmelt_normatch_MG_DRAW_MATCH_GRAPHVIZ_FILE (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_50_warmelt_normatch_MG_DRAW_MATCH_GRAPHVIZ_FILE_st
+  struct meltframe_meltrout_50_warmelt_normatch_MG_DRAW_MATCH_GRAPHVIZ_FILE_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -7119,8 +7078,8 @@ meltrout_50_warmelt_normatch_MG_DRAW_MATCH_GRAPHVIZ_FILE (meltclosure_ptr_t
       int ix = 0;
       meltframptr_ =
 	(struct
-	 frame_meltrout_50_warmelt_normatch_MG_DRAW_MATCH_GRAPHVIZ_FILE_st *)
-	meltfirstargp_;
+	 meltframe_meltrout_50_warmelt_normatch_MG_DRAW_MATCH_GRAPHVIZ_FILE_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -7894,7 +7853,7 @@ meltrout_51_warmelt_normatch_NORMEXP_MATCH (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_51_warmelt_normatch_NORMEXP_MATCH_st
+  struct meltframe_meltrout_51_warmelt_normatch_NORMEXP_MATCH_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -7921,7 +7880,7 @@ meltrout_51_warmelt_normatch_NORMEXP_MATCH (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_51_warmelt_normatch_NORMEXP_MATCH_st *)
+	(struct meltframe_meltrout_51_warmelt_normatch_NORMEXP_MATCH_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -16828,7 +16787,7 @@ meltrout_52_warmelt_normatch_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_52_warmelt_normatch_LAMBDA___18___st
+  struct meltframe_meltrout_52_warmelt_normatch_LAMBDA___18___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -16855,7 +16814,7 @@ meltrout_52_warmelt_normatch_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_52_warmelt_normatch_LAMBDA___18___st *)
+	(struct meltframe_meltrout_52_warmelt_normatch_LAMBDA___18___st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -17178,7 +17137,7 @@ meltrout_53_warmelt_normatch_NORMBIND_MATCHBIND (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_53_warmelt_normatch_NORMBIND_MATCHBIND_st
+  struct meltframe_meltrout_53_warmelt_normatch_NORMBIND_MATCHBIND_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -17205,8 +17164,8 @@ meltrout_53_warmelt_normatch_NORMBIND_MATCHBIND (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_53_warmelt_normatch_NORMBIND_MATCHBIND_st *)
-	meltfirstargp_;
+	(struct meltframe_meltrout_53_warmelt_normatch_NORMBIND_MATCHBIND_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -18079,7 +18038,7 @@ meltrout_54_warmelt_normatch_MAKE_MATCH_FLAG (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_54_warmelt_normatch_MAKE_MATCH_FLAG_st
+  struct meltframe_meltrout_54_warmelt_normatch_MAKE_MATCH_FLAG_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -18106,7 +18065,7 @@ meltrout_54_warmelt_normatch_MAKE_MATCH_FLAG (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_54_warmelt_normatch_MAKE_MATCH_FLAG_st *)
+	(struct meltframe_meltrout_54_warmelt_normatch_MAKE_MATCH_FLAG_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -18963,7 +18922,7 @@ meltrout_55_warmelt_normatch_SCANSUBPAT_ANYRECV (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_55_warmelt_normatch_SCANSUBPAT_ANYRECV_st
+  struct meltframe_meltrout_55_warmelt_normatch_SCANSUBPAT_ANYRECV_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -18990,8 +18949,8 @@ meltrout_55_warmelt_normatch_SCANSUBPAT_ANYRECV (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_55_warmelt_normatch_SCANSUBPAT_ANYRECV_st *)
-	meltfirstargp_;
+	(struct meltframe_meltrout_55_warmelt_normatch_SCANSUBPAT_ANYRECV_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -19318,7 +19277,7 @@ meltrout_56_warmelt_normatch_SCANSTEPDATA_ANYRECV (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_56_warmelt_normatch_SCANSTEPDATA_ANYRECV_st
+  struct meltframe_meltrout_56_warmelt_normatch_SCANSTEPDATA_ANYRECV_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -19345,8 +19304,8 @@ meltrout_56_warmelt_normatch_SCANSTEPDATA_ANYRECV (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_56_warmelt_normatch_SCANSTEPDATA_ANYRECV_st *)
-	meltfirstargp_;
+	(struct meltframe_meltrout_56_warmelt_normatch_SCANSTEPDATA_ANYRECV_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -19673,7 +19632,7 @@ meltrout_57_warmelt_normatch_SCANSTEPFLAG_ANYRECV (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_57_warmelt_normatch_SCANSTEPFLAG_ANYRECV_st
+  struct meltframe_meltrout_57_warmelt_normatch_SCANSTEPFLAG_ANYRECV_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -19700,8 +19659,8 @@ meltrout_57_warmelt_normatch_SCANSTEPFLAG_ANYRECV (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_57_warmelt_normatch_SCANSTEPFLAG_ANYRECV_st *)
-	meltfirstargp_;
+	(struct meltframe_meltrout_57_warmelt_normatch_SCANSTEPFLAG_ANYRECV_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -20027,7 +19986,7 @@ meltrout_58_warmelt_normatch_SCANSUBPAT_NOOP (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_58_warmelt_normatch_SCANSUBPAT_NOOP_st
+  struct meltframe_meltrout_58_warmelt_normatch_SCANSUBPAT_NOOP_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -20054,7 +20013,7 @@ meltrout_58_warmelt_normatch_SCANSUBPAT_NOOP (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_58_warmelt_normatch_SCANSUBPAT_NOOP_st *)
+	(struct meltframe_meltrout_58_warmelt_normatch_SCANSUBPAT_NOOP_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -20294,7 +20253,7 @@ meltrout_59_warmelt_normatch_SCANSUBPAT_OR (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_59_warmelt_normatch_SCANSUBPAT_OR_st
+  struct meltframe_meltrout_59_warmelt_normatch_SCANSUBPAT_OR_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -20321,7 +20280,7 @@ meltrout_59_warmelt_normatch_SCANSUBPAT_OR (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_59_warmelt_normatch_SCANSUBPAT_OR_st *)
+	(struct meltframe_meltrout_59_warmelt_normatch_SCANSUBPAT_OR_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -20599,7 +20558,7 @@ meltrout_60_warmelt_normatch_SCANSUBPAT_AND (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_60_warmelt_normatch_SCANSUBPAT_AND_st
+  struct meltframe_meltrout_60_warmelt_normatch_SCANSUBPAT_AND_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -20626,7 +20585,7 @@ meltrout_60_warmelt_normatch_SCANSUBPAT_AND (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_60_warmelt_normatch_SCANSUBPAT_AND_st *)
+	(struct meltframe_meltrout_60_warmelt_normatch_SCANSUBPAT_AND_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -21024,7 +20983,7 @@ meltrout_61_warmelt_normatch_SCANSUBPAT_CONSTRUCT (meltclosure_ptr_t
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_61_warmelt_normatch_SCANSUBPAT_CONSTRUCT_st
+  struct meltframe_meltrout_61_warmelt_normatch_SCANSUBPAT_CONSTRUCT_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -21051,8 +21010,8 @@ meltrout_61_warmelt_normatch_SCANSUBPAT_CONSTRUCT (meltclosure_ptr_t
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_61_warmelt_normatch_SCANSUBPAT_CONSTRUCT_st *)
-	meltfirstargp_;
+	(struct meltframe_meltrout_61_warmelt_normatch_SCANSUBPAT_CONSTRUCT_st
+	 *) meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
@@ -21777,7 +21736,7 @@ meltrout_62_warmelt_normatch_SCANSUBPAT_OBJECT (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_62_warmelt_normatch_SCANSUBPAT_OBJECT_st
+  struct meltframe_meltrout_62_warmelt_normatch_SCANSUBPAT_OBJECT_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -21804,7 +21763,7 @@ meltrout_62_warmelt_normatch_SCANSUBPAT_OBJECT (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_62_warmelt_normatch_SCANSUBPAT_OBJECT_st *)
+	(struct meltframe_meltrout_62_warmelt_normatch_SCANSUBPAT_OBJECT_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -22128,7 +22087,7 @@ meltrout_63_warmelt_normatch_FILL_MATCHCASE (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_63_warmelt_normatch_FILL_MATCHCASE_st
+  struct meltframe_meltrout_63_warmelt_normatch_FILL_MATCHCASE_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -22155,7 +22114,7 @@ meltrout_63_warmelt_normatch_FILL_MATCHCASE (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_63_warmelt_normatch_FILL_MATCHCASE_st *)
+	(struct meltframe_meltrout_63_warmelt_normatch_FILL_MATCHCASE_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -23088,7 +23047,7 @@ meltrout_64_warmelt_normatch_LAMBDA___19__ (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_64_warmelt_normatch_LAMBDA___19___st
+  struct meltframe_meltrout_64_warmelt_normatch_LAMBDA___19___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -23115,7 +23074,7 @@ meltrout_64_warmelt_normatch_LAMBDA___19__ (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_64_warmelt_normatch_LAMBDA___19___st *)
+	(struct meltframe_meltrout_64_warmelt_normatch_LAMBDA___19___st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -24011,7 +23970,7 @@ meltrout_65_warmelt_normatch_PUTTHEN_MATCHANY (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_65_warmelt_normatch_PUTTHEN_MATCHANY_st
+  struct meltframe_meltrout_65_warmelt_normatch_PUTTHEN_MATCHANY_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -24038,7 +23997,7 @@ meltrout_65_warmelt_normatch_PUTTHEN_MATCHANY (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_65_warmelt_normatch_PUTTHEN_MATCHANY_st *)
+	(struct meltframe_meltrout_65_warmelt_normatch_PUTTHEN_MATCHANY_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
@@ -24374,7 +24333,7 @@ meltrout_66_warmelt_normatch_START_STEP (meltclosure_ptr_t meltclosp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_66_warmelt_normatch_START_STEP_st
+  struct meltframe_meltrout_66_warmelt_normatch_START_STEP_st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -24401,7 +24360,7 @@ meltrout_66_warmelt_normatch_START_STEP (meltclosure_ptr_t meltclosp_,
     {				/*mark for ggc */
       int ix = 0;
       meltframptr_ =
-	(struct frame_meltrout_66_warmelt_normatch_START_STEP_st *)
+	(struct meltframe_meltrout_66_warmelt_normatch_START_STEP_st *)
 	meltfirstargp_;
       /* use arguments output_curframe_declstruct_init */
       (void) meltclosp_;
