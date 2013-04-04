@@ -1466,6 +1466,11 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 
 ;;; output the code for declaring and initializing the current frame 
 (defun output_curframe_declstruct_init (declstruct rou implbuf)
+  (debug "output_curframe_declstruct_init declstruct= " declstruct 
+	 "\n declstructinit rou" rou)
+  (assert_msg "check rou" (is_a rou class_routineobj))
+  (assert_msg "check declstruct" (is_closure declstruct))
+  (assert_msg "check implbuf" (is_strbuf implbuf))
   (let (
 	(obody (unsafe_get_field :obrout_body rou))
 	(onbval (unsafe_get_field :obrout_nbval rou))
@@ -1481,8 +1486,6 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(others (unsafe_get_field :obrout_others rou))
 	(rouname (get_field :named_name rou))
 	)       
-    (debug "output_curframe_declstruct_init declstruct= " declstruct 
-	   "\n declstructinit rou" rou " isinitial=" isinitial)
     ;; output call counter for debugging
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#if MELT_HAVE_DEBUG")
@@ -1758,7 +1761,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 ;;; output the cdata structure
 (defun output_curframe_cdat_struct (idatup implbuf)
   (add2sbuf_indentnl implbuf 1)
-  (add2sbuf_strconst implbuf "struct cdata_st {")
+  (add2sbuf_strconst implbuf "/* curframe_cdat_struct */ struct meltcdata_st {")
   (foreach_in_multiple
    (idatup)
    (curdat :long curk) 
@@ -1780,7 +1783,9 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 ;;; output the cdata structure fill
 (defun output_curframe_cdat_fill (idatup implbuf)
   ;; generate the allocation of cdat
-  (add2sbuf_strconst implbuf " cdat = (struct cdata_st*) meltgc_allocate(sizeof(*cdat),0);")
+  (add2sbuf_strconst implbuf " /*curframe_cdat_fill */ ")
+  (add2sbuf_indentnl implbuf 1)
+  (add2sbuf_strconst implbuf " meltcdat = (struct meltcdata_st*) meltgc_allocate(sizeof(*meltcdat),0);")
   (add2sbuf_indentnl implbuf 1)
   (add2sbuf_strconst implbuf " melt_prohibit_garbcoll = TRUE;")
   (add2sbuf_indentnl implbuf 1)
@@ -1791,7 +1796,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
   (foreach_in_multiple
    (idatup)
    (curpdat :long curk) 
-   (output_c_initial_predef curpdat implbuf '"cdat" 1))
+   (output_c_initial_predef curpdat implbuf '"meltcdat" 1))
 ;;;
 ;;; generate the initial filling of cdat
   (add2sbuf_strconst implbuf "/*initial routine fill*/")
@@ -1800,12 +1805,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
    (idatup)
    (curfil :long curk) 
    (add2sbuf_indentnl implbuf 1)
-   (output_c_initial_fill curfil implbuf '"cdat" 0))
+   (output_c_initial_fill curfil implbuf '"meltcdat" 0))
 ;;;;;;;
 ;;; initialize the variables
 ;;;
-;;; clear the cdat for safety and renable GC
-  (add2sbuf_strconst implbuf " cdat = NULL;")
+;;; clear the meltcdat for safety and renable GC
+  (add2sbuf_strconst implbuf " meltcdat = NULL;")
   (add2sbuf_indentnl implbuf 0)
   (add2sbuf_strconst implbuf " melt_prohibit_garbcoll = FALSE;")
   (add2sbuf_indentnl implbuf 0)
@@ -1858,7 +1863,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (add2sbuf_strconst implbuf "#define meltfram__  (*iniframp__)")
     (add2sbuf_indentnl implbuf 1)
     (output_curframe_cdat_struct idatup implbuf)
-    (add2sbuf_strconst implbuf " *cdat = NULL;")
+    (add2sbuf_strconst implbuf " *meltcdat = NULL;")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " dbgprintf (\"start initialize_module_meltdata_")
     (add2sbuf_cident implbuf omodnam)
@@ -1870,7 +1875,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (add2sbuf_longdec implbuf minihash)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf 1)
-;;; fill the cdat
+;;; fill the meltcdat
     (output_curframe_cdat_fill idatup implbuf)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#undef meltfram__")
@@ -2373,7 +2378,7 @@ $ONAME (melt_ptr_t meltarg_curenvbox_p, melt_ptr_t meltarg_tuplitval_p)
     (add2sbuf_indentnl implbuf 0)
     (add2out implbuf ##{ /* extension $OMODNAM cdata struct */}#)
     (output_curframe_cdat_struct odatup implbuf)
-    (add2sbuf_strconst implbuf " *cdat = NULL;")
+    (add2sbuf_strconst implbuf " *meltcdat = NULL;")
     (add2sbuf_indentnl implbuf 1)
     ;; generate the prologue
     (debug "outpucod_initialextensionroutine oprolog=" oprolog)

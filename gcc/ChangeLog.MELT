@@ -1,6 +1,13 @@
 
 2013-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (output_curframe_declstruct_init)
+	(output_curframe_cdat_struct, output_curframe_cdat_fill)
+	(outpucod_initialmoduleroutine): Emit meltcdat instead of cdat and
+	meltcdata_st instead of cdata_st etc...
+
+2013-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (output_centraldecl_hookroutine): New
 	utility function.
 	(outpucod_hookroutine): Us it. More, still incomplete.
