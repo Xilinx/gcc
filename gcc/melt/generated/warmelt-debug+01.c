@@ -1675,13 +1675,13 @@ meltlab_endgetargs:;
 				    /* objlabel */
 #if MELTDEBUG_MATCHING
 				    static long meltlab_count_
-				      *CLASS_NORMTESTER_MATCHER / 16 b57ecd.;
+				      *CLASS_NORMTESTER_MATCHER / 1e4 ee7ee.;
 				    meltlab_count_ *CLASS_NORMTESTER_MATCHER /
-				      16 b57ecd. ++;
+				      1e4 ee7ee. ++;
 				    debugeprintf
-				      ("objlabel mtch1_*CLASS_NORMTESTER_MATCHER/16b57ecd. *CLASS_OBJLABELINSTR/2384eb80. %ld",
+				      ("objlabel mtch1_*CLASS_NORMTESTER_MATCHER/1e4ee7ee. *CLASS_OBJLABELINSTR/10e6a0c6. %ld",
 				       meltlab_count_ *
-				       CLASS_NORMTESTER_MATCHER / 16 b57ecd.);
+				       CLASS_NORMTESTER_MATCHER / 1e4 ee7ee.);
 #endif
 
 				    ;
@@ -1728,13 +1728,13 @@ meltlab_endgetargs:;
 				    /* objlabel */
 #if MELTDEBUG_MATCHING
 				    static long meltlab_count_
-				      *CLASS_NORMTESTER_SUCCESS / 278 c218e.;
+				      *CLASS_NORMTESTER_SUCCESS / cb3c174.;
 				    meltlab_count_ *CLASS_NORMTESTER_SUCCESS /
-				      278 c218e. ++;
+				      cb3c174. ++;
 				    debugeprintf
-				      ("objlabel mtch1_*CLASS_NORMTESTER_SUCCESS/278c218e. *CLASS_OBJLABELINSTR/36c1999f. %ld",
+				      ("objlabel mtch1_*CLASS_NORMTESTER_SUCCESS/cb3c174. *CLASS_OBJLABELINSTR/54a1f80. %ld",
 				       meltlab_count_ *
-				       CLASS_NORMTESTER_SUCCESS / 278 c218e.);
+				       CLASS_NORMTESTER_SUCCESS / cb3c174.);
 #endif
 
 				    ;
@@ -1789,13 +1789,13 @@ meltlab_endgetargs:;
 				    /* objlabel */
 #if MELTDEBUG_MATCHING
 				    static long meltlab_count_
-				      *CLASS_NORMTESTER_SUCCESS / 30 b0e714.;
+				      *CLASS_NORMTESTER_SUCCESS / 175 a5bc5.;
 				    meltlab_count_ *CLASS_NORMTESTER_SUCCESS /
-				      30 b0e714. ++;
+				      175 a5bc5. ++;
 				    debugeprintf
-				      ("objlabel mtch1_*CLASS_NORMTESTER_SUCCESS/30b0e714. *CLASS_OBJLABELINSTR/2576cdc2. %ld",
+				      ("objlabel mtch1_*CLASS_NORMTESTER_SUCCESS/175a5bc5. *CLASS_OBJLABELINSTR/8fceaaa. %ld",
 				       meltlab_count_ *
-				       CLASS_NORMTESTER_SUCCESS / 30 b0e714.);
+				       CLASS_NORMTESTER_SUCCESS / 175 a5bc5.);
 #endif
 
 				    ;
@@ -1819,11 +1819,11 @@ meltlab_endgetargs:;
 				      ("warmelt-debug.melt:343:/ objlabel");
 				    /* objlabel */
 #if MELTDEBUG_MATCHING
-				    static long meltlab_count__h516798935;
-				    meltlab_count__h516798935++;
+				    static long meltlab_count__h689549843;
+				    meltlab_count__h689549843++;
 				    debugeprintf
-				      ("objlabel mtch1__end_h516798935 *CLASS_OBJLABELINSTR/1ecdb9d7. %ld",
-				       meltlab_count__h516798935);
+				      ("objlabel mtch1__end_h689549843 *CLASS_OBJLABELINSTR/2919b213. %ld",
+				       meltlab_count__h689549843);
 #endif
 
 				    ;
