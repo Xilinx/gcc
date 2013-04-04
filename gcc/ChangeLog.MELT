@@ -1,5 +1,9 @@
 
 2013-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	(outpucod_hookroutine): Incomplete, but a bit more. Missing
+	marking routine generation.
+
+2013-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (output_curframe_declstruct): The
 	generated struct name is fixed to melt_initial_frame_st for
 	initial routines. Use the meltframe_ prefix otherwise.

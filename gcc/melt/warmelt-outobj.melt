@@ -1473,7 +1473,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 ;;; output the code for declaring and initializing the current frame 
 (defun output_curframe_declstruct_init (declstruct rou implbuf)
   (debug "output_curframe_declstruct_init declstruct= " declstruct 
-	 "\n declstructinit rou" rou)
+	 "\n declstructinit rou=" rou)
   (assert_msg "check rou" (is_a rou class_routineobj))
   (assert_msg "check declstruct" (is_closure declstruct))
   (assert_msg "check implbuf" (is_strbuf implbuf))
@@ -2257,6 +2257,8 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (add2sbuf_indentnl sbuf 0)
     ))
 
+
+
 ;; output code for hook routines
 (defun outpucod_hookroutine (phook declbuf implbuf :long depth)
   (debug "outpucod_hookroutine start phook=" phook
@@ -2279,6 +2281,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 (ohkinargs (get_field :ohookrout_inargs phook))
 	 (ohkoutargs (get_field :ohookrout_outargs phook))
 	 (ohkepilog (get_field :ohookrout_epilog phook))
+	 (:long minihash (+i 2 (%iraw (obj_hash phook) 4096)))
 	)
   (debug "outpucod_hookroutine hookname=" hookname 
 	 "\n nrawhookname=" nrawhookname
@@ -2314,10 +2317,87 @@ MELT_EXTERN  void* melt_start_this_module (void*);
   (output_centraldecl_hookroutine phook implbuf "implementation of" (the_null_cstring))
   (add2out implbuf "{ /* body of hook " hookname " */")
   (add2sbuf_indentnl implbuf 0)
+  ;; generate the hook frame
+  (add2out 
+   implbuf 
+   ##{/* declare and initialize frame for $HOOKNAME hook */ 
+#undef meltcallcount
+#if MELT_HAVE_DEBUG
+    static long melthook_call_counter_$NRAWHOOKNAME;
+    long melt_thishookcall_counter_$NRAWHOOKNAME ATTRIBUTE_UNUSED = melthook_call_counter_$NRAWHOOKNAME++;
+#define meltcallcount melt_thishookcall_counter_$NRAWHOOKNAME
+#else
+#define meltcallcount 0L
+#endif
+   struct melthookframe_$NRAWHOOKNAME#_st melthook_$NRAWHOOKNAME#_frame_, *melthook_$NRAWHOOKNAME#_frameptr = 0;
+   /* clear and push the new call frame for hook $HOOKNAME */
+   memset (&melthook_$NRAWHOOKNAME#_frame_, 0, sizeof(melthook_$NRAWHOOKNAME#_frame_));
+#define meltframe melthook_$NRAWHOOKNAME#_frame_
+   meltframe.mcfr_nbvar = -$MINIHASH /*hook minihash*/;
+   ((struct melt_callframe_st*)&meltframe)->mcfr_forwmarkrout
+       = melthookmark_$NRAWHOOKNAME#_rout;
+   meltframe.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+   melt_topframe = (struct melt_callframe_st*) &melthook_$NRAWHOOKNAME#_frame_;
+   }#)
+  (add2sbuf_indentnl implbuf 1)
+  ;; output the body
+  (add2out 
+   implbuf 
+   ##{/* body of $HOOKNAME hook */}#
+   )
+  (add2sbuf_indentnl implbuf 1)
+  (debug "outpucod_hookroutine obody=" obody)
+  (assert_msg "check list body" (is_list obody))
+  (foreach_in_list
+   (obody)
+   (curbodypair curbodyo)
+   (debug "outpucod_hookroutine curbodyo=" curbodyo)
+   (when (is_not_a curbodyo class_objpurevalue)
+     (output_c_code curbodyo declbuf implbuf 1)
+     (add2sbuf_strconst implbuf ";")
+     (add2sbuf_indentnl implbuf 1))
+   (assert_msg "check limited implbuf" 
+	       (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+   )
+  ;; output the epilogue
+  (add2out 
+   implbuf 
+   ##{/* epilogue of $HOOKNAME hook */
+   goto  meltlabend_rout;
+   meltlabend_rout: ;
+   }#
+   )
+  (add2sbuf_indentnl implbuf 1)
+  (debug "outpucod_hookroutine ohkepilog=" ohkepilog)
+  (assert_msg "check epilog" (is_list ohkepilog))
+  (foreach_in_list
+   (ohkepilog)
+   (curepipair curepins)
+   (debug "outpucod_hookroutine curepins=" curepins)
+   (when (is_not_a curepins class_objpurevalue)
+     (output_c_code curepins declbuf implbuf 1)
+     (add2sbuf_strconst implbuf ";")
+     (add2sbuf_indentnl implbuf 1))
+  )
+  (add2out 
+   implbuf 
+   ##{/* final of $HOOKNAME hook */
+   melt_topframe = meltfram__.mcfr_prev;
+  return }#)
+  (add2sbuf_indentnl implbuf 3)
+  (if oretval
+      (output_c_code oretval declbuf implbuf 1))
+  (add2sbuf_strconst implbuf ";")
+  (add2sbuf_indentnl implbuf 0)
+  (add2out 
+   implbuf 
+   ##{} /* end of $HOOKNAME hook */}#)
+  (add2sbuf_indentnl implbuf 0)
+  (add2sbuf_indentnl implbuf 0)
   ;;
   (debug "outpucod_hookroutine incomplete\n.. declbuf=" declbuf
 	 "\n.. implbuf=" implbuf "\n.~~~~~~\n")
-  (assert_msg "@$@unimplemented outpucod_hookroutine")
+  (assert_msg "@$@unimplemented generation of mark routine in outpucod_hookroutine")
   ))
 (install_method class_hookroutineobj output_c_code outpucod_hookroutine)
 
