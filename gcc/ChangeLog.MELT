@@ -1,4 +1,10 @@
 
+2013-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (output_centraldecl_hookroutine): New
+	utility function.
+	(outpucod_hookroutine): Us it. More, still incomplete.
+
 2013-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-outobj.melt (outpucod_hookroutine): More, still

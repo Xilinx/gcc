@@ -2189,6 +2189,61 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 (install_method class_initial_module_routineobj output_c_code outpucod_initialmoduleroutine)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+;; internal utility to emit central declaration of a hook 
+;; to be shared in declaration & implementation buffers
+(defun output_centraldecl_hookroutine (phook sbuf :cstring comm qualif)
+  (debug "output_centraldecl_hookroutine start phook=" phook)
+  (assert_msg "check phook" (is_a phook class_hookroutineobj))
+  (assert_msg "check sbuf" (is_strbuf sbuf))
+  (let ( (hookname (get_field :named_name phook))
+	 (nhookproc (get_field :obrout_proc phook))
+	 (oretval (get_field :obrout_retval phook))
+	 (oretctype (get_field :obv_type oretval))
+	 (oretctycname (get_field :ctype_cname oretctype))
+	 (ohkdatarg (get_field :ohookrout_datarg phook))
+	 (ohkdatacname (get_field :oformal_name ohkdatarg))
+	 (ohkinargs (get_field :ohookrout_inargs phook))
+	 (ohkoutargs (get_field :ohookrout_outargs phook))
+	 )
+    (add2sbuf_indentnl sbuf 0)
+    (add2out sbuf ##{/** $COMM hook $HOOKNAME */}#)
+    (add2sbuf_indentnl sbuf 0)
+    (when qualif
+      (add2out_strconst sbuf qualif)
+      (add2sbuf_indentnl sbuf 0)
+      )
+    (add2out sbuf oretctycname " " hookname "(melt_ptr_t " ohkdatacname ",")
+    ;; declare the input arguments
+    (foreach_in_multiple
+     (ohkinargs)
+     (curinarg :long inix)
+     (debug "output_centraldecl_hookroutine curinarg=" curinarg " inix=" inix)
+     (add2sbuf_strconst sbuf ",")
+     (add2sbuf_indentnl sbuf 20)
+     (let ( (curinctyp (get_field :obv_type curinarg))
+	    (curformalname (get_field :oformal_name curinarg))
+	    (curinctycname (get_field :ctype_cname curinctyp))
+	    )
+       (add2out sbuf ##{$CURINCTYCNAME $CURFORMALNAME}#)
+       ))
+    ;; declare the output arguments
+    (foreach_in_multiple
+     (ohkoutargs)
+     (curoutarg :long outix)
+     (debug "output_centraldecl_hookroutine curoutarg=" curoutarg " outix=" outix)
+     (add2sbuf_strconst sbuf ",")
+     (add2sbuf_indentnl sbuf 20)
+     (let ( (curoutctyp (get_field :obv_type curoutarg))
+	    (curformalname (get_field :oformal_name curoutarg))
+	    (curoutctycname (get_field :ctype_cname curoutctyp))
+	    )
+       (add2out sbuf ##{$CUROUTCTYCNAME* $CURFORMALNAME}#)
+       ))
+    (add2out_strconst sbuf ")")
+    (add2sbuf_indentnl sbuf 0)
+    ))
+
 ;; output code for hook routines
 (defun outpucod_hookroutine (phook declbuf implbuf :long depth)
   (debug "outpucod_hookroutine start phook=" phook
@@ -2221,38 +2276,8 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 "\n obody=" obody
 	 "\n ohkepilog=" ohkepilog)
   ;;; should generate the marking routine, and the hook routine
-  (add2out 
-   declbuf 
-   ##{ /* declare hook routine $HOOKNAME */
-   MELT_EXTERN $ORETCTYCNAME $HOOKNAME (melt_ptr_t $OHKDATACNAME}#)
-   ;; declare the input arguments
-  (foreach_in_multiple
-   (ohkinargs)
-   (curinarg :long inix)
-   (debug "outpucod_hookroutine curinarg=" curinarg " inix=" inix)
-   (add2sbuf_strconst declbuf ",")
-   (add2sbuf_indentnl declbuf 20)
-   (let ( (curinctyp (get_field :obv_type curinarg))
-	  (curformalname (get_field :oformal_name curinarg))
-	  (curinctycname (get_field :ctype_cname curinctyp))
-	  )
-     (add2out declbuf ##{$CURINCTYCNAME $CURFORMALNAME}#)
-   ))
-  ;; declare the output arguments
-  (foreach_in_multiple
-   (ohkoutargs)
-   (curoutarg :long outix)
-   (debug "outpucod_hookroutine curoutarg=" curoutarg " outix=" outix)
-   (add2sbuf_strconst declbuf ",")
-   (add2sbuf_indentnl declbuf 20)
-   (let ( (curoutctyp (get_field :obv_type curoutarg))
-	  (curformalname (get_field :oformal_name curoutarg))
-	  (curoutctycname (get_field :ctype_cname curoutctyp))
-	  )
-     (add2out declbuf ##{$CUROUTCTYCNAME* $CURFORMALNAME}#)
-  ))
-  (add2out declbuf ##{); /*declared $HOOKNAME*/}#)
-  (add2sbuf_indentnl declbuf 0)
+  (output_centraldecl_hookroutine phook declbuf "declaration of" "MELT_EXTERN")
+  (output_centraldecl_hookroutine phook implbuf "implementation of" (the_null_cstring))
   ;;
   (assert_msg "@$@unimplemented outpucod_hookroutine")
   ))
