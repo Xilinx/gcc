@@ -1,3 +1,30 @@
+2013-04-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/cilk_keywords_test/execute/execute.exp: Added unique
+	prefix to the script to allow multithreaded check.
+	* gcc.dg/cilk-plus/cilk_keywords_test/errors/errors.exp: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/compile.exp: Likewise.
+	* gcc.dg/cilk-plus/pragma_simd_tests/compile/compile.exp: Likewise
+	* gcc.dg/cilk-plus/pragma_simd_tests/execute/execute.exp: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/elem_fn.exp: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/execute.exp: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/compile/compile.exp: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/errors.exp: Likewise.
+	* /g++.dg/cilk-plus/cilk_keywords_test/execute/c++11-tests/execute.exp:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_keywords_test/errors/errors.exp: Likewise.
+	* g++.dg/cilk-plus/cilk_keywords_test/compile/compile.exp: Likewise.
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/execute.exp: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/execute.exp: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/compile/compile.exp: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/errors.exp: Likewise.
+	* g++.dg/cilk-plus/array_notations_tests/execute/nd_array_access.cc:
+	New test.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/exec-once2.c: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/exec-once3.c: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/exec-1-0rank.cc:
+	Likewise.
+
 2013-03-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/pragma_simd_tests/execute/vlength_comma.c: New test

@@ -72,11 +72,22 @@ find_rank (tree array, bool ignore_builtin_fn, size_t *rank)
     return;
   else if (TREE_CODE (array) == ARRAY_NOTATION_REF)
     {
-      for (ii_tree = array;
-	   ii_tree && TREE_CODE (ii_tree) == ARRAY_NOTATION_REF;
-	   ii_tree = ARRAY_NOTATION_ARRAY (ii_tree))
-	current_rank++;
-
+      ii_tree = array;
+      while (ii_tree)
+	{
+	  if (TREE_CODE (ii_tree) == ARRAY_NOTATION_REF)
+	    {
+	      current_rank++;
+	      ii_tree = ARRAY_NOTATION_ARRAY (ii_tree);
+	    }
+	  else if (TREE_CODE (ii_tree) == ARRAY_REF)
+	    ii_tree = TREE_OPERAND (ii_tree, 0);
+	  else if (TREE_CODE (ii_tree) == PARM_DECL
+		   || TREE_CODE (ii_tree) == VAR_DECL)
+	    /* When VAR_DECL or PARM_DECL has reached, it signifies the base of
+	       the node.  It is not necessary to go any further.  */
+	    break;
+	}
       if (*rank == 0)
 	*rank = current_rank;
     }
@@ -421,6 +432,7 @@ build_x_array_notation_expr (location_t location, tree lhs,
   vec<tree, va_gc> *rhs_list = NULL, *lhs_list = NULL;
   size_t rhs_list_size = 0, lhs_list_size = 0;
   tree new_modify_expr, new_var, builtin_loop, scalar_mods;
+  tree begin_var, lngth_var, strde_var;
   bool found_builtin_fn = false;
   char label_name[50];
   int s_jj = 0;
@@ -431,11 +443,40 @@ build_x_array_notation_expr (location_t location, tree lhs,
   extract_array_notation_exprs (rhs, false, &rhs_list);
   rhs_list_size = vec_safe_length (rhs_list);
   loop = push_stmt_list ();
-  if (rhs_rank)
+    
+  scalar_mods = replace_invariant_exprs (&rhs);
+  if (scalar_mods)
+    add_stmt (scalar_mods);
+
+    /* Here we assign the array notation components to variable so that we can
+     satisfy the exec once rule.  */
+  for (ii = 0; ii < lhs_list_size; ii++)
     {
-      scalar_mods = replace_invariant_exprs (&rhs);
-      if (scalar_mods)
-	add_stmt (scalar_mods);
+      tree array_node = (*lhs_list)[ii];
+      tree array_begin = ARRAY_NOTATION_START (array_node);
+      tree array_lngth = ARRAY_NOTATION_LENGTH (array_node);
+      tree array_strde = ARRAY_NOTATION_STRIDE (array_node);
+      
+      begin_var = build_decl (location, VAR_DECL, NULL_TREE,
+			      integer_type_node);
+      lngth_var = build_decl (location, VAR_DECL, NULL_TREE,
+			      integer_type_node);
+      strde_var = build_decl (location, VAR_DECL, NULL_TREE,
+			      integer_type_node);
+
+      add_stmt (build_modify_expr (location, begin_var, TREE_TYPE (begin_var),
+				   NOP_EXPR, location, array_begin,
+				   TREE_TYPE (array_begin)));
+      add_stmt (build_modify_expr (location, lngth_var, TREE_TYPE (lngth_var),
+				   NOP_EXPR, location, array_lngth,
+				   TREE_TYPE (array_lngth)));
+      add_stmt (build_modify_expr (location, strde_var, TREE_TYPE (strde_var),
+				   NOP_EXPR, location, array_strde,
+				   TREE_TYPE (array_strde)));
+      
+      ARRAY_NOTATION_START (array_node) = begin_var;
+      ARRAY_NOTATION_LENGTH (array_node) = lngth_var;
+      ARRAY_NOTATION_STRIDE (array_node) = strde_var;
     }
   for (ii = 0; ii < rhs_list_size; ii++)
     {
@@ -625,12 +666,20 @@ build_x_array_notation_expr (location_t location, tree lhs,
       for (ii = 0; ii < lhs_list_size; ii++)
 	{
 	  jj = 0;
-	  for (ii_tree = (*lhs_list)[ii];
-	       ii_tree && TREE_CODE (ii_tree) == ARRAY_NOTATION_REF;
-	       ii_tree = ARRAY_NOTATION_ARRAY (ii_tree))
+	  ii_tree = (*lhs_list)[ii];
+	  while (ii_tree)
 	    {
-	      lhs_array[ii][jj] = ii_tree;
-	      jj++;
+	      if (TREE_CODE (ii_tree) == ARRAY_NOTATION_REF)
+		{
+		  lhs_array[ii][jj] = ii_tree;
+		  jj++;
+		  ii_tree = ARRAY_NOTATION_ARRAY (ii_tree);
+		}
+	      else if (TREE_CODE (ii_tree) == ARRAY_REF)
+		ii_tree = TREE_OPERAND (ii_tree, 0);
+	      else if (TREE_CODE (ii_tree) == VAR_DECL
+		       || TREE_CODE (ii_tree) == PARM_DECL)
+		break;
 	    }
 	}
     }
@@ -642,14 +691,20 @@ build_x_array_notation_expr (location_t location, tree lhs,
       for (ii = 0; ii < rhs_list_size; ii++)
 	{ 
 	  jj = 0;
-	  if (TREE_CODE ((*rhs_list)[ii]) != ARRAY_NOTATION_REF)
-	    rhs_array[ii][0] = NULL_TREE;
-	  for (ii_tree = (*rhs_list)[ii];
-	       ii_tree && TREE_CODE (ii_tree) == ARRAY_NOTATION_REF;
-	       ii_tree = ARRAY_NOTATION_ARRAY (ii_tree))
+	  ii_tree = (*rhs_list)[ii];
+	  while (ii_tree)
 	    {
-	      rhs_array[ii][jj] = ii_tree;
-	      jj++;
+	      if (TREE_CODE (ii_tree) == ARRAY_NOTATION_REF)
+		{
+		  rhs_array[ii][jj] = ii_tree;
+		  jj++;
+		  ii_tree = ARRAY_NOTATION_ARRAY (ii_tree);
+		}
+	      else if (TREE_CODE (ii_tree) == ARRAY_REF)
+		ii_tree = TREE_OPERAND (ii_tree, 0);
+	      else if (TREE_CODE (ii_tree) == VAR_DECL
+		       || TREE_CODE (ii_tree) == PARM_DECL)
+		break;
 	    }
 	}
     }
@@ -848,8 +903,19 @@ build_x_array_notation_expr (location_t location, tree lhs,
 	      /* The last ARRAY_NOTATION element's ARRAY component should be
 		 the array's base value.  */
 	      tree lhs_array_opr = lhs_value[ii][lhs_rank - 1];
+	      if (TREE_CODE (lhs_array_opr) == ARRAY_REF)
+		/* Here, if the rhs_array_opr is an ARRAY_REF, then we have a
+		   case like this:
+		   A[X][0:10:1].....
+
+		   If the rhs_value is an array operand, it is fixed right
+		   before grok_array_decl is called.  So, we undo it here so
+		   that the fix can take place below.  */
+		lhs_array_opr = TREE_OPERAND (lhs_array_opr, 0);
+	      
 	      for (s_jj = lhs_rank - 1; s_jj >= 0; s_jj--)
 		{
+		  tree base_var = NULL_TREE;
 		  tree stride = NULL_TREE, var = NULL_TREE, start = NULL_TREE;
 		  if ((TREE_TYPE (lhs_start[ii][s_jj]) ==
 		       TREE_TYPE (lhs_stride[ii][s_jj]))
@@ -887,6 +953,11 @@ build_x_array_notation_expr (location_t location, tree lhs,
 		      stride = lhs_stride[ii][s_jj];
 		      var = lhs_var[s_jj];
 		    }
+		  base_var = ARRAY_NOTATION_ARRAY (lhs_array[ii][s_jj]);
+		  if (TREE_CODE (base_var) == ARRAY_REF)
+		    lhs_array_opr = grok_array_decl
+		      (location, lhs_array_opr,  TREE_OPERAND (base_var, 1));
+		  
 		  if (lhs_count_down[ii][s_jj])
 		    /* Array[start_index - (induction_var * stride)] */
 		    lhs_array_opr = grok_array_decl
@@ -921,8 +992,12 @@ build_x_array_notation_expr (location_t location, tree lhs,
 	  if (rhs_vector[ii][0])
 	    {
 	      tree rhs_array_opr = rhs_value[ii][rhs_rank - 1];
+	      if (TREE_CODE (rhs_array_opr) == ARRAY_REF)
+		rhs_array_opr = TREE_OPERAND (rhs_array_opr, 0);
+		
 	      for (s_jj = rhs_rank - 1; s_jj >= 0; s_jj--)
 		{
+		  tree base_var = NULL_TREE;
 		  tree stride = NULL_TREE, var = NULL_TREE, start = NULL_TREE;
 		  if ((TREE_TYPE (rhs_start[ii][s_jj]) ==
 		       TREE_TYPE (rhs_stride[ii][s_jj]))
@@ -960,6 +1035,11 @@ build_x_array_notation_expr (location_t location, tree lhs,
 		      stride = rhs_stride[ii][s_jj];
 		      var = rhs_var[s_jj];
 		    }
+		  base_var = ARRAY_NOTATION_ARRAY (rhs_array[ii][s_jj]);
+		  if (TREE_CODE (base_var) == ARRAY_REF)
+		    rhs_array_opr = grok_array_decl
+		      (location, rhs_array_opr,  TREE_OPERAND (base_var, 1));
+
 		  if (rhs_count_down[ii][s_jj])
 		    /* Array[start_index - (induction_var * stride)] */
 		    rhs_array_opr = grok_array_decl

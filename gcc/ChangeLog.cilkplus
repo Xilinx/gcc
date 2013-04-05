@@ -1,3 +1,12 @@
+2013-04-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c/c-array-notation.c (build_array_notation_expr): Added support to
+	follow execute-once rule for triplets.
+	(fix_conditional_array_notations_1): Likewise.
+	(fix_array_notation_call_expr): Likewise.
+	(build_array_notation_expr): Made checking for invariant expressions
+	in RHS of an array notation non-conditional.
+
 2013-03-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c/c-parser.c (c_parser_simd_vectorlength): Called the function

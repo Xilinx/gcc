@@ -1,3 +1,13 @@
+2013-04-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-array-notation.c (build_x_array_notation_expr):  Made checking for
+	invariant expression inn RHS of an array notation non-conditional.
+	Also, extracted tripets of array notations to follow the execute once
+	rule.  Finally, added support to allow array_refs in between array
+	notations.
+	(find_rank): Changed a for-loop to a while loop to accomodate array ref
+	between array notation exprs.
+
 2013-03-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-gimplify.c (genericize_cp_loop): Removed calls to the functions
