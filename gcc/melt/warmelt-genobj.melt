@@ -166,6 +166,7 @@
 (defclass class_objinithook 
   :super class_objinitelem
   :fields (oihk_prochook		;the associated prochook
+	   oihk_cloval			;the tuple of closed values in the hook
 	   ))
 
 ;;; initial string - see MELT_STRING_STRUCT in melt-runtime.h
@@ -5721,6 +5722,9 @@ $SBUF.}#
   )
 (install_method class_nrep_dataroutine compile_obj compilobj_dataroutine)
 
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_datahook (ndhook gcx)
   (debug "compilobj_datahook ndhook=" ndhook "\n gcx=" gcx)
@@ -5750,13 +5754,6 @@ $SBUF.}#
 		     odi))
 	   (onam (string4out discr_verbatim_string
 			     ##{dhook__$HNAME#__$NRANK}#))
-	   (oihook (instance class_objinithook
-			     :obv_type ctype_value
-			     :oie_cname onam
-			     :oie_data ndhook
-			     :oie_discr odiscr
-			     :oihk_prochook nhpro
-			     ))
 	   (oclo
 	    (multiple_map 
 	     nclotup
@@ -5765,6 +5762,15 @@ $SBUF.}#
 	       (let ( (ocurclov (compile_obj nclosv gcx)) )
 		 (debug "compilobj_datahook/lambda ocurclov=" ocurclov)
 		 ocurclov))))
+	   (oihook 
+	    (instance class_objinithook
+		      :obv_type ctype_value
+		      :oie_cname onam
+		      :oie_data ndhook
+		      :oie_discr odiscr
+		      :oihk_prochook nhpro
+		      :oihk_cloval oclo
+		      ))
 	   )
       (mapobject_put compicache ndhook oihook)
       (put_int oihook nbclo)

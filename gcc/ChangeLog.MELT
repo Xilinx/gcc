@@ -1,6 +1,14 @@
 
 2013-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (class_objinithook): Add perhaps
+	uselesee oihk_cloval field.
+	(compilobj_datahook): Fill it.
+	* melt/warmelt-outobj.melt (outcinitfill_objinithook): Done.
+	(outpucod_objputhookconst): Incomplete.
+
+2013-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (output_curframe_declstruct_init): Also
 	handle hook routine.  More debug.
 	(outpucod_initialmoduleroutine): Don't emit the #define

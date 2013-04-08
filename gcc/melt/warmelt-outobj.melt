@@ -747,13 +747,50 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
   )
 (install_method class_objinithook output_c_declinit outdeclinit_objinithook)
 
-;;;;
+
+
+;;;; initial hooks
 (defun outcinitfill_objinithook (recv sbuf ptrstr :long depth)
-  (assert_msg "outcinitfill_objinithook check recv" (is_a recv class_objinithook))
-  (debug recv "outcinitfill_objinithook recv=" recv " ptrstr=" ptrstr)
-  (assert_msg "@$@unimplemented outcinitfill_objinithook")
-)
+  (debug "outcinitfill_objinithook recv=" recv 
+	 "\n.. of discrim:" (discrim recv) "\n.. ptrstr=" ptrstr)
+  (assert_msg "check recv" (is_a recv class_objinithook))
+  (assert_msg "check sbuf" (is_strbuf sbuf))
+  (let ( (cname (get_field :oie_cname recv))
+	 (olocvar (unsafe_get_field :oie_locvar recv))
+	 (ndatr (unsafe_get_field :oie_data recv))
+	 (hkproc (get_field :oihk_prochook recv))
+	 (oclovaltup (get_field :oihk_cloval recv))
+	 (:long nbcloval (multiple_length oclovaltup))
+	 )
+    (add2sbuf_indentnl sbuf depth)
+    (add2out sbuf ##{/*inihook CNAME */}#)
+    (add2sbuf_indentnl sbuf (+i depth 1))
+    (when olocvar
+      (output_c_code olocvar () sbuf 1)
+      (add2out sbuf ##{ = (melt_ptr_t) &$PTRSTR->$CNAME	;}#
+	       )
+      (add2sbuf_indentnl sbuf 1)
+      )
+    (add2out 
+     sbuf 
+     ##{ $PTRSTR->$CNAME.discr = (meltobject_ptr_t)(
+						    }#)
+     (output_c_code (get_field :oie_discr recv) () sbuf (+i depth 1))
+     (add2out sbuf ##{)			;
+     }#)
+    (add2out 
+     sbuf 
+     ##{ $PTRSTR->$CNAME.nbval = $NBCLOVAL ;
+     $PTRSTR->$CNAME.hookdata = NULL ;
+     }#
+     )
+    (add2sbuf_indentnl sbuf depth)
+    (add2out sbuf ##{/*done inihook CNAME */}#)
+    (add2sbuf_indentnl sbuf depth)
+    ))
 (install_method class_objinithook  output_c_initial_fill outcinitfill_objinithook)
+
+
 
 ;;;; strings
 (defun outdeclinit_objinitstring (recv sbuf)
@@ -780,8 +817,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_string sbuf cnam)
     (add2sbuf_strconst sbuf "*/")
     (add2sbuf_indentnl sbuf (+i depth 1))
-    (if olocvar
-	(progn
+    (when olocvar
 	  (output_c_code olocvar () sbuf 1)
 	  (add2sbuf_strconst sbuf " = (melt_ptr_t) &")
 	  (add2sbuf_string sbuf ptrstr)
@@ -789,7 +825,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	  (add2sbuf_string sbuf cnam)
 	  (add2sbuf_strconst sbuf ";")
 	  (add2sbuf_indentnl sbuf 1)
-	  ))
+	  )
     (add2sbuf_strconst sbuf " ")
     (add2sbuf_string sbuf ptrstr)
     (add2sbuf_strconst sbuf "->")
@@ -4736,10 +4772,16 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
 
 ;; output the putting of a constant value inside a hook
 (defun outpucod_objputhookconst (ophconst declbuf implbuf :long depth)
-  (assert_msg "check ophconst" (is_a ophconst class_objputhookconst))
   (debug "outpucod_objputhookconst ophconst=" ophconst)
-  (assert_msg "@$@unimplemented outpucod_objputhookconst")
-  )
+  (assert_msg "check ophconst" (is_a ophconst class_objputhookconst))
+  (let ( (oloc (get_field :obi_loc ophconst))
+	 (ohook (get_field :ophconst_hook ophconst))
+	 (ohoff (get_field :ophconst_off ophconst))
+	 (oval (get_field :ophconst_cval ophconst))
+	 )
+    (debug "outpucod_objputhookconst ohook=" ohook "\n.. ohoff=" ohoff "\n.. oval=" oval)
+    (assert_msg "@$@unimplemented outpucod_objputhookconst")
+    ))
 (install_method class_objputhookconst output_c_code outpucod_objputhookconst)
 
 
