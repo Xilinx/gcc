@@ -1,4 +1,9 @@
 
+2013-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (outpucod_objcformal): New method for
+	output_c_code on class_objcformal.
+
 2013-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.

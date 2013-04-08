@@ -2749,6 +2749,20 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; output code for objcformal
+(defun outpucod_objcformal (cform declbuf implbuf :long depth)
+  (debug "outpucod_objcformal cform=" cform)
+  (assert_msg "check cform" (is_a cform class_objcformal))
+  (assert_msg "check implbuf" (is_strbuf implbuf))
+  (let ( (fornam (get_field :oformal_name cform))
+	 )
+    (assert_msg "check formnam" (is_string fornam))
+    (add2out_strconst implbuf " ")
+    (add2out_string implbuf fornam)
+    ))
+(install_method class_objcformal output_c_code outpucod_objcformal)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output code for objlocv
 (defun outpucod_objlocv (locv declbuf implbuf :long depth)
   (assert_msg "check locv" (is_a locv class_objlocv))
