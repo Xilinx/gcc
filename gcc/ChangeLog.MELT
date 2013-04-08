@@ -1,6 +1,14 @@
 
 2013-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (output_curframe_declstruct_init): Also
+	handle hook routine.  More debug.
+	(outpucod_initialmoduleroutine): Don't emit the #define
+	meltmarking_melt_start_this_module any more.
+	(outpucod_hookroutine): Complete.
+
+2013-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (outpucod_objcformal): New method for
 	output_c_code on class_objcformal.
 

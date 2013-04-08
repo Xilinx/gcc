@@ -1470,10 +1470,13 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     ;;    (add2sbuf_indentnl implbuf 1)
     ))
 
+
+
 ;;; output the code for declaring and initializing the current frame 
 (defun output_curframe_declstruct_init (declstruct rou implbuf)
   (debug "output_curframe_declstruct_init declstruct= " declstruct 
-	 "\n declstructinit rou=" rou)
+	 "\n.. rou=" rou
+	 "\n .. of discrim=" (discrim rou))
   (assert_msg "check rou" (is_a rou class_routineobj))
   (assert_msg "check declstruct" (is_closure declstruct))
   (assert_msg "check implbuf" (is_strbuf implbuf))
@@ -1485,6 +1488,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(:long nblong (get_int onblong))
 	(:long isinitial 
 	       (or (is_a rou class_initialroutineobj)
+		   (is_a rou class_hookroutineobj)
 		   (is_a rou class_initial_extension_routineobj)
 		   ))
 	(:long minihash
@@ -1519,46 +1523,64 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#define meltframe meltfram__")
     (add2sbuf_indentnl implbuf 1)
-    (if isinitial
-	(progn
-	  (add2sbuf_indentnl implbuf 1)
-	  (add2out implbuf ##{/*$ROUNAME is initial declstructinit*/}#)
-	  )
-      (progn
-	(add2out implbuf ##{/*$ROUNAME is not initial declstructinit*/}#)
-	(add2sbuf_indentnl implbuf 2)
-	(add2sbuf_strconst implbuf "if (MELT_UNLIKELY(meltxargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/")
-	(add2sbuf_indentnl implbuf 3)
-	(add2sbuf_strconst implbuf "int ix=0;")
-	(add2sbuf_indentnl implbuf 3)
-	(if rouname
-	    (add2out implbuf "meltframptr_ = (struct meltframe_" rouname "_st*) meltfirstargp_;")
-	  (add2sbuf_strconst implbuf "meltframptr_ = (void*)meltfirstargp_;"))
-	(add2sbuf_indentnl implbuf 3)
-	(add2out implbuf ##{  /* use arguments output_curframe_declstruct_init */
-		 (void) meltclosp_	 ;
-		 (void) meltfirstargp_	 ;
-		 (void) meltxargdescr_	 ;
-		 (void) meltxargtab_	 ;
-		 (void) meltxresdescr_	 ;
-		 (void) meltxrestab_	 ;
-		 }#)
-	(outpucod_marker rou implbuf)
-	(add2sbuf_strconst implbuf "return NULL;")
-	(add2sbuf_indentnl implbuf 2)
-	(add2sbuf_strconst implbuf "}/*end markggc*/;")
-	)
+    (cond 
+     ( (is_a rou class_initial_extension_routineobj)
+       (add2out implbuf ##{/*$ROUNAME is extension declstructinit*/}#)
+       (add2sbuf_indentnl implbuf 0)
+       (add2out implbuf " meltfram__.mcfr_nbvar = -" minihash "/*minihash*/;")
+       (add2sbuf_indentnl implbuf 0)
+       (add2out implbuf " ((struct melt_callframe_st*)&meltfram__)->mcfr_forwmarkrout = meltmarking_" rouname ";")
+       (add2sbuf_indentnl implbuf 0)
+       )
+     ( (is_a rou class_initialroutineobj)
+       (add2sbuf_indentnl implbuf 1)
+       (add2out implbuf ##{/*$ROUNAME is initial declstructinit*/}#)
+       )
+     ( (is_a rou class_hookroutineobj)
+       (add2sbuf_indentnl implbuf 1)
+       (let (
+	     (nhookproc (get_field :obrout_proc rou))
+	     (rawhookname (get_field :nrhook_name nhookproc))
+	     )
+	 (add2out implbuf ##{/*$ROUNAME is hook declstructinit*/}#)
+	 (add2sbuf_indentnl implbuf 0)
+	 (add2out implbuf " meltfram__.mcfr_nbvar = -" minihash "/*minihash*/;")
+	 (add2sbuf_indentnl implbuf 0)
+	 (add2out implbuf " ((struct melt_callframe_st*)&meltfram__)->mcfr_forwmarkrout = melthookmark_" rawhookname "_rout;")
+	 (add2sbuf_indentnl implbuf 0)
+	 )
+       )
+     (:else
+      (add2out implbuf ##{/*$ROUNAME is not initial declstructinit*/}#)
+      (add2sbuf_indentnl implbuf 2)
+      (add2sbuf_strconst implbuf "if (MELT_UNLIKELY(meltxargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/")
+      (add2sbuf_indentnl implbuf 3)
+      (add2sbuf_strconst implbuf "int ix=0;")
+      (add2sbuf_indentnl implbuf 3)
+      (if rouname
+	  (add2out implbuf "meltframptr_ = (struct meltframe_" rouname "_st*) meltfirstargp_;")
+	(add2sbuf_strconst implbuf "meltframptr_ = (void*)meltfirstargp_;"))
+      (add2sbuf_indentnl implbuf 3)
+      (add2out implbuf ##{  /* use arguments $ROUNAME output_curframe_declstruct_init */
+	       (void) meltclosp_	;
+	       (void) meltfirstargp_	;
+	       (void) meltxargdescr_	;
+	       (void) meltxargtab_	;
+	       (void) meltxresdescr_	;
+	       (void) meltxrestab_	;
+	       }#)
+      (outpucod_marker rou implbuf)
+      (add2sbuf_strconst implbuf "return NULL;")
+      (add2sbuf_indentnl implbuf 2)
+      (add2sbuf_strconst implbuf "}/*end markggc*/;")
       )
+     )
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "  memset(&meltfram__, 0, sizeof(meltfram__));")
     (add2sbuf_indentnl implbuf 0)
     (cond 
      (isinitial
       (add2out implbuf ##{/* declstructinit initial routine $ROUNAME minihash $MINIHASH*/}#)
-      (add2sbuf_indentnl implbuf 0)
-      (add2out implbuf " meltfram__.mcfr_nbvar = -" minihash "/*minihash*/;")
-      (add2sbuf_indentnl implbuf 0)
-      (add2out implbuf " ((struct melt_callframe_st*)&meltfram__)->mcfr_forwmarkrout = meltmarking_" rouname ";")
       (add2sbuf_indentnl implbuf 0)
       )
      (:else
@@ -1827,6 +1849,8 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	  (assert_msg "check limited implbuf" 
 		      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
   )
+
+
 
 
 
@@ -2146,10 +2170,6 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (add2sbuf_cident declbuf omodnam)
     (add2sbuf_strconst declbuf "__forward_or_mark_module_start_frame (struct melt_callframe_st* fp, int marking);")
     (add2sbuf_indentnl declbuf 0)
-    (add2out declbuf "#define meltmarking_melt_start_this_module  meltmod__")
-    (add2sbuf_cident declbuf omodnam)
-    (add2out declbuf "__forward_or_mark_module_start_frame")
-    (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_strconst implbuf "void meltmod__")
     (add2sbuf_cident implbuf omodnam)
@@ -2259,6 +2279,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output code for hook routines
 (defun outpucod_hookroutine (phook declbuf implbuf :long depth)
   (debug "outpucod_hookroutine start phook=" phook
@@ -2395,9 +2416,34 @@ MELT_EXTERN  void* melt_start_this_module (void*);
   (add2sbuf_indentnl implbuf 0)
   (add2sbuf_indentnl implbuf 0)
   ;;
-  (debug "outpucod_hookroutine incomplete\n.. declbuf=" declbuf
-	 "\n.. implbuf=" implbuf "\n.~~~~~~\n")
-  (assert_msg "@$@unimplemented generation of mark routine in outpucod_hookroutine")
+  ;; output the marking routine
+
+  (add2out 
+   implbuf
+   ##{/* define frame moving or marking routine for $HOOKNAME hook */
+   void melthookmark_$NRAWHOOKNAME#_rout (struct melt_callframe_st*meltcfram, int meltmarking) 
+   {
+      struct melthookframe_$NRAWHOOKNAME#_st* meltfram
+        = (struct melthookframe_$NRAWHOOKNAME#_st*)meltcfram;
+      melt_assertmsg ("hook frame $NRAWHOOKNAME good hash", meltfram->mcfr_nbvar == -$MINIHASH);
+      if (meltmarking) { /* marking hook $NRAWHOOKNAME */ }#)
+  (debug "outpucod_hookroutine marking phook=" phook)
+  (outpucod_marker phook implbuf)
+  (add2out 
+   implbuf
+   ##{ } else /* copying hook $NRAWHOOKNAME */ if (melt_is_forwarding) {
+     int meltvix;
+     for (meltvix= 0; 
+     	meltvix< $NBVAL;
+     	meltvix++) 
+        MELT_FORWARDED (meltfram->mcfr_varptr[meltvix]);
+     }
+   } /* end  melthookmark_$NRAWHOOKNAME#_rout */
+   }#)
+  (add2sbuf_indentnl implbuf 0)
+  (add2sbuf_indentnl implbuf 0)
+  (add2sbuf_indentnl declbuf 0)
+  ;;
   ))
 (install_method class_hookroutineobj output_c_code outpucod_hookroutine)
 
