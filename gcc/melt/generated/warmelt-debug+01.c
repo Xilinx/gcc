@@ -870,7 +870,6 @@ void MELT_MODULE_VISIBILITY
 meltmod__warmelt_debug__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
 							    *fp, int marking);
-#define meltmarking_melt_start_this_module  meltmod__warmelt_debug__forward_or_mark_module_start_frame
 
 
 
@@ -949,7 +948,7 @@ meltrout_8_warmelt_debug_MELT_DEBUG_FUN (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_8_warmelt_debug_MELT_DEBUG_FUN_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_8_warmelt_debug_MELT_DEBUG_FUN output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -1657,13 +1656,13 @@ meltlab_endgetargs:;
 				    /* objlabel */
 #if MELTDEBUG_MATCHING
 				    static long meltlab_count_
-				      *CLASS_NORMTESTER_MATCHER / 1e4 ee7ee.;
+				      *CLASS_NORMTESTER_MATCHER / cb3c174.;
 				    meltlab_count_ *CLASS_NORMTESTER_MATCHER /
-				      1e4 ee7ee. ++;
+				      cb3c174. ++;
 				    debugeprintf
-				      ("objlabel mtch1_*CLASS_NORMTESTER_MATCHER/1e4ee7ee. *CLASS_OBJLABELINSTR/10e6a0c6. %ld",
+				      ("objlabel mtch1_*CLASS_NORMTESTER_MATCHER/cb3c174. *CLASS_OBJLABELINSTR/2ae744a9. %ld",
 				       meltlab_count_ *
-				       CLASS_NORMTESTER_MATCHER / 1e4 ee7ee.);
+				       CLASS_NORMTESTER_MATCHER / cb3c174.);
 #endif
 
 				    ;
@@ -1710,13 +1709,15 @@ meltlab_endgetargs:;
 				    /* objlabel */
 #if MELTDEBUG_MATCHING
 				    static long meltlab_count_
-				      *CLASS_NORMTESTER_SUCCESS / cb3c174.;
+				      *CLASS_NORMTESTER_SUCCESS /
+				      1f 134f 3 b.;
 				    meltlab_count_ *CLASS_NORMTESTER_SUCCESS /
-				      cb3c174. ++;
+				      1f 134f 3 b. ++;
 				    debugeprintf
-				      ("objlabel mtch1_*CLASS_NORMTESTER_SUCCESS/cb3c174. *CLASS_OBJLABELINSTR/54a1f80. %ld",
+				      ("objlabel mtch1_*CLASS_NORMTESTER_SUCCESS/1f134f3b. *CLASS_OBJLABELINSTR/23a74fd2. %ld",
 				       meltlab_count_ *
-				       CLASS_NORMTESTER_SUCCESS / cb3c174.);
+				       CLASS_NORMTESTER_SUCCESS /
+				       1f 134f 3 b.);
 #endif
 
 				    ;
@@ -1771,13 +1772,13 @@ meltlab_endgetargs:;
 				    /* objlabel */
 #if MELTDEBUG_MATCHING
 				    static long meltlab_count_
-				      *CLASS_NORMTESTER_SUCCESS / 175 a5bc5.;
+				      *CLASS_NORMTESTER_SUCCESS / 19 cdb7bb.;
 				    meltlab_count_ *CLASS_NORMTESTER_SUCCESS /
-				      175 a5bc5. ++;
+				      19 cdb7bb. ++;
 				    debugeprintf
-				      ("objlabel mtch1_*CLASS_NORMTESTER_SUCCESS/175a5bc5. *CLASS_OBJLABELINSTR/8fceaaa. %ld",
+				      ("objlabel mtch1_*CLASS_NORMTESTER_SUCCESS/19cdb7bb. *CLASS_OBJLABELINSTR/1e6fb4af. %ld",
 				       meltlab_count_ *
-				       CLASS_NORMTESTER_SUCCESS / 175 a5bc5.);
+				       CLASS_NORMTESTER_SUCCESS / 19 cdb7bb.);
 #endif
 
 				    ;
@@ -1801,11 +1802,11 @@ meltlab_endgetargs:;
 				      ("warmelt-debug.melt:343:/ objlabel");
 				    /* objlabel */
 #if MELTDEBUG_MATCHING
-				    static long meltlab_count__h689549843;
-				    meltlab_count__h689549843++;
+				    static long meltlab_count__h739233639;
+				    meltlab_count__h739233639++;
 				    debugeprintf
-				      ("objlabel mtch1__end_h689549843 *CLASS_OBJLABELINSTR/2919b213. %ld",
-				       meltlab_count__h689549843);
+				      ("objlabel mtch1__end_h739233639 *CLASS_OBJLABELINSTR/2c0fcf67. %ld",
+				       meltlab_count__h739233639);
 #endif
 
 				    ;
@@ -4664,7 +4665,7 @@ meltrout_9_warmelt_debug_DBG_OUTOBJECT (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_9_warmelt_debug_DBG_OUTOBJECT_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_9_warmelt_debug_DBG_OUTOBJECT output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -5067,7 +5068,7 @@ meltrout_10_warmelt_debug_DBG_OUT (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_10_warmelt_debug_DBG_OUT_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_10_warmelt_debug_DBG_OUT output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -5615,7 +5616,7 @@ meltrout_11_warmelt_debug_DBGOUT_FIELDS (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_11_warmelt_debug_DBGOUT_FIELDS_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_11_warmelt_debug_DBGOUT_FIELDS output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -6605,7 +6606,7 @@ meltrout_12_warmelt_debug_DBGOUTAGAIN_FIELDS (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_12_warmelt_debug_DBGOUTAGAIN_FIELDS_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_12_warmelt_debug_DBGOUTAGAIN_FIELDS output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -7398,7 +7399,7 @@ meltrout_13_warmelt_debug_DBGOUT_NULL_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_13_warmelt_debug_DBGOUT_NULL_METHOD_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_13_warmelt_debug_DBGOUT_NULL_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -7544,7 +7545,7 @@ meltrout_14_warmelt_debug_DBGOUT_STRING_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_14_warmelt_debug_DBGOUT_STRING_METHOD_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_14_warmelt_debug_DBGOUT_STRING_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -7904,7 +7905,7 @@ meltrout_15_warmelt_debug_DBGOUT_STRBUF_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_15_warmelt_debug_DBGOUT_STRBUF_METHOD_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_15_warmelt_debug_DBGOUT_STRBUF_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -8505,7 +8506,7 @@ meltrout_16_warmelt_debug_DBGOUT_INTEGER_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_16_warmelt_debug_DBGOUT_INTEGER_METHOD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_16_warmelt_debug_DBGOUT_INTEGER_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -8975,7 +8976,7 @@ meltrout_17_warmelt_debug_DBGOUT_MIXINT_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_17_warmelt_debug_DBGOUT_MIXINT_METHOD_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_17_warmelt_debug_DBGOUT_MIXINT_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -9519,7 +9520,7 @@ meltrout_18_warmelt_debug_DBGOUT_MIXLOC_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_18_warmelt_debug_DBGOUT_MIXLOC_METHOD_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_18_warmelt_debug_DBGOUT_MIXLOC_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -10107,7 +10108,7 @@ meltrout_19_warmelt_debug_DBGOUT_MIXBIGINT_METHOD (meltclosure_ptr_t
       meltframptr_ =
 	(struct meltframe_meltrout_19_warmelt_debug_DBGOUT_MIXBIGINT_METHOD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_19_warmelt_debug_DBGOUT_MIXBIGINT_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -10633,7 +10634,7 @@ meltrout_20_warmelt_debug_DBGOUT_MULTIPLE_METHOD (meltclosure_ptr_t
       meltframptr_ =
 	(struct meltframe_meltrout_20_warmelt_debug_DBGOUT_MULTIPLE_METHOD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_20_warmelt_debug_DBGOUT_MULTIPLE_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -11205,7 +11206,7 @@ meltrout_21_warmelt_debug_DBGOUT_ROUTINE_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_21_warmelt_debug_DBGOUT_ROUTINE_METHOD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_21_warmelt_debug_DBGOUT_ROUTINE_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -11665,7 +11666,7 @@ meltrout_22_warmelt_debug_LAMBDA___1__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_22_warmelt_debug_LAMBDA___1___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_22_warmelt_debug_LAMBDA___1__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -11845,7 +11846,7 @@ meltrout_23_warmelt_debug_DBGOUT_CLOSURE_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_23_warmelt_debug_DBGOUT_CLOSURE_METHOD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_23_warmelt_debug_DBGOUT_CLOSURE_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -12637,7 +12638,7 @@ meltrout_24_warmelt_debug_DBGOUT_LIST_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_24_warmelt_debug_DBGOUT_LIST_METHOD_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_24_warmelt_debug_DBGOUT_LIST_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -13385,7 +13386,7 @@ meltrout_25_warmelt_debug_DBGOUT_PAIR_METHOD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_25_warmelt_debug_DBGOUT_PAIR_METHOD_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_25_warmelt_debug_DBGOUT_PAIR_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -13937,7 +13938,7 @@ meltrout_26_warmelt_debug_DBGOUT_MAPOBJECT_METHOD (meltclosure_ptr_t
       meltframptr_ =
 	(struct meltframe_meltrout_26_warmelt_debug_DBGOUT_MAPOBJECT_METHOD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_26_warmelt_debug_DBGOUT_MAPOBJECT_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -14996,7 +14997,7 @@ meltrout_27_warmelt_debug_LAMBDA___2__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_27_warmelt_debug_LAMBDA___2___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_27_warmelt_debug_LAMBDA___2__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -15226,7 +15227,7 @@ meltrout_28_warmelt_debug_LAMBDA___3__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_28_warmelt_debug_LAMBDA___3___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_28_warmelt_debug_LAMBDA___3__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -15432,7 +15433,7 @@ meltrout_29_warmelt_debug_LAMBDA___4__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_29_warmelt_debug_LAMBDA___4___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_29_warmelt_debug_LAMBDA___4__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -15768,7 +15769,7 @@ meltrout_30_warmelt_debug_DBGOUT_MAPSTRING_METHOD (meltclosure_ptr_t
       meltframptr_ =
 	(struct meltframe_meltrout_30_warmelt_debug_DBGOUT_MAPSTRING_METHOD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_30_warmelt_debug_DBGOUT_MAPSTRING_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -16652,7 +16653,7 @@ meltrout_31_warmelt_debug_LAMBDA___5__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_31_warmelt_debug_LAMBDA___5___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_31_warmelt_debug_LAMBDA___5__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -16882,7 +16883,7 @@ meltrout_32_warmelt_debug_LAMBDA___6__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_32_warmelt_debug_LAMBDA___6___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_32_warmelt_debug_LAMBDA___6__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -17088,7 +17089,7 @@ meltrout_33_warmelt_debug_LAMBDA___7__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_33_warmelt_debug_LAMBDA___7___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_33_warmelt_debug_LAMBDA___7__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -17401,7 +17402,7 @@ meltrout_34_warmelt_debug_DBGOUT_BUCKETLONG_METHOD (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_34_warmelt_debug_DBGOUT_BUCKETLONG_METHOD_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_34_warmelt_debug_DBGOUT_BUCKETLONG_METHOD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;

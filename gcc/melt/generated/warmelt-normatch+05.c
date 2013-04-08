@@ -2332,7 +2332,6 @@ meltmod__warmelt_normatch__forward_or_mark_module_start_frame (struct
 							       melt_callframe_st
 							       *fp,
 							       int marking);
-#define meltmarking_melt_start_this_module  meltmod__warmelt_normatch__forward_or_mark_module_start_frame
 
 
 
@@ -2396,7 +2395,7 @@ meltrout_111_warmelt_normatch_NORMSTEP_MFLAGSET (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_111_warmelt_normatch_NORMSTEP_MFLAGSET_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_111_warmelt_normatch_NORMSTEP_MFLAGSET output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -3779,7 +3778,7 @@ meltrout_112_warmelt_normatch_NORMSTEP_MFLAGCONJ (meltclosure_ptr_t
       meltframptr_ =
 	(struct meltframe_meltrout_112_warmelt_normatch_NORMSTEP_MFLAGCONJ_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_112_warmelt_normatch_NORMSTEP_MFLAGCONJ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -4532,7 +4531,7 @@ meltlab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /8b8dd5e checkpair",
+      melt_assertmsg ("putpairtail /3fdc19d2 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V38*/ meltfptr[37]))
 		      == MELTOBMAG_PAIR);
@@ -5992,7 +5991,7 @@ meltrout_113_warmelt_normatch_NORMSTEP_MTESTINSTANCE (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_113_warmelt_normatch_NORMSTEP_MTESTINSTANCE_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_113_warmelt_normatch_NORMSTEP_MTESTINSTANCE output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -10163,7 +10162,7 @@ meltrout_114_warmelt_normatch_NORMSTEP_MTESTMULTIPLE (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_114_warmelt_normatch_NORMSTEP_MTESTMULTIPLE_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_114_warmelt_normatch_NORMSTEP_MTESTMULTIPLE output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -13966,7 +13965,7 @@ meltrout_115_warmelt_normatch_NORMSTEP_MTESTVAR (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_115_warmelt_normatch_NORMSTEP_MTESTVAR_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_115_warmelt_normatch_NORMSTEP_MTESTVAR output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -16030,7 +16029,7 @@ meltrout_116_warmelt_normatch_NORMSTEP_MGROUP (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_116_warmelt_normatch_NORMSTEP_MGROUP_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_116_warmelt_normatch_NORMSTEP_MGROUP output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -18892,7 +18891,7 @@ meltrout_117_warmelt_normatch_LAMBDA___24__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_117_warmelt_normatch_LAMBDA___24___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_117_warmelt_normatch_LAMBDA___24__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -19044,7 +19043,7 @@ meltrout_118_warmelt_normatch_LAMBDA___25__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_118_warmelt_normatch_LAMBDA___25___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_118_warmelt_normatch_LAMBDA___25__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -19196,7 +19195,7 @@ meltrout_119_warmelt_normatch_LAMBDA___26__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_119_warmelt_normatch_LAMBDA___26___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_119_warmelt_normatch_LAMBDA___26__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -19348,7 +19347,7 @@ meltrout_120_warmelt_normatch_LAMBDA___27__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_120_warmelt_normatch_LAMBDA___27___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_120_warmelt_normatch_LAMBDA___27__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -19505,7 +19504,7 @@ meltrout_121_warmelt_normatch_NORMSTEP_MSUCCWHENFLAG (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_121_warmelt_normatch_NORMSTEP_MSUCCWHENFLAG_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_121_warmelt_normatch_NORMSTEP_MSUCCWHENFLAG output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -22509,7 +22508,7 @@ meltrout_122_warmelt_normatch_NORMTESTMATCH_CATCHALL (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_122_warmelt_normatch_NORMTESTMATCH_CATCHALL_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_122_warmelt_normatch_NORMTESTMATCH_CATCHALL output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -23360,7 +23359,7 @@ meltrout_123_warmelt_normatch_NORMFILLMATCH_CATCHALL (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_123_warmelt_normatch_NORMFILLMATCH_CATCHALL_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_123_warmelt_normatch_NORMFILLMATCH_CATCHALL output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -23894,7 +23893,7 @@ meltrout_124_warmelt_normatch_NORMTESTMATCH_CMATCHER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_124_warmelt_normatch_NORMTESTMATCH_CMATCHER_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_124_warmelt_normatch_NORMTESTMATCH_CMATCHER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -27147,7 +27146,7 @@ meltrout_125_warmelt_normatch_NORMFILLMATCH_CMATCHER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_125_warmelt_normatch_NORMFILLMATCH_CMATCHER_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_125_warmelt_normatch_NORMFILLMATCH_CMATCHER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -29674,7 +29673,7 @@ meltrout_126_warmelt_normatch_NORMSTEP_MTESTMATCHER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_126_warmelt_normatch_NORMSTEP_MTESTMATCHER_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_126_warmelt_normatch_NORMSTEP_MTESTMATCHER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -34196,7 +34195,7 @@ meltrout_127_warmelt_normatch_MATCHALT_NORMALIZE_STEP (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_127_warmelt_normatch_MATCHALT_NORMALIZE_STEP_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_127_warmelt_normatch_MATCHALT_NORMALIZE_STEP output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -35266,7 +35265,7 @@ meltrout_128_warmelt_normatch_MATCHALT_NORMALIZE_MDATA (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_128_warmelt_normatch_MATCHALT_NORMALIZE_MDATA_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_128_warmelt_normatch_MATCHALT_NORMALIZE_MDATA output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -36691,7 +36690,7 @@ meltrout_129_warmelt_normatch_MATCHALT_HANDLE_NORMALIZED_MDATA
 	(struct
 	 meltframe_meltrout_129_warmelt_normatch_MATCHALT_HANDLE_NORMALIZED_MDATA_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_129_warmelt_normatch_MATCHALT_HANDLE_NORMALIZED_MDATA output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -38538,7 +38537,7 @@ meltrout_130_warmelt_normatch_MATCHALT_MAKE_MATCH_NORMALIZATION_CONTEXT
 	(struct
 	 meltframe_meltrout_130_warmelt_normatch_MATCHALT_MAKE_MATCH_NORMALIZATION_CONTEXT_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_130_warmelt_normatch_MATCHALT_MAKE_MATCH_NORMALIZATION_CONTEXT output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -39482,7 +39481,7 @@ meltrout_131_warmelt_normatch_MATCHALT_NORMALIZE_MATCH_CONTEXT
 	(struct
 	 meltframe_meltrout_131_warmelt_normatch_MATCHALT_NORMALIZE_MATCH_CONTEXT_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_131_warmelt_normatch_MATCHALT_NORMALIZE_MATCH_CONTEXT output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -41887,7 +41886,7 @@ meltrout_132_warmelt_normatch_LAMBDA___28__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_132_warmelt_normatch_LAMBDA___28___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_132_warmelt_normatch_LAMBDA___28__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -42437,7 +42436,7 @@ meltrout_133_warmelt_normatch_NORMEXP_MATCHALT (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_133_warmelt_normatch_NORMEXP_MATCHALT_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_133_warmelt_normatch_NORMEXP_MATCHALT output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -48745,7 +48744,7 @@ meltlab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /6c84066 checkpair",
+      melt_assertmsg ("putpairtail /bc2615 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NRESBIND__V260*/ meltfptr[251]))
 		      == MELTOBMAG_PAIR);
@@ -49095,7 +49094,7 @@ meltrout_134_warmelt_normatch_LAMBDA___29__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_134_warmelt_normatch_LAMBDA___29___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_134_warmelt_normatch_LAMBDA___29__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -49511,7 +49510,7 @@ meltrout_135_warmelt_normatch_ALTERNATE_MATCH_OPTSET (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_135_warmelt_normatch_ALTERNATE_MATCH_OPTSET_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_135_warmelt_normatch_ALTERNATE_MATCH_OPTSET output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -49819,7 +49818,7 @@ meltrout_136_warmelt_normatch_MG_ALTDRAW_GRAPHVIZ (meltclosure_ptr_t
       meltframptr_ =
 	(struct meltframe_meltrout_136_warmelt_normatch_MG_ALTDRAW_GRAPHVIZ_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_136_warmelt_normatch_MG_ALTDRAW_GRAPHVIZ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;

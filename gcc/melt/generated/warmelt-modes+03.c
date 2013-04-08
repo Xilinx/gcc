@@ -1247,7 +1247,6 @@ void MELT_MODULE_VISIBILITY
 meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
 							    *fp, int marking);
-#define meltmarking_melt_start_this_module  meltmod__warmelt_modes__forward_or_mark_module_start_frame
 
 
 
@@ -1308,7 +1307,7 @@ meltrout_69_warmelt_modes_LAMBDA___22__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_69_warmelt_modes_LAMBDA___22___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_69_warmelt_modes_LAMBDA___22__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -1726,7 +1725,7 @@ meltrout_70_warmelt_modes_TRANSLATEINITMODULE_DOCMD (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_70_warmelt_modes_TRANSLATEINITMODULE_DOCMD_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_70_warmelt_modes_TRANSLATEINITMODULE_DOCMD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -2086,7 +2085,7 @@ meltrout_71_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD
 	(struct
 	 meltframe_meltrout_71_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_71_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -2368,7 +2367,7 @@ meltrout_72_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD
 	(struct
 	 meltframe_meltrout_72_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_72_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -2650,7 +2649,7 @@ meltrout_73_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD
 	(struct
 	 meltframe_meltrout_73_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_73_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -2940,7 +2939,7 @@ meltrout_74_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_74_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_74_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -3538,7 +3537,7 @@ meltrout_75_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_75_warmelt_modes_HANDLE_ALARM_SIGNAL_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_75_warmelt_modes_HANDLE_ALARM_SIGNAL output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -4921,7 +4920,7 @@ meltrout_76_warmelt_modes_LAMBDA___23__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_76_warmelt_modes_LAMBDA___23___st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_76_warmelt_modes_LAMBDA___23__ output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -5070,7 +5069,7 @@ meltrout_77_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_77_warmelt_modes_REGISTER_ALARM_TIMER_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_77_warmelt_modes_REGISTER_ALARM_TIMER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -5738,7 +5737,7 @@ meltrout_78_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
       meltframptr_ =
 	(struct meltframe_meltrout_78_warmelt_modes_UNREGISTER_ALARM_TIMER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_78_warmelt_modes_UNREGISTER_ALARM_TIMER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -6562,7 +6561,7 @@ meltrout_79_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_79_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_79_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -8395,7 +8394,7 @@ meltrout_80_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_80_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_80_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -9371,7 +9370,7 @@ meltrout_81_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_81_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_81_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;

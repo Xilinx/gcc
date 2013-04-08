@@ -19,7 +19,7 @@
 	     #endif /*__cplusplus */
 	     
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.8.0 20130314 (experimental) [melt-branch revision 197484] MELT_0\
+const char melt_genversionstr[]="4.8.0 20130314 (experimental) [melt-branch revision 197562] MELT_0\
 .9.8-post"
 
 	     #ifdef __cplusplus
@@ -38,26 +38,26 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 -modules/0.9.8-post/warmelt-modes";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="3731805bf8a3a0197ce736b01d873980";
+const char melt_prepromd5meltrun[]="eebb5009131c9fe8f5c336debe8c72fd";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="7ad3d7548c83214e00b53518ac388a41";
+const char melt_primaryhexmd5[]="43ad33a13872207d0c35ce1a844aff0a";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum meltbuild-sources/warmelt-modes+01.c #1 */ "57e2dca52dd955a66194093d16af61bc",
- /*sechexmd5checksum meltbuild-sources/warmelt-modes+02.c #2 */ "3b5fa9353f7990b6f0483519dadacd6a",
- /*sechexmd5checksum meltbuild-sources/warmelt-modes+03.c #3 */ "5d65f4611daaac233381010f6eee3c06",
+ /*sechexmd5checksum meltbuild-sources/warmelt-modes+01.c #1 */ "6de973d242871cf509eb2901eb6e15a9",
+ /*sechexmd5checksum meltbuild-sources/warmelt-modes+02.c #2 */ "23e53ff196b61433872ffc6c8b9e3a5c",
+ /*sechexmd5checksum meltbuild-sources/warmelt-modes+03.c #3 */ "9a1b165fbbfdd3125581c6a000784770",
  (const char*)0 };
 
 /* last index of secondary files */
 const int melt_lastsecfileindex=3;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="f644a10a2a664ba24734597938bf9beb" ;
+const char melt_cumulated_hexmd5[]="6c582453b32db141664530e2743d6250" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_modes_mds__f644a10a2a664ba24734597938bf9beb 1
+#define meltmod_warmelt_modes_mds__6c582453b32db141664530e2743d6250 1
 #include "warmelt-modes+melttime.h"
 	 
 

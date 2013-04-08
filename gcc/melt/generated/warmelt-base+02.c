@@ -1036,7 +1036,6 @@ void MELT_MODULE_VISIBILITY
 meltmod__warmelt_base__forward_or_mark_module_start_frame (struct
 							   melt_callframe_st
 							   *fp, int marking);
-#define meltmarking_melt_start_this_module  meltmod__warmelt_base__forward_or_mark_module_start_frame
 
 
 
@@ -1105,7 +1104,7 @@ meltrout_30_warmelt_base_PRE_GENERICIZE_HOOK_RUNNER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_30_warmelt_base_PRE_GENERICIZE_HOOK_RUNNER_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_30_warmelt_base_PRE_GENERICIZE_HOOK_RUNNER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -1452,7 +1451,7 @@ meltrout_31_warmelt_base_MELT_FINISH_TYPE_RUNNER (meltclosure_ptr_t
       meltframptr_ =
 	(struct meltframe_meltrout_31_warmelt_base_MELT_FINISH_TYPE_RUNNER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_31_warmelt_base_MELT_FINISH_TYPE_RUNNER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -1803,7 +1802,7 @@ meltrout_32_warmelt_base_REGISTER_FINISH_TYPE_HOOK_FIRST (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_32_warmelt_base_REGISTER_FINISH_TYPE_HOOK_FIRST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_32_warmelt_base_REGISTER_FINISH_TYPE_HOOK_FIRST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -2141,7 +2140,7 @@ meltrout_33_warmelt_base_REGISTER_FINISH_TYPE_HOOK_LAST (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_33_warmelt_base_REGISTER_FINISH_TYPE_HOOK_LAST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_33_warmelt_base_REGISTER_FINISH_TYPE_HOOK_LAST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -2474,7 +2473,7 @@ meltrout_34_warmelt_base_MELT_FINISH_DECL_RUNNER (meltclosure_ptr_t
       meltframptr_ =
 	(struct meltframe_meltrout_34_warmelt_base_MELT_FINISH_DECL_RUNNER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_34_warmelt_base_MELT_FINISH_DECL_RUNNER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -2825,7 +2824,7 @@ meltrout_35_warmelt_base_REGISTER_FINISH_DECL_HOOK_FIRST (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_35_warmelt_base_REGISTER_FINISH_DECL_HOOK_FIRST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_35_warmelt_base_REGISTER_FINISH_DECL_HOOK_FIRST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -3163,7 +3162,7 @@ meltrout_36_warmelt_base_REGISTER_FINISH_DECL_HOOK_LAST (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_36_warmelt_base_REGISTER_FINISH_DECL_HOOK_LAST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_36_warmelt_base_REGISTER_FINISH_DECL_HOOK_LAST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -3500,7 +3499,7 @@ meltrout_37_warmelt_base_MELT_ALL_PASSES_START_RUNNER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_37_warmelt_base_MELT_ALL_PASSES_START_RUNNER_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_37_warmelt_base_MELT_ALL_PASSES_START_RUNNER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -3827,7 +3826,7 @@ meltrout_38_warmelt_base_REGISTER_ALL_PASSES_START_HOOK_FIRST
 	(struct
 	 meltframe_meltrout_38_warmelt_base_REGISTER_ALL_PASSES_START_HOOK_FIRST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_38_warmelt_base_REGISTER_ALL_PASSES_START_HOOK_FIRST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -4142,7 +4141,7 @@ meltrout_39_warmelt_base_REGISTER_ALL_PASSES_START_HOOK_LAST
 	(struct
 	 meltframe_meltrout_39_warmelt_base_REGISTER_ALL_PASSES_START_HOOK_LAST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_39_warmelt_base_REGISTER_ALL_PASSES_START_HOOK_LAST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -4464,7 +4463,7 @@ meltrout_40_warmelt_base_MELT_ALL_PASSES_END_RUNNER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_40_warmelt_base_MELT_ALL_PASSES_END_RUNNER_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_40_warmelt_base_MELT_ALL_PASSES_END_RUNNER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -4803,7 +4802,7 @@ meltrout_41_warmelt_base_REGISTER_ALL_PASSES_END_HOOK_FIRST (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_41_warmelt_base_REGISTER_ALL_PASSES_END_HOOK_FIRST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_41_warmelt_base_REGISTER_ALL_PASSES_END_HOOK_FIRST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -5126,7 +5125,7 @@ meltrout_42_warmelt_base_REGISTER_ALL_PASSES_END_HOOK_LAST (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_42_warmelt_base_REGISTER_ALL_PASSES_END_HOOK_LAST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_42_warmelt_base_REGISTER_ALL_PASSES_END_HOOK_LAST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -5448,7 +5447,7 @@ meltrout_43_warmelt_base_MELT_ALL_IPA_PASSES_START_RUNNER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_43_warmelt_base_MELT_ALL_IPA_PASSES_START_RUNNER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_43_warmelt_base_MELT_ALL_IPA_PASSES_START_RUNNER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -5775,7 +5774,7 @@ meltrout_44_warmelt_base_REGISTER_ALL_IPA_PASSES_START_HOOK_FIRST
 	(struct
 	 meltframe_meltrout_44_warmelt_base_REGISTER_ALL_IPA_PASSES_START_HOOK_FIRST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_44_warmelt_base_REGISTER_ALL_IPA_PASSES_START_HOOK_FIRST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -6091,7 +6090,7 @@ meltrout_45_warmelt_base_REGISTER_ALL_IPA_PASSES_START_HOOK_LAST
 	(struct
 	 meltframe_meltrout_45_warmelt_base_REGISTER_ALL_IPA_PASSES_START_HOOK_LAST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_45_warmelt_base_REGISTER_ALL_IPA_PASSES_START_HOOK_LAST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -6413,7 +6412,7 @@ meltrout_46_warmelt_base_MELT_ALL_IPA_PASSES_END_RUNNER (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_46_warmelt_base_MELT_ALL_IPA_PASSES_END_RUNNER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_46_warmelt_base_MELT_ALL_IPA_PASSES_END_RUNNER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -6740,7 +6739,7 @@ meltrout_47_warmelt_base_REGISTER_ALL_IPA_PASSES_END_HOOK_FIRST
 	(struct
 	 meltframe_meltrout_47_warmelt_base_REGISTER_ALL_IPA_PASSES_END_HOOK_FIRST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_47_warmelt_base_REGISTER_ALL_IPA_PASSES_END_HOOK_FIRST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -7055,7 +7054,7 @@ meltrout_48_warmelt_base_REGISTER_ALL_IPA_PASSES_END_HOOK_LAST
 	(struct
 	 meltframe_meltrout_48_warmelt_base_REGISTER_ALL_IPA_PASSES_END_HOOK_LAST_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_48_warmelt_base_REGISTER_ALL_IPA_PASSES_END_HOOK_LAST output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -7369,7 +7368,7 @@ meltrout_49_warmelt_base_MELT_EARLY_GIMPLE_PASSES_START_RUNNER
 	(struct
 	 meltframe_meltrout_49_warmelt_base_MELT_EARLY_GIMPLE_PASSES_START_RUNNER_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_49_warmelt_base_MELT_EARLY_GIMPLE_PASSES_START_RUNNER output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;

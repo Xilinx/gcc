@@ -1139,7 +1139,6 @@ void MELT_MODULE_VISIBILITY
 meltmod__warmelt_first__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
 							    *fp, int marking);
-#define meltmarking_melt_start_this_module  meltmod__warmelt_first__forward_or_mark_module_start_frame
 
 
 
@@ -1201,7 +1200,7 @@ meltrout_61_warmelt_first_FIND_ENV_DEBUG (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_61_warmelt_first_FIND_ENV_DEBUG_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_61_warmelt_first_FIND_ENV_DEBUG output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -1790,7 +1789,7 @@ meltrout_62_warmelt_first_FIND_ENCLOSING_ENV (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_62_warmelt_first_FIND_ENCLOSING_ENV_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_62_warmelt_first_FIND_ENCLOSING_ENV output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -2324,7 +2323,7 @@ meltrout_63_warmelt_first_PUT_ENV (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_63_warmelt_first_PUT_ENV_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_63_warmelt_first_PUT_ENV output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -2937,7 +2936,7 @@ meltrout_64_warmelt_first_OVERWRITE_ENV (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_64_warmelt_first_OVERWRITE_ENV_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_64_warmelt_first_OVERWRITE_ENV output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -3506,7 +3505,7 @@ meltrout_65_warmelt_first_POST_INITIALIZATION (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_65_warmelt_first_POST_INITIALIZATION_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_65_warmelt_first_POST_INITIALIZATION output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -3897,7 +3896,7 @@ meltrout_66_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE_GTY (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_66_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE_GTY_st
 	 *) meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_66_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE_GTY output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -4058,7 +4057,7 @@ meltrout_67_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE (meltclosure_ptr_t
 	(struct
 	 meltframe_meltrout_67_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_67_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
@@ -4213,7 +4212,7 @@ meltrout_68_warmelt_first_DEBUG_MSG_FUN (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct meltframe_meltrout_68_warmelt_first_DEBUG_MSG_FUN_st *)
 	meltfirstargp_;
-      /* use arguments output_curframe_declstruct_init */
+      /* use arguments meltrout_68_warmelt_first_DEBUG_MSG_FUN output_curframe_declstruct_init */
       (void) meltclosp_;
       (void) meltfirstargp_;
       (void) meltxargdescr_;
