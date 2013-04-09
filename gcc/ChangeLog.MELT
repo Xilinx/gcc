@@ -1,5 +1,10 @@
 
 
+2013-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (outpucod_objputhookconst): Done.
+
+
 2013-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate all}}
