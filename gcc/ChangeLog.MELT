@@ -1,6 +1,14 @@
 
 
 2013-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* testsuite/melt/thook-1.melt (justahook): Add itr input :tree
+	formal.
+
+2013-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compilobj_datahook): Still wrong.
+
+2013-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (outpucod_marker): mark closure only
 	for procedures. Use meltix as the index.
 	(output_curframe_declstruct_init, outpucod_initialmoduleroutine)

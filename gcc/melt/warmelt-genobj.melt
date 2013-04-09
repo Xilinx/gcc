@@ -5795,15 +5795,23 @@ $SBUF.}#
       (foreach_in_multiple
        (oclo)
        (curobc :long obix)
+       (debug "compilobj_datahook curobc=" curobc "   obix#" obix)
        (let ( (curnc (multiple_nth nclotup obix))
+	      (ocompoc 
+	       (progn 
+		 (debug "compilobj_datahook curnc=" curnc)
+		 (let ( (oc (compile_obj curnc gcx)) )
+		   (debug "compilobj_datahook ocompoc=" oc)
+		   oc)))
 	      (iput (instance class_objputhookconst
 			      :obi_loc nloc
 			      :ophconst_hook oihook
 			      :ophconst_off (constant_box obix)
-			      :ophconst_cval curobc
+			      :ophconst_cval ocompoc
 			      ))
 	      )
-	 (debug "compilobj_datahook obix=" obix ".. curobc=" curobc "\n curnc=" curnc
+	 (debug "compilobj_datahook obix=" obix ".. curobc=" curobc
+		"\n.. curnc=" curnc "\n.. ocompoc=" ocompoc
 		"\n.. iput=" iput)
 	 (list_append inibody iput)
 	 ))
