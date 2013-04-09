@@ -6181,9 +6181,15 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
   fflush (stderr);
 
 #ifdef MELT_IS_PLUGIN
+  debugeprintf ("melt_compile_source before make/plugin flavor=%s srcbase=%s ourcflags=%s", 
+		flavor, srcbase, ourcflags);
+  fflush (NULL);
   melt_run_make_for_plugin (ourmakecommand, ourmakefile, ourcflags,
                             flavor, srcbase, binbase, workdir);
 #else /* not MELT_IS_PLUGIN */
+  debugeprintf ("melt_compile_source before make/branch flavor=%s srcbase=%s ourcflags=%s", 
+		flavor, srcbase, ourcflags);
+  fflush (NULL);
   melt_run_make_for_branch (ourmakecommand, ourmakefile, ourcflags,
                             flavor, srcbase, binbase, workdir);
 #endif /*MELT_IS_PLUGIN*/
