@@ -1303,7 +1303,7 @@ meltrout_69_warmelt_modes_LAMBDA___22__ (meltclosure_ptr_t meltclosp_,
   /*meltrout_69_warmelt_modes_LAMBDA___22__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct meltframe_meltrout_69_warmelt_modes_LAMBDA___22___st *)
 	meltfirstargp_;
@@ -1314,10 +1314,11 @@ meltrout_69_warmelt_modes_LAMBDA___22__ (meltclosure_ptr_t meltclosp_,
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 13; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 13; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -1632,7 +1633,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	melt_warn_for_no_expected_secondary_results ();
-      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
       ;
     }
@@ -1720,7 +1721,7 @@ meltrout_70_warmelt_modes_TRANSLATEINITMODULE_DOCMD (meltclosure_ptr_t
   /*meltrout_70_warmelt_modes_TRANSLATEINITMODULE_DOCMD is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct
 	 meltframe_meltrout_70_warmelt_modes_TRANSLATEINITMODULE_DOCMD_st *)
@@ -1732,10 +1733,11 @@ meltrout_70_warmelt_modes_TRANSLATEINITMODULE_DOCMD (meltclosure_ptr_t
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 10; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 10; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -1996,7 +1998,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	melt_warn_for_no_expected_secondary_results ();
-      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
       ;
     }
@@ -2080,7 +2082,7 @@ meltrout_71_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD
   /*meltrout_71_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct
 	 meltframe_meltrout_71_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD_st
@@ -2092,10 +2094,11 @@ meltrout_71_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 8; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 8; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -2280,7 +2283,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	melt_warn_for_no_expected_secondary_results ();
-      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
       ;
     }
@@ -2362,7 +2365,7 @@ meltrout_72_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD
   /*meltrout_72_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct
 	 meltframe_meltrout_72_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD_st
@@ -2374,10 +2377,11 @@ meltrout_72_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 8; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 8; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -2562,7 +2566,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	melt_warn_for_no_expected_secondary_results ();
-      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
       ;
     }
@@ -2644,7 +2648,7 @@ meltrout_73_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD
   /*meltrout_73_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct
 	 meltframe_meltrout_73_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD_st
@@ -2656,10 +2660,11 @@ meltrout_73_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 8; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 8; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -2844,7 +2849,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	melt_warn_for_no_expected_secondary_results ();
-      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
       ;
     }
@@ -2934,7 +2939,7 @@ meltrout_74_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
   /*meltrout_74_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct
 	 meltframe_meltrout_74_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER_st
@@ -2946,10 +2951,11 @@ meltrout_74_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 19; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 19; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -3202,7 +3208,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
 	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	      melt_warn_for_no_expected_secondary_results ();
-	    /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 	    ;
 	  }
@@ -3533,7 +3539,7 @@ meltrout_75_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
   /*meltrout_75_warmelt_modes_HANDLE_ALARM_SIGNAL is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct meltframe_meltrout_75_warmelt_modes_HANDLE_ALARM_SIGNAL_st *)
 	meltfirstargp_;
@@ -3544,10 +3550,11 @@ meltrout_75_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 41; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 41; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -3767,7 +3774,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
 	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	      melt_warn_for_no_expected_secondary_results ();
-	    /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 	    ;
 	  }
@@ -4916,7 +4923,7 @@ meltrout_76_warmelt_modes_LAMBDA___23__ (meltclosure_ptr_t meltclosp_,
   /*meltrout_76_warmelt_modes_LAMBDA___23__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct meltframe_meltrout_76_warmelt_modes_LAMBDA___23___st *)
 	meltfirstargp_;
@@ -4927,10 +4934,11 @@ meltrout_76_warmelt_modes_LAMBDA___23__ (meltclosure_ptr_t meltclosp_,
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 1; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 1; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -5065,7 +5073,7 @@ meltrout_77_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
   /*meltrout_77_warmelt_modes_REGISTER_ALARM_TIMER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct meltframe_meltrout_77_warmelt_modes_REGISTER_ALARM_TIMER_st *)
 	meltfirstargp_;
@@ -5076,10 +5084,11 @@ meltrout_77_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 21; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 21; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -5584,7 +5593,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
 		  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 		    melt_warn_for_no_expected_secondary_results ();
-		  /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 		  ;
 		}
@@ -5644,7 +5653,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	melt_warn_for_no_expected_secondary_results ();
-      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
       ;
     }
@@ -5733,7 +5742,7 @@ meltrout_78_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
   /*meltrout_78_warmelt_modes_UNREGISTER_ALARM_TIMER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct meltframe_meltrout_78_warmelt_modes_UNREGISTER_ALARM_TIMER_st
 	 *) meltfirstargp_;
@@ -5744,10 +5753,11 @@ meltrout_78_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 26; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 26; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -5907,7 +5917,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
 	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	      melt_warn_for_no_expected_secondary_results ();
-	    /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 	    ;
 	  }
@@ -6025,7 +6035,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
 	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	      melt_warn_for_no_expected_secondary_results ();
-	    /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 	    ;
 	  }
@@ -6214,7 +6224,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
 	      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 		melt_warn_for_no_expected_secondary_results ();
-	      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 	      ;
 	    }
@@ -6556,7 +6566,7 @@ meltrout_79_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER (meltclosure_ptr_t
   /*meltrout_79_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct
 	 meltframe_meltrout_79_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER_st
@@ -6568,10 +6578,11 @@ meltrout_79_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER (meltclosure_ptr_t
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 63; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 63; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -6771,7 +6782,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
 	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	      melt_warn_for_no_expected_secondary_results ();
-	    /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 	    ;
 	  }
@@ -6955,7 +6966,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
 	      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 		melt_warn_for_no_expected_secondary_results ();
-	      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 	      ;
 	    }
@@ -8389,7 +8400,7 @@ meltrout_80_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
   /*meltrout_80_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct
 	 meltframe_meltrout_80_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER_st
@@ -8401,10 +8412,11 @@ meltrout_80_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 32; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 32; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -8743,7 +8755,7 @@ meltlab_endgetargs:;
 			if (meltxresdescr_ && meltxresdescr_[0]
 			    && meltxrestab_)
 			  melt_warn_for_no_expected_secondary_results ();
-			/* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 			;
 		      }
@@ -9199,7 +9211,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
 		  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 		    melt_warn_for_no_expected_secondary_results ();
-		  /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
 		  ;
 		}
@@ -9273,7 +9285,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	melt_warn_for_no_expected_secondary_results ();
-      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
       ;
     }
@@ -9365,7 +9377,7 @@ meltrout_81_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
   /*meltrout_81_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
-      int ix = 0;
+      int meltix;
       meltframptr_ =
 	(struct
 	 meltframe_meltrout_81_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER_st
@@ -9377,10 +9389,11 @@ meltrout_81_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
       (void) meltxargtab_;
       (void) meltxresdescr_;
       (void) meltxrestab_;
+      /* marking closure */
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 8; ix++)
-	if (meltframptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
+      for (meltix = 0; meltix < 8; meltix++)
+	if (meltframptr_->mcfr_varptr[meltix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[meltix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
@@ -9579,7 +9592,7 @@ meltlab_endgetargs:;
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
 	melt_warn_for_no_expected_secondary_results ();
-      /* we warned when secondary results are expected but not returned. */
+/* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG */
       ;
     }
