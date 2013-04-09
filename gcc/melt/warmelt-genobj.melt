@@ -249,6 +249,12 @@
 	   obarg_bind			;formal binding
 	   ))
 
+;; put output argument instruction, usful inside hooks
+(defclass class_objputoutarg
+  :super class_objinstr
+  :fields (oboutarg_formal			;;formal out argument of class_objcformal
+	   ))
+
 ;; get argument & update rest index in variadic instruction
 (defclass class_objgetargrest
   :super class_objgetarg
@@ -702,6 +708,7 @@
  class_objplainblock
  class_objpredef
  class_objpurevalue
+ class_objputoutarg
  class_objputclosednotnullv
  class_objputclosedv
  class_objputclosurout
@@ -1241,9 +1248,11 @@ $SBUF.}#
 	  (let (
 		(outloc (get_field :oformal_locv curout))
 		(ctypoutb (get_field :obv_type curout))
-		(ofargout (make_objcompute loc ctypoutb
-					 ##{/*gethookoutput*/ MELTHOOK_OUTPUT($OUTLOC, $CUROUT)}#))
+		(ofargout (instance class_objputoutarg
+				    :obi_loc loc
+				    :oboutarg_formal curout))
 	      )
+	    (debug "compile2obj_hook ofargout=" ofargout)
 	      (list_append oepiloglist ofargout)
 	  ))
 	 (debug "compile2obj_hook oepiloglist=" oepiloglist)
@@ -4895,17 +4904,21 @@ $SBUF.}#
        (list_append olis oxres)))
     ;; if no secondary results are returned, emit a check that no
     ;; secondary actual results are expected
-    (if (is_not_a orout class_initialroutineobj)
+    (if (is_a orout class_procroutineobj)
 	(if (==i (multiple_length rrest) 0)
 	    (let ( (ochecknores 
-		    (make_objlocatedexp rloc ctype_void		
-					##{ /*ochecknores compilobj_nrep_return*/
-					#if MELT_HAVE_DEBUG
-					if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)  melt_warn_for_no_expected_secondary_results()	;
-					/* we warned when secondary results are expected but not returned. */
-					#endif /*MELT_HAVE_DEBUG*/
-					}#
-					))
+		    ;; I should be ashamed of this, we really should a
+		    ;; special class subclass of class_objinstr for
+		    ;; that check.
+		    (make_objlocatedexp 
+		     rloc ctype_void		
+		     "/*ochecknores compilobj_nrep_return*/\n"
+		     "#if MELT_HAVE_DEBUG\n"
+		     " if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)\n"
+		     "    melt_warn_for_no_expected_secondary_results();\n"
+		     "/* we warned when secondary results are expected but not returned. */\n"
+		     "#endif /*MELT_HAVE_DEBUG*/\n"
+		     ))
 		   )
 	      (debug "compilobj_nrep_return ochecknores=" ochecknores)
 	      (list_append olis ochecknores)
@@ -5754,7 +5767,7 @@ $SBUF.}#
 		     (debug "compile_obj odiscr=" odi)
 		     odi))
 	   (onam (string4out discr_verbatim_string
-			     ##{dhook__$HNAME#__$NRANK}#))
+			     ##{dhook__$NRANK#__$HNAME}#))
 	   (locvar (get_free_objlocptr gcx '_valhook_))
 	   (oclo
 	    (multiple_map 
@@ -5805,6 +5818,7 @@ $SBUF.}#
       )))
 
 (install_method class_nrep_datahook compile_obj compilobj_datahook)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_quasidata_current_module_environment_container (qdcm gcx)
   (assert_msg "check qdcm" (is_a qdcm class_nrep_quasidata_current_module_environment_container))

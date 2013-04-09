@@ -2282,7 +2282,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
       (add2out_strconst sbuf qualif)
       (add2sbuf_indentnl sbuf 0)
       )
-    (add2out sbuf oretctycname " " hookname "(melt_ptr_t " ohkdatacname ",")
+    (add2out sbuf oretctycname " " hookname "(melt_ptr_t " ohkdatacname)
     ;; declare the input arguments
     (foreach_in_multiple
      (ohkinargs)
@@ -2331,156 +2331,175 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 (oretval (get_field :obrout_retval phook))
 	 (oretctype (get_field :obv_type oretval))
 	 (oretctycname (get_field :ctype_cname oretctype))
-	 ;(ocntciter (get_field :obrout_cntciter phook))
-	 ;(ocntletrec (get_field :obrout_cntletrec phook))
+					;(ocntciter (get_field :obrout_cntciter phook))
+					;(ocntletrec (get_field :obrout_cntletrec phook))
 	 (ohkdatarg (get_field :ohookrout_datarg phook))
 	 (ohkdatacname (get_field :oformal_name ohkdatarg))
 	 (ohkinargs (get_field :ohookrout_inargs phook))
 	 (ohkoutargs (get_field :ohookrout_outargs phook))
 	 (ohkepilog (get_field :ohookrout_epilog phook))
 	 (:long minihash (+i 2 (%iraw (obj_hash phook) 4096)))
-	)
-  (debug "outpucod_hookroutine hookname=" hookname 
-	 "\n nrawhookname=" nrawhookname
-	 "\n ohkdatarg=" ohkdatarg 
-	 "\n oretctype=" oretctype
-	 "\n ohkinargs=" ohkinargs
-	 "\n ohkoutargs=" ohkoutargs
-	 "\n oretval=" oretval
-	 "\n oretctype=" oretctype
-	 "\n obody=" obody
-	 "\n ohkepilog=" ohkepilog)
-  ;;; should generate the marking routine, and the hook routine
-  (output_centraldecl_hookroutine phook declbuf "declaration of" "MELT_EXTERN")
-  (add2out declbuf ##{/* declare frame for $HOOKNAME hook:*/}#)
-  (add2sbuf_indentnl declbuf 0);
-  (add2out declbuf 
-	   ##{struct melthookframe_$NRAWHOOKNAME#_st; /* opaque frame for  $HOOKNAME hook */}#
+	 )
+    (debug "outpucod_hookroutine hookname=" hookname 
+	   "\n nrawhookname=" nrawhookname
+	   "\n ohkdatarg=" ohkdatarg 
+	   "\n oretctype=" oretctype
+	   "\n ohkinargs=" ohkinargs
+	   "\n ohkoutargs=" ohkoutargs
+	   "\n oretval=" oretval
+	   "\n oretctype=" oretctype
+	   "\n obody=" obody
+	   "\n ohkepilog=" ohkepilog)
+;;; should generate the marking routine, and the hook routine
+    (output_centraldecl_hookroutine phook declbuf "declaration of" "MELT_EXTERN")
+    (add2out_strconst declbuf ";")
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_indentnl declbuf 0)
+    (add2out declbuf ##{/* declare frame for $HOOKNAME hook:*/}#)
+    (add2sbuf_indentnl declbuf 0)
+    (add2out declbuf 
+	     ##{struct melthookframe_$NRAWHOOKNAME#_st ; /* opaque frame for  $HOOKNAME hook */}#
+	     )
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_indentnl declbuf 0)
+    (add2out
+     declbuf
+     ##{/* declare frame marking routine for $HOOKNAME hook */
+     static void melthookmark_$NRAWHOOKNAME#_rout (struct melt_callframe_st*, int) ;
+     }#)
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_indentnl declbuf 0)
+    (add2out 
+     implbuf ##{/* frame for $HOOKNAME hook: */
+     typedef }#)
+    (output_curframe_declstruct phook implbuf)
+    (add2out implbuf " melthookframe_" nrawhookname "_t; /* end of hook frame " hookname " */")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (output_centraldecl_hookroutine phook implbuf "implementation of" (the_null_cstring))
+    (add2out implbuf "{ /* body of hook " hookname " */")
+    (add2sbuf_indentnl implbuf 0)
+    (let ( (odatalocv (get_field :oformal_locv ohkdatarg))
 	   )
-  (add2sbuf_indentnl declbuf 0)
-  (add2out declbuf
-	   ##{/* declare frame marking routine for $HOOKNAME hook */
-	   void melthookmark_$NRAWHOOKNAME#_rout (struct melt_callframe_st*, int) 
-	                 MELT_MODULE_VISIBILITY;}#
-			 )
-  (add2sbuf_indentnl declbuf 0)
-  (add2out 
-   implbuf ##{/* frame for $HOOKNAME hook: */
-   typedef struct melthookframe_$NRAWHOOKNAME#_st { }#)
-  (output_curframe_declstruct phook implbuf)
-  (add2out implbuf "} melthookframe_" nrawhookname "_t;")
-  (add2sbuf_indentnl implbuf 0)
-  (add2sbuf_indentnl implbuf 0)
-  (output_centraldecl_hookroutine phook implbuf "implementation of" (the_null_cstring))
-  (add2out implbuf "{ /* body of hook " hookname " */")
-  (add2sbuf_indentnl implbuf 0)
-  ;; generate the hook frame
-  (add2out 
-   implbuf 
-   ##{/* declare and initialize frame for $HOOKNAME hook */ 
-#undef meltcallcount
-#if MELT_HAVE_DEBUG
-    static long melthook_call_counter_$NRAWHOOKNAME;
-    long melt_thishookcall_counter_$NRAWHOOKNAME ATTRIBUTE_UNUSED = melthook_call_counter_$NRAWHOOKNAME++;
-#define meltcallcount melt_thishookcall_counter_$NRAWHOOKNAME
-#else
-#define meltcallcount 0L
-#endif
-   struct melthookframe_$NRAWHOOKNAME#_st melthook_$NRAWHOOKNAME#_frame_, *melthook_$NRAWHOOKNAME#_frameptr = 0;
-   /* clear and push the new call frame for hook $HOOKNAME */
-   memset (&melthook_$NRAWHOOKNAME#_frame_, 0, sizeof(melthook_$NRAWHOOKNAME#_frame_));
-#define meltframe melthook_$NRAWHOOKNAME#_frame_
-   meltframe.mcfr_nbvar = -$MINIHASH /*hook minihash*/;
-   ((struct melt_callframe_st*)&meltframe)->mcfr_forwmarkrout
-       = melthookmark_$NRAWHOOKNAME#_rout;
-   meltframe.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
-   melt_topframe = (struct melt_callframe_st*) &melthook_$NRAWHOOKNAME#_frame_;
-   }#)
-  (add2sbuf_indentnl implbuf 1)
-  ;; output the body
-  (add2out 
-   implbuf 
-   ##{/* body of $HOOKNAME hook */}#
-   )
-  (add2sbuf_indentnl implbuf 1)
-  (debug "outpucod_hookroutine obody=" obody)
-  (assert_msg "check list body" (is_list obody))
-  (foreach_in_list
-   (obody)
-   (curbodypair curbodyo)
-   (debug "outpucod_hookroutine curbodyo=" curbodyo)
-   (when (is_not_a curbodyo class_objpurevalue)
-     (output_c_code curbodyo declbuf implbuf 1)
-     (add2sbuf_strconst implbuf ";")
-     (add2sbuf_indentnl implbuf 1))
-   (assert_msg "check limited implbuf" 
-	       (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
-   )
-  ;; output the epilogue
-  (add2out 
-   implbuf 
-   ##{/* epilogue of $HOOKNAME hook */
-   goto  meltlabend_rout;
-   meltlabend_rout: ;
-   }#
-   )
-  (add2sbuf_indentnl implbuf 1)
-  (debug "outpucod_hookroutine ohkepilog=" ohkepilog)
-  (assert_msg "check epilog" (is_list ohkepilog))
-  (foreach_in_list
-   (ohkepilog)
-   (curepipair curepins)
-   (debug "outpucod_hookroutine curepins=" curepins)
-   (when (is_not_a curepins class_objpurevalue)
-     (output_c_code curepins declbuf implbuf 1)
-     (add2sbuf_strconst implbuf ";")
-     (add2sbuf_indentnl implbuf 1))
-  )
-  (add2out 
-   implbuf 
-   ##{/* final of $HOOKNAME hook */
-   melt_topframe = meltfram__.mcfr_prev;
-  return }#)
-  (add2sbuf_indentnl implbuf 3)
-  (if oretval
-      (output_c_code oretval declbuf implbuf 1))
-  (add2sbuf_strconst implbuf ";")
-  (add2sbuf_indentnl implbuf 0)
-  (add2out 
-   implbuf 
-   ##{} /* end of $HOOKNAME hook */}#)
-  (add2sbuf_indentnl implbuf 0)
-  (add2sbuf_indentnl implbuf 0)
-  ;;
-  ;; output the marking routine
+      (debug "outpucod_hookroutine framing hookname=" hookname
+	     "\n.. ohkdatarg=" ohkdatarg "\n.. odatalocv=" odatalocv)
+      ;; generate the hook frame
+      (add2out 
+       implbuf 
+       ##{/* declare and initialize frame for $HOOKNAME hook */ 
+       #undef meltcallcount
+       #if MELT_HAVE_DEBUG
+       static long melthook_call_counter_$NRAWHOOKNAME ;
+       long melt_thishookcall_counter_$NRAWHOOKNAME ATTRIBUTE_UNUSED = melthook_call_counter_$NRAWHOOKNAME++ ;
+       #define meltcallcount melt_thishookcall_counter_$NRAWHOOKNAME
+       #else
+       #define meltcallcount 0L
+       #endif
+       melthookframe_$NRAWHOOKNAME#_t melthook_$NRAWHOOKNAME#_frame_, *melthook_$NRAWHOOKNAME#_frameptr = 0 ;
+       /* clear and push the new call frame for hook $HOOKNAME */
+       memset (&melthook_$NRAWHOOKNAME#_frame_, 0, sizeof(melthook_$NRAWHOOKNAME#_frame_)) ;
+       melthook_$NRAWHOOKNAME#_frameptr = &melthook_$NRAWHOOKNAME#_frame_ ;
+       #define meltfram__ melthook_$NRAWHOOKNAME#_frame_
+       #define meltframe meltfram__
+       meltframe.mcfr_nbvar = -$MINIHASH /*hook minihash*/ ;
+       ((struct melt_callframe_st*)&meltframe)->mcfr_forwmarkrout
+       = melthookmark_$NRAWHOOKNAME#_rout			    ;
+       meltframe.mcfr_prev = (struct melt_callframe_st *) melt_topframe	;
+       melt_topframe = (struct melt_callframe_st*) &melthook_$NRAWHOOKNAME#_frame_ ;}#
+       )
+      (add2sbuf_indentnl implbuf 0)
+      (add2out implbuf "#define meltfhook /*hook data of " nrawhookname "*/ ((melthook_ptr_t) (")
+      (output_c_code odatalocv declbuf implbuf 0)
+      (add2sbuf_strconst implbuf "))")
+      (add2sbuf_indentnl implbuf 1)
+      ;; output the body
+      (add2out 
+       implbuf 
+       ##{/* body of $HOOKNAME hook */}#
+       )
+      (add2sbuf_indentnl implbuf 1)
+      (debug "outpucod_hookroutine obody=" obody)
+      (assert_msg "check list body" (is_list obody))
+      (foreach_in_list
+       (obody)
+       (curbodypair curbodyo)
+       (debug "outpucod_hookroutine curbodyo=" curbodyo)
+       (when (is_not_a curbodyo class_objpurevalue)
+	 (output_c_code curbodyo declbuf implbuf 1)
+	 (add2sbuf_strconst implbuf ";")
+	 (add2sbuf_indentnl implbuf 1))
+       (assert_msg "check limited implbuf" 
+		   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+       )
+      ;; output the epilogue
+      (add2out 
+       implbuf 
+       ##{/* epilogue of $HOOKNAME hook */
+       goto  meltlabend_rout		;
+       meltlabend_rout:			;
+       }#
+       )
+      (add2sbuf_indentnl implbuf 1)
+      (debug "outpucod_hookroutine ohkepilog=" ohkepilog)
+      (assert_msg "check epilog" (is_list ohkepilog))
+      (foreach_in_list
+       (ohkepilog)
+       (curepipair curepins)
+       (debug "outpucod_hookroutine curepins=" curepins)
+       (when (is_not_a curepins class_objpurevalue)
+	 (output_c_code curepins declbuf implbuf 1)
+	 (add2sbuf_strconst implbuf ";")
+	 (add2sbuf_indentnl implbuf 1))
+       )
+      (add2out 
+       implbuf 
+       ##{/* final of $HOOKNAME hook */
+       melt_topframe = meltfram__.mcfr_prev ;
+       return }#)
+      (add2sbuf_indentnl implbuf 3)
+      (if oretval
+	  (output_c_code oretval declbuf implbuf 1))
+      (add2sbuf_strconst implbuf ";")
+      (add2sbuf_indentnl implbuf 0)
+      (add2out implbuf ##{} /* end of $HOOKNAME hook */}#)
+      (add2sbuf_indentnl implbuf 0)
+      (add2out_strconst implbuf "#undef meltframe")
+      (add2sbuf_indentnl implbuf 0)
+      (add2out_strconst implbuf "#undef meltfram__")
+      (add2sbuf_indentnl implbuf 0)
+      (add2out_strconst implbuf "#undef meltfhook")
+      (add2sbuf_indentnl implbuf 0)
+      (add2sbuf_indentnl implbuf 0)
+      ;;
+      ;; output the marking routine
 
-  (add2out 
-   implbuf
-   ##{/* define frame moving or marking routine for $HOOKNAME hook */
-   void melthookmark_$NRAWHOOKNAME#_rout (struct melt_callframe_st*meltcfram, int meltmarking) 
-   {
-      struct melthookframe_$NRAWHOOKNAME#_st* meltfram
-        = (struct melthookframe_$NRAWHOOKNAME#_st*)meltcfram;
-      melt_assertmsg ("hook frame $NRAWHOOKNAME good hash", meltfram->mcfr_nbvar == -$MINIHASH);
-      if (meltmarking) { /* marking hook $NRAWHOOKNAME */ }#)
-  (debug "outpucod_hookroutine marking phook=" phook)
-  (outpucod_marker phook implbuf)
-  (add2out 
-   implbuf
-   ##{ } else /* copying hook $NRAWHOOKNAME */ if (melt_is_forwarding) {
-     int meltvix;
-     for (meltvix= 0; 
-     	meltvix< $NBVAL;
-     	meltvix++) 
-        MELT_FORWARDED (meltfram->mcfr_varptr[meltvix]);
-     }
-   } /* end  melthookmark_$NRAWHOOKNAME#_rout */
-   }#)
-  (add2sbuf_indentnl implbuf 0)
-  (add2sbuf_indentnl implbuf 0)
-  (add2sbuf_indentnl declbuf 0)
-  ;;
-  ))
+      (add2out 
+       implbuf
+       ##{/* define frame moving or marking routine for $HOOKNAME hook */
+       void melthookmark_$NRAWHOOKNAME#_rout (struct melt_callframe_st*meltcfram, int meltmarking) 
+       {
+       struct melthookframe_$NRAWHOOKNAME#_st* meltfram
+       = (struct melthookframe_$NRAWHOOKNAME#_st*)meltcfram ;
+       melt_assertmsg ("hook frame $NRAWHOOKNAME good hash", meltfram->mcfr_nbvar == -$MINIHASH) ;
+       if (meltmarking) { /* marking hook $NRAWHOOKNAME */ }#)
+      (debug "outpucod_hookroutine marking phook=" phook)
+      (outpucod_marker phook implbuf)
+      (add2out 
+       implbuf
+       ##{ } else /* copying hook $NRAWHOOKNAME */ if (melt_is_forwarding) {
+       int meltvix			;
+       for (meltvix= 0			; 
+		     meltvix< $NBVAL	;
+		     meltvix++) 
+       MELT_FORWARDED (meltfram->mcfr_varptr[meltvix]) ;
+       }
+       } /* end  melthookmark_$NRAWHOOKNAME#_rout */
+       }#)
+      (add2sbuf_indentnl implbuf 0)
+      (add2sbuf_indentnl implbuf 0)
+      (add2sbuf_indentnl declbuf 0)
+      ;;
+      )))
 (install_method class_hookroutineobj output_c_code outpucod_hookroutine)
 
 
@@ -2844,6 +2863,21 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
     ))
 (install_method class_objcformal output_c_code outpucod_objcformal)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; output code for put output argument in hooks
+(defun outpucod_objputoutarg (outa declbuf implbuf :long depth)
+  (debug "outpucod_objputoutarg outa=" outa)
+  (assert_msg "check outa" (is_a outa class_objputoutarg))
+  (let ( (oloc (get_field :obi_loc outa))
+	 (oformal (get_field :oboutarg_formal outa))
+	 )
+    (debug "outpucod_objputoutarg oformal=" oformal)
+    (assert_msg "check oarg" (is_a oarg class_objcformal))
+    (assert_msg "@$@unimplemented outpucod_objputoutarg")
+    ))
+(install_method class_objputoutarg output_c_code outpucod_objputoutarg)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output code for objlocv
 (defun outpucod_objlocv (locv declbuf implbuf :long depth)
@@ -2896,6 +2930,7 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output code for hook closed occurrence
 (defun outpucod_objclohookv (occv  declbuf implbuf :long depth)
+  (debug "outpucod_objclohookv occv=" occv)
   (assert_msg "check occv" (is_a occv class_objclohookv))
   (let ( (ooff (unsafe_get_field :obc_off occv))
 	 (onam (unsafe_get_field :obc_name occv)) )

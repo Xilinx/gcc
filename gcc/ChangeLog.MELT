@@ -2,6 +2,17 @@
 
 2013-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (class_objputoutarg): New class, with
+	field oboutarg_formal.
+	(compile2obj_hook) Use that class.
+	(compilobj_nrep_return): Still ugly hack about expected but not
+	given secondary result.
+
+	* melt/warmelt-outobj.melt (outpucod_objputoutarg): New stub
+	method for output_c_code on class_objputoutarg...
+
+2013-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (melt_compile_source): Add debug print just
 	before calling melt_run_make_for_plugin or
 	melt_run_make_for_branch.
