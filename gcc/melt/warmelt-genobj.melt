@@ -5098,6 +5098,7 @@ $SBUF.}#
     (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
     (assert_msg "compil_data_and_slots_fill check fresh obj" (null (unsafe_get_field :oie_locvar obj)))
     (unsafe_put_fields obj :oie_locvar locvar)
+    (debug "compil_data_and_slots_fill updated obj=" obj)
     (assert_msg "compil_data_and_slots_fill check ifilllis" (is_list ifilllis))
     (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
     ;; if the data is predefined, we fill it conditionally on !meltpredefinited[..]
@@ -5754,6 +5755,7 @@ $SBUF.}#
 		     odi))
 	   (onam (string4out discr_verbatim_string
 			     ##{dhook__$HNAME#__$NRANK}#))
+	   (locvar (get_free_objlocptr gcx '_valhook_))
 	   (oclo
 	    (multiple_map 
 	     nclotup
@@ -5765,6 +5767,7 @@ $SBUF.}#
 	   (oihook 
 	    (instance class_objinithook
 		      :obv_type ctype_value
+		      :oie_locvar locvar
 		      :oie_cname onam
 		      :oie_data ndhook
 		      :oie_discr odiscr
