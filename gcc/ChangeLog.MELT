@@ -1,6 +1,13 @@
 
 
 2013-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (outpucod_marker): mark closure only
+	for procedures. Use meltix as the index.
+	(output_curframe_declstruct_init, outpucod_initialmoduleroutine)
+	(output_curframe_cdat_fill, outpucod_hookroutine): Emit
+	declaration of meltix.
+
+2013-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-outobj.melt (outpucod_objputoutarg): Coded.
 

@@ -1455,19 +1455,20 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
   (let ( (others (get_field :obrout_others rou))
 	 (:long nbval (get_int (get_field :obrout_nbval rou)))
 	 )
-    (if (is_not_a rou class_initialroutineobj)
-	(progn
-	  (add2sbuf_string implbuf (get_field :ctype_marker ctype_value))
-	  (add2sbuf_strconst implbuf " (meltframptr_->mcfr_clos);")
-	  (add2sbuf_indentnl implbuf 3)))
-    (add2sbuf_strconst implbuf "for(ix=0; ix<")
+    (when (is_a rou class_procroutineobj)
+      (add2sbuf_strconst implbuf "/* marking closure */")
+      (add2sbuf_indentnl implbuf 2)
+      (add2sbuf_string implbuf (get_field :ctype_marker ctype_value))
+      (add2sbuf_strconst implbuf " (meltframptr_->mcfr_clos);")
+      (add2sbuf_indentnl implbuf 3))
+    (add2sbuf_strconst implbuf "for(meltix=0; meltix<")
     (add2sbuf_longdec implbuf nbval)
-    (add2sbuf_strconst implbuf "; ix++)")
+    (add2sbuf_strconst implbuf "; meltix++)")
     (add2sbuf_indentnl implbuf 4)
-    (add2sbuf_strconst implbuf "if (meltframptr_->mcfr_varptr[ix])")
+    (add2sbuf_strconst implbuf "if (meltframptr_->mcfr_varptr[meltix])")
     (add2sbuf_indentnl implbuf 5)
     (add2sbuf_string implbuf (get_field :ctype_marker ctype_value))
-    (add2sbuf_strconst implbuf " (meltframptr_->mcfr_varptr[ix]);")
+    (add2sbuf_strconst implbuf " (meltframptr_->mcfr_varptr[meltix]);")
     (add2sbuf_indentnl implbuf 3)
     (list_every 
      others
@@ -1591,7 +1592,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       (add2sbuf_indentnl implbuf 2)
       (add2sbuf_strconst implbuf "if (MELT_UNLIKELY(meltxargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/")
       (add2sbuf_indentnl implbuf 3)
-      (add2sbuf_strconst implbuf "int ix=0;")
+      (add2sbuf_strconst implbuf "int meltix;")
       (add2sbuf_indentnl implbuf 3)
       (if rouname
 	  (add2out implbuf "meltframptr_ = (struct meltframe_" rouname "_st*) meltfirstargp_;")
@@ -2213,7 +2214,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "{")
     (add2sbuf_indentnl implbuf 1)
-    (add2sbuf_strconst implbuf "int ix=0;")
+    (add2sbuf_strconst implbuf "int meltix=0;")
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf "melt_initial_frame_st* meltframptr_= (melt_initial_frame_st*)fp;")
     (add2sbuf_indentnl implbuf 1)
@@ -2230,9 +2231,9 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (add2sbuf_longdec implbuf nbval)
     (add2sbuf_strconst implbuf ", (void*) meltframptr_);")
     (add2sbuf_indentnl implbuf 1)
-    (add2sbuf_strconst implbuf "for (ix = 0;  ix < ")
+    (add2sbuf_strconst implbuf "for (meltix = 0;  meltix < ")
     (add2sbuf_longdec implbuf nbval)
-    (add2sbuf_strconst implbuf "; ix++)  MELT_FORWARDED(meltframptr_->mcfr_varptr[ix]);")
+    (add2sbuf_strconst implbuf "; meltix++)  MELT_FORWARDED(meltframptr_->mcfr_varptr[meltix]);")
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf " return;")
     (add2sbuf_indentnl implbuf 1)
@@ -2355,18 +2356,10 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (add2out_strconst declbuf ";")
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
-    (add2out declbuf ##{/* declare frame for $HOOKNAME hook:*/}#)
     (add2sbuf_indentnl declbuf 0)
-    (add2out declbuf 
-	     ##{struct melthookframe_$NRAWHOOKNAME#_st ; /* opaque frame for  $HOOKNAME hook */}#
-	     )
-    (add2sbuf_indentnl declbuf 0)
-    (add2sbuf_indentnl declbuf 0)
-    (add2out
-     declbuf
-     ##{/* declare frame marking routine for $HOOKNAME hook */
-     static void melthookmark_$NRAWHOOKNAME#_rout (struct melt_callframe_st*, int) ;
-     }#)
+    (add2out declbuf
+	     "/* declare hook frame marking routine for " hookname " hook */\n"
+	     "static void melthookmark_" nrawhookname "_rout (struct melt_callframe_st*, int);\n")
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (add2out 
@@ -2395,10 +2388,9 @@ MELT_EXTERN  void* melt_start_this_module (void*);
        #else
        #define meltcallcount 0L
        #endif
-       melthookframe_$NRAWHOOKNAME#_t melthook_$NRAWHOOKNAME#_frame_, *melthook_$NRAWHOOKNAME#_frameptr = 0 ;
+       melthookframe_$NRAWHOOKNAME#_t melthook_$NRAWHOOKNAME#_frame_;
        /* clear and push the new call frame for hook $HOOKNAME */
        memset (&melthook_$NRAWHOOKNAME#_frame_, 0, sizeof(melthook_$NRAWHOOKNAME#_frame_)) ;
-       melthook_$NRAWHOOKNAME#_frameptr = &melthook_$NRAWHOOKNAME#_frame_ ;
        #define meltfram__ melthook_$NRAWHOOKNAME#_frame_
        #define meltframe meltfram__
        meltframe.mcfr_nbvar = -$MINIHASH /*hook minihash*/ ;
@@ -2475,26 +2467,30 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 
       (add2out 
        implbuf
-       ##{/* define frame moving or marking routine for $HOOKNAME hook */
-       void melthookmark_$NRAWHOOKNAME#_rout (struct melt_callframe_st*meltcfram, int meltmarking) 
-       {
-       struct melthookframe_$NRAWHOOKNAME#_st* meltfram
-       = (struct melthookframe_$NRAWHOOKNAME#_st*)meltcfram ;
-       melt_assertmsg ("hook frame $NRAWHOOKNAME good hash", meltfram->mcfr_nbvar == -$MINIHASH) ;
-       if (meltmarking) { /* marking hook $NRAWHOOKNAME */ }#)
+       "/* define frame moving or marking routine for " hookname "hook */\n"
+       "void melthookmark_" nrawhookname "_rout (struct melt_callframe_st*meltcfram, int meltmarking)\n{\n")
+       (add2out 
+	implbuf
+	##{
+       melthookframe_$NRAWHOOKNAME#_t* meltframptr_
+           = (melthookframe_$NRAWHOOKNAME#_t*) meltcfram ;
+       melt_assertmsg ("hook frame $NRAWHOOKNAME good hash", meltframptr_->mcfr_nbvar == -$MINIHASH) ;
+       if (meltmarking) { /* marking hook $NRAWHOOKNAME */ int meltix;}#
+       )
+       (add2sbuf_indentnl implbuf 2)
       (debug "outpucod_hookroutine marking phook=" phook)
       (outpucod_marker phook implbuf)
       (add2out 
        implbuf
        ##{ } else /* copying hook $NRAWHOOKNAME */ if (melt_is_forwarding) {
-       int meltvix			;
-       for (meltvix= 0			; 
-		     meltvix< $NBVAL	;
-		     meltvix++) 
-       MELT_FORWARDED (meltfram->mcfr_varptr[meltvix]) ;
-       }
-       } /* end  melthookmark_$NRAWHOOKNAME#_rout */
-       }#)
+       int meltvix ;
+       for (meltvix= 0 ; 
+	    meltvix< $NBVAL ;
+	    meltvix++ ) 
+       MELT_FORWARDED (meltframptr_->mcfr_varptr[meltvix]) ;
+       } /* end copying hook $NRAWHOOKNAME */ }#)
+      (add2sbuf_indentnl implbuf 0)
+      (add2out implbuf "} /* end  melthookmark_" nrawhookname "_rout */")
       (add2sbuf_indentnl implbuf 0)
       (add2sbuf_indentnl implbuf 0)
       (add2sbuf_indentnl declbuf 0)
@@ -2664,7 +2660,7 @@ meltlabend_rout: melt_topframe = meltfram__.mcfr_prev;
      ##{/* extension routine $OMODNAM initial frame marking routine implem */
 static void 
 meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
-     int ix=0;
+     int meltix=0;
      meltrun_$OMODNAM#_initialext_frame_t* meltframptr_ 
       = ( meltrun_$OMODNAM#_initialext_frame_t*)fp;
      melt_assertmsg("check extension $OMODNAM frame", 
@@ -2672,10 +2668,10 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
      if (!marking && melt_is_forwarding) {
        dbgprintf ("$OMODNAM extension forwarding $NBVAL variables in frame @%p",
 		  (void*)meltframptr_);
-       for (ix=0; 
-	    ix< $NBVAL;
-	    ix++) 
-         MELT_FORWARDED (meltframptr_->mcfr_varptr[ix]);
+       for (meltix=0; 
+	    meltix< $NBVAL;
+	    meltix++) 
+         MELT_FORWARDED (meltframptr_->mcfr_varptr[meltix]);
        return;
      } /*end forwarking extension $OMODNAM*/
      dbgprintf ("$OMODNAM extension marking frame@%p with $NBVAL values",
