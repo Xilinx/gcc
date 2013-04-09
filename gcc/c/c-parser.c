@@ -117,26 +117,11 @@ c_parse_init (void)
       ridpointers [(int) c_common_reswords[i].rid] = id;
     }
 
-  /* Here we initialize the simd_values structure. We only need it 
-     initialized the first time, after each consumptions, for-loop will 
-     automatically consume the values and delete the information.  */
-  cilkplus_local_simd_values.index              = 0;
-  cilkplus_local_simd_values.pragma_encountered = false;
-  cilkplus_local_simd_values.types              = P_SIMD_NOASSERT;
-  cilkplus_local_simd_values.vectorlength       = NULL_TREE;
-  cilkplus_local_simd_values.vec_length_list    = NULL;
-  cilkplus_local_simd_values.vec_length_size    = 0;
-  cilkplus_local_simd_values.private_vars       = NULL_TREE;
-  cilkplus_local_simd_values.priv_var_list      = NULL;
-  cilkplus_local_simd_values.priv_var_size      = 0;
-  cilkplus_local_simd_values.linear_vars        = NULL_TREE;
-  cilkplus_local_simd_values.linear_var_size    = 0;
-  cilkplus_local_simd_values.linear_var_list    = NULL;
-  cilkplus_local_simd_values.linear_steps       = NULL_TREE;
-  cilkplus_local_simd_values.linear_steps_list  = NULL;
-  cilkplus_local_simd_values.linear_steps_size  = 0;
-  cilkplus_local_simd_values.reduction_vals     = NULL;
-  cilkplus_local_simd_values.ptr_next           = NULL;
+  /* Only initialize the first time.  After each consumption, the
+     for-loop handling code (c_finish_loop) will automatically consume
+     the values and delete the information.  */
+  memset (&cilkplus_local_simd_values, 0,
+	  sizeof (cilkplus_local_simd_values));
 
   clear_pragma_simd_list ();
 }
@@ -1251,12 +1236,16 @@ static void c_parser_objc_at_synthesize_declaration (c_parser *);
 static void c_parser_objc_at_dynamic_declaration (c_parser *);
 static bool c_parser_objc_diagnose_bad_element_prefix
   (c_parser *, struct c_declspecs *);
+
+// FIXME: Re-work this so there are only prototypes for mutually
+// recursive functions.
+/* Cilk Plus supporting routines.  */
 static void c_parser_cilk_for_statement (c_parser *, tree);
-void c_parser_simd_linear (c_parser *);
-void c_parser_simd_private (c_parser *);
-void c_parser_simd_assert (c_parser *, bool);
-void c_parser_simd_vectorlength (c_parser *);
-void c_parser_simd_reduction (c_parser *);
+static void c_parser_simd_linear (c_parser *);
+static void c_parser_simd_private (c_parser *);
+static void c_parser_simd_assert (c_parser *, bool);
+static void c_parser_simd_vectorlength (c_parser *);
+static void c_parser_simd_reduction (c_parser *);
 static tree c_parser_array_notation (location_t, c_parser *, tree, tree);
 /* Parse a translation unit (C90 6.7, C99 6.9).
 
@@ -8799,7 +8788,7 @@ c_parser_objc_at_dynamic_declaration (c_parser *parser)
       #pragma simd assert
       #pragma simd noassert
  */
-void
+static void
 c_parser_simd_assert (c_parser *parser, bool is_assert)
 {
   c_token *token;
@@ -8856,7 +8845,7 @@ c_parser_simd_assert (c_parser *parser, bool is_assert)
       #pragma simd linear (<variable>:[<steps>], ...)
  */
 
-void
+static void
 c_parser_simd_linear (c_parser *parser)
 {
   tree linear_var_list = NULL_TREE, linear_steps_list = NULL_TREE;
@@ -8967,14 +8956,13 @@ c_parser_simd_linear (c_parser *parser)
 	}
     }
   cilkplus_local_simd_values.pragma_encountered = true;
-  return;
 }
 
 /* This function will parse the pragma simd private in the Cilkplus 
    language extension. The correct syntax is: 
 	#pragma simd private (<variable> [, <variable>])
  */
-void
+static void
 c_parser_simd_private (c_parser *parser)
 {
   tree private_var = NULL_TREE;
@@ -9068,15 +9056,13 @@ c_parser_simd_private (c_parser *parser)
 	  c_parser_for_statement (parser);
 	}
     }
-  
-  return;
 }
 
 /* This function will parse the pragma simd vectorlength in the Cilkplus 
    language extension. The correct syntax is: 
 	#pragma simd vectorlength (<INTEGER> [, <INTEGER>]*)
  */
-void
+static void
 c_parser_simd_vectorlength (c_parser *parser)
 {
   tree vec_length_list = NULL_TREE, v_length_value = NULL_TREE;
@@ -9168,8 +9154,6 @@ c_parser_simd_vectorlength (c_parser *parser)
 	  c_parser_for_statement (parser);
 	}
     }
-  
-  return;
 }
 
 /* This function will parser the Pragma SIMD Reduction in the Cilkplus language 
@@ -9177,7 +9161,7 @@ c_parser_simd_vectorlength (c_parser *parser)
 	  #pragma simd reduction (<operator>:<variable> [, <variable>]*)
  */
 
-void
+static void
 c_parser_simd_reduction (c_parser *parser)
 {
   c_token *token;
@@ -9299,7 +9283,6 @@ c_parser_simd_reduction (c_parser *parser)
 	   values given in the local_pragma_simd variable.  */ 
 	c_parser_for_statement (parser);
     }
-  return;
 }
 
 /* This function helps parse the grainsize pragma available in the Cilkplus 
@@ -9353,9 +9336,35 @@ c_parser_cilk_grainsize (c_parser *parser)
     }
   else
     c_parser_skip_to_pragma_eol (parser);
-  return;
 }
-	    
+
+/* Helper function for c_parser_pragma.  Perform some sanity checking
+   for <#pragma simd> constructs.  Returns FALSE if there was a
+   problem.  */
+
+static bool
+c_parser_pragma_simd_ok_p (c_parser *parser, enum pragma_context context)
+{
+  if (!flag_enable_cilk)
+    {
+      warning (0, "pragma simd ignored because -fcilkplus is not enabled");
+      c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
+      return false;
+    }
+  if (!flag_tree_vectorize)
+    {
+      warning (0, "pragma simd is useless without -ftree-vectorize");
+      c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
+      return false;
+    }
+  if (context == pragma_external)
+    {
+      c_parser_error (parser,"pragma simd must be inside a function");
+      return false;
+    }
+  return true;
+}
+
 /* Handle pragmas.  Some OpenMP pragmas are associated with, and therefore
    should be considered, statements.  ALLOW_STMT is true if we're within
    the context of a function and such pragmas are to be allowed.  Returns
@@ -9364,6 +9373,7 @@ c_parser_cilk_grainsize (c_parser *parser)
 static bool
 c_parser_pragma (c_parser *parser, enum pragma_context context)
 {
+  location_t loc = c_parser_peek_token (parser)->location;
   unsigned int id;
 
   id = c_parser_peek_token (parser)->pragma_kind;
@@ -9420,7 +9430,7 @@ c_parser_pragma (c_parser *parser, enum pragma_context context)
       return false;
 
     case PRAGMA_OMP_SECTION:
-      error_at (c_parser_peek_token (parser)->location,
+      error_at (loc,
 		"%<#pragma omp section%> may only be used in "
 		"%<#pragma omp sections%> construct");
       c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
@@ -9432,165 +9442,75 @@ c_parser_pragma (c_parser *parser, enum pragma_context context)
       return false;
       
     case PRAGMA_CILK_GRAINSIZE:
+      if (!flag_enable_cilk)
+	{
+	  warning (0, "pragma grainsize ignored because -fcilkplus "
+		   "is not enabled");
+	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
+	  return false;
+	}
       if (context == pragma_external)
 	{
 	  c_parser_error (parser,"pragma grainsize must be inside a function");
 	  return false;
 	}
-      if (flag_enable_cilk) 
-	c_parser_cilk_grainsize (parser);
-      else
-	{
-	  warning (0, "pragma grainsize ignored");
-	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
-	}
+      c_parser_cilk_grainsize (parser);
       return false;
-      break;
 
     case PRAGMA_SIMD_ASSERT:
-      flag_tree_vectorize = 1;
-    
-      if (context == pragma_external)
-	{
-	  c_parser_error (parser,
-			  "pragma simd assert must be inside a function");
-	  return false;
-	}
-      if (flag_enable_cilk)
-	{
-	  c_parser_consume_pragma (parser);
-	  c_parser_simd_assert (parser, true);
-	}
-      else
-	{
-	  warning (0, "pragma grainsize ignored");
-	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
-	}
+      if (!c_parser_pragma_simd_ok_p (parser, context))
+	return false;
+      cilkplus_local_simd_values.loc = loc;
+      c_parser_consume_pragma (parser);
+      c_parser_simd_assert (parser, true);
       return false;
 
     case PRAGMA_SIMD_NOASSERT:
-      flag_tree_vectorize = 1;
-      if (context == pragma_external)
-	{
-	  c_parser_error (parser,
-			  "pragma simd assert should be inside a function");
-	  return false;
-	}
-      if (flag_enable_cilk)
-	{
-	  c_parser_consume_pragma (parser);
-	  c_parser_simd_assert (parser, false);
-	}
-      else
-	{
-	  warning (0, "pragma grainsize ignored");
-	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
-	}
+      if (!c_parser_pragma_simd_ok_p (parser, context))
+	return false;
+      cilkplus_local_simd_values.loc = loc;
+      c_parser_consume_pragma (parser);
+      c_parser_simd_assert (parser, false);
       return false;
 
     case PRAGMA_SIMD_VECTORLENGTH:
-      flag_tree_vectorize = 1;
-    
-      if (context == pragma_external)
-	{
-	  c_parser_error (parser,
-			  "pragma simd assert should be inside a function");
-	  return false;
-	} 
-      if (flag_enable_cilk)
-	{
-	  c_parser_consume_pragma (parser);
-	  c_parser_simd_vectorlength (parser);
-	}
-      else
-	{
-	  warning (0, "pragma grainsize ignored");
-	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
-	}    
+      if (!c_parser_pragma_simd_ok_p (parser, context))
+	return false;
+      cilkplus_local_simd_values.loc = loc;
+      c_parser_consume_pragma (parser);
+      c_parser_simd_vectorlength (parser);
       return false;
 
     case PRAGMA_SIMD_PRIVATE:
-      flag_tree_vectorize = 1;
-    
-      if (context == pragma_external)
-	{
-	  c_parser_error (parser,
-			  "pragma simd assert should be inside a function");
-	  return false;
-	}
-      if (flag_enable_cilk)
-	{
-	  c_parser_consume_pragma (parser);
-	  c_parser_simd_private (parser);
-	}
-      else
-	{
-	  warning (0, "pragma grainsize ignored");
-	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
-	}    
-
+      if (!c_parser_pragma_simd_ok_p (parser, context))
+	return false;
+      cilkplus_local_simd_values.loc = loc;
+      c_parser_consume_pragma (parser);
+      c_parser_simd_private (parser);
       return false;
 
     case PRAGMA_SIMD_LINEAR:
-
-      flag_tree_vectorize = 1;
-      if (context == pragma_external)
-	{
-	  c_parser_error (parser,
-			  "pragma simd assert should be inside a function");
-	  return false;
-	}
-      if (flag_enable_cilk)
-	{
-	  c_parser_consume_pragma (parser);
-	  c_parser_simd_linear (parser);
-	}
-      else
-	{
-	  warning (0, "pragma grainsize ignored");
-	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
-	}          
+      if (!c_parser_pragma_simd_ok_p (parser, context))
+	return false;
+      cilkplus_local_simd_values.loc = loc;
+      c_parser_consume_pragma (parser);
+      c_parser_simd_linear (parser);
       return false;
 
     case PRAGMA_SIMD_REDUCTION:
-
-      flag_tree_vectorize = 1;
-      if (context == pragma_external)
-	{
-	  c_parser_error (parser,
-			  "pragma simd assert should be inside a function");
-	  return false;
-	}
-      if (flag_enable_cilk)
-	{
-	  c_parser_consume_pragma (parser);
-	  c_parser_simd_reduction (parser);
-	}
-      else
-	{
-	  warning (0, "pragma grainsize ignored");
-	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
-	}                
+      if (!c_parser_pragma_simd_ok_p (parser, context))
+	return false;
+      cilkplus_local_simd_values.loc = loc;
+      c_parser_consume_pragma (parser);
+      c_parser_simd_reduction (parser);
       return false;
 
     case PRAGMA_SIMD_EMPTY:
-      flag_tree_vectorize = 1;
-      optimize = 2;
-      if (context == pragma_external)
-	{
-	  c_parser_error (parser, "pragma simd should be inside a function");
-	  return false;
-	}
-      if (flag_enable_cilk)
-	{
-	  c_parser_consume_pragma (parser);
-	  c_parser_simd_assert (parser, false);
-	}
-      else
-	{
-	  warning (0, "pragma grainsize ignored");
-	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
-	}                      
+      if (!c_parser_pragma_simd_ok_p (parser, context))
+	return false;
+      cilkplus_local_simd_values.loc = loc;
+      c_parser_consume_pragma (parser);
+      c_parser_simd_assert (parser, false);
       return false;
       
     default:

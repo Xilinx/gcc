@@ -24,43 +24,14 @@ if { ![istarget i?86*-*-*] && ![istarget x86_64-*-*] } then {
 load_lib gcc-dg.exp
 
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O0" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O1" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O2" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O3" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O0 -g" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O1 -g" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O2 -g" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O3 -g" " "
-dg-finish
-
-dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O0" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O1" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O2" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O3" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O0 -g" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O1 -g" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O2 -g" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cilk_keywords_test/compile/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O3 -g" " "
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/array_notation_tests/*.c]] " -O3 -ftree-vectorize -fcilkplus" " "
-
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/elem_fn_tests/*.c]] " -O3 -ftree-vectorize -fcilkplus" " "
-
 dg-finish

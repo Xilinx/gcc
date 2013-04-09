@@ -42,12 +42,65 @@ along with GCC; see the file COPYING3.  If not see
 
 struct pragma_simd_values *psv_head;
 
-/* This function Empties the pragma simd data structure.  */
+/* Verify that the <#pragma simd> clauses have been properly resolved.
+   INDEX is the pragma_simd_index into the global table.  */
+
+void
+pragma_simd_verify_clauses (int index)
+{
+  struct pragma_simd_values *vals = psv_find_node (index);
+  location_t loc = vals ? vals->loc : UNKNOWN_LOCATION;
+
+  if ((!clause_resolved_p (P_SIMD_VECTORLENGTH, index)))
+    {
+      if (pragma_simd_assert_requested_p (index))
+	{
+	  error_at (loc, "vectorlength in pragma simd not picked from list");
+	  exit (ICE_EXIT_CODE);
+	}
+      else 
+	warning_at (0, loc,
+		    "vectorlength in pragma simd not picked from list");
+    }
+  if (!clause_resolved_p (P_SIMD_PRIVATE, index))
+    { 
+      if (pragma_simd_assert_requested_p (index))
+	{ 
+	  error_at (loc, "unable to make all variables private");
+	  exit (ICE_EXIT_CODE);
+	} 
+      else
+	warning_at (0, loc,
+		    "unable to make all variables private in pragma simd");
+    }     
+  if (!clause_resolved_p (P_SIMD_LINEAR, index))
+    {
+      if (pragma_simd_assert_requested_p (index))
+	{
+	  error_at (loc, "unable to pick requested step-size in pragma simd");
+	  exit (ICE_EXIT_CODE);
+	}
+      else
+	warning (loc, "unable to pick requested step-size in pragma simd");
+    }
+  if (!clause_resolved_p (P_SIMD_REDUCTION, index))
+    {
+      if (pragma_simd_assert_requested_p (index))
+	{
+	  error_at (loc, "unable to satisfy all reductions in pragma simd");
+	  exit (ICE_EXIT_CODE);
+	}
+      else
+	warning_at (0, loc, "unable to satisfy all reductions in pragma simd");
+    }
+}
+
+/* Clear the pragma simd data structure.  */
+
 void
 clear_pragma_simd_list (void)
 {
   psv_head = NULL;
-  return;
 }
 
 /* this function will check and see if a certain clause is resolved
@@ -104,6 +157,7 @@ set_OK_for_certain_clause (enum pragma_simd_kind clause_type, bool set_value,
   if (!psv_head)
     return;
 
+  // FIXME: Why not use psv_find_node?
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
       if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
@@ -155,9 +209,10 @@ all_reductions_satisfied_p (int pragma_simd_index)
     }
   return true;
 }
-  
-/* This function will search the pragma simd list to see if a node for a 
-   certain loop exist (based on an index).  */
+
+// FIXME: We should really rewrite all this psv* business to use vectors.
+/* Given an index into the pragma simd list (PSV_INDEX), find its
+   entry and return it.  */
 
 struct pragma_simd_values *
 psv_find_node (int psv_index)
@@ -171,17 +226,15 @@ psv_find_node (int psv_index)
     return NULL;
   
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
-    {
-      if ((ps_iter->index == psv_index) && ps_iter->pragma_encountered)
-	return ps_iter;
-    }
+    if ((ps_iter->index == psv_index) && ps_iter->pragma_encountered)
+      return ps_iter;
 
-  /* We should not get here.  */
+  gcc_unreachable ();
   return NULL;
 }
 
-/* this function will insert a value at the head of the list that holds
-   pragma simd information for the loops.  */
+/* Insert LOCAL_SIMD_VALUES into the global pragma simd table.  Return
+   the index into the table for the new entry.  */
 
 int
 psv_head_insert (struct pragma_simd_values local_simd_values)
@@ -194,13 +247,9 @@ psv_head_insert (struct pragma_simd_values local_simd_values)
   if (psv_head == NULL)
     {
       psv_head = (struct pragma_simd_values *)
-	xmalloc (sizeof (struct pragma_simd_values));
-      gcc_assert (psv_head != NULL);
+	xcalloc (1, sizeof (struct pragma_simd_values));
+      psv_head->loc = local_simd_values.loc;
       psv_head->pragma_encountered  = local_simd_values.pragma_encountered;
-      /* We keep the head pointer index to be invalid pragma simd slot + 1.
-       * This is done before fi we want to debug then we can set invalid pragma
-       * simd_slot value to some arbitary number and then see if we are
-       * catching the pragmas correctly.  */
       psv_head->index = INVALID_PRAGMA_SIMD_SLOT + 1;
       psv_head->types = local_simd_values.types;
       
@@ -244,15 +293,15 @@ psv_head_insert (struct pragma_simd_values local_simd_values)
   
   for (ps_iter = psv_head; ps_iter->ptr_next != NULL;
        ps_iter = ps_iter->ptr_next)
-    {
-      ;
-    }
+    ;
 
   ps_iter->ptr_next = (struct pragma_simd_values *)
-    xmalloc (sizeof (struct pragma_simd_values));
-  gcc_assert (ps_iter->ptr_next != NULL);
- 
+    xcalloc (1, sizeof (struct pragma_simd_values));
+
+  // FIXME: There are a bunch of fields not initialized here:
+  // i.e. vlength_OK, pvars_OK, linear_steps_size
   ps_iter->ptr_next->pragma_encountered = local_simd_values.pragma_encountered;
+  ps_iter->ptr_next->loc = local_simd_values.loc;
   ps_iter->ptr_next->index = ps_iter->index + 1;
   ps_iter->ptr_next->types = local_simd_values.types;
   ps_iter->ptr_next->vectorlength = local_simd_values.vectorlength;
@@ -282,6 +331,7 @@ pragma_simd_assert_requested_p (int ps_index)
   if (ps_index == 0) 
     return 0;
 
+  // FIXME: Why not use psv_find_node.
   for (ps_iter = psv_head; ps_iter; ps_iter = ps_iter->ptr_next)
     {
       if ((ps_iter->pragma_encountered == true) && (ps_iter->index == ps_index))
@@ -322,7 +372,8 @@ pragma_simd_acceptable_vlength_p (int ps_index,
   possible_vector_length = possible_vectorization_factor;
 
   vl_tree = build_int_cst (integer_type_node, possible_vector_length);
-  
+
+  // FIXME: Why not use psv_find_node?
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
       if ((ps_iter->pragma_encountered == true) && (ps_iter->index == ps_index))
@@ -359,6 +410,7 @@ pragma_simd_vectorize_loop_p (int ps_index)
   if (ps_index <= INVALID_PRAGMA_SIMD_SLOT) 
     return false;
 
+  // FIXME: Why not use psv_find_node?
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next) 
     if (ps_iter->index == ps_index) 
       return ps_iter->pragma_encountered;
@@ -564,6 +616,7 @@ check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index)
     }
 
 
+  // FIXME: Why not use psv_find_node?
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next) 
     if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index)) 
       break;

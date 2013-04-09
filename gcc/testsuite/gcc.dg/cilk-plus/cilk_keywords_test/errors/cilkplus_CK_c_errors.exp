@@ -23,37 +23,15 @@ if { ![istarget i?86*-*-*] && ![istarget x86_64-*-*] } then {
 
 load_lib gcc-dg.exp
 
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O0" " "
-dg-finish
+set CILKPLUS_COMPILE_FLAGS "-ftree-vectorize -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus"
 
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O1" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include $CILKPLUS_COMPILE_FLAGS -O0" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include $CILKPLUS_COMPILE_FLAGS -O1" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include $CILKPLUS_COMPILE_FLAGS -O2" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include $CILKPLUS_COMPILE_FLAGS -O3" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include $CILKPLUS_COMPILE_FLAGS -O0 -g" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include $CILKPLUS_COMPILE_FLAGS -O1 -g" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include $CILKPLUS_COMPILE_FLAGS -O2 -g" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include $CILKPLUS_COMPILE_FLAGS -O3 -g" " "
 dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O2" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O3" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O0 -g" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O1 -g" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O2 -g" " "
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus -O3 -g" " "
-dg-finish
-
-dg-finish
-

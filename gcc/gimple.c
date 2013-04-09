@@ -574,7 +574,8 @@ gimple
 gimple_build_label (tree label)
 {
   gimple p = gimple_build_with_ops (GIMPLE_LABEL, ERROR_MARK, 1);
-  GIMPLE_PRAGMA_SIMD_INDEX (p) = PRAGMA_SIMD_INDEX (label);
+  if (flag_enable_cilk)
+    GIMPLE_PRAGMA_SIMD_INDEX (p) = PRAGMA_SIMD_INDEX (label);
   gimple_label_set_label (p, label);
   return p;
 }
@@ -2028,7 +2029,8 @@ gimple_set_bb (gimple stmt, basic_block bb)
 {
   stmt->gsbase.bb = bb;
 
-  if ( (bb != NULL) && (gimple_code (stmt) == GIMPLE_LABEL))
+  if (flag_enable_cilk
+      && bb && (gimple_code (stmt) == GIMPLE_LABEL))
     bb->pragma_simd_index = GIMPLE_PRAGMA_SIMD_INDEX (stmt);
 
   /* If the statement is a label, add the label to block-to-labels map

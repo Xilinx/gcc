@@ -9115,15 +9115,7 @@ c_finish_loop (location_t start_locus, tree cond, tree incr, tree body,
 	      psv_head_insert (*cilkplus_ps_values);
 	  else
 	    LABEL_EXPR_PRAGMA_SIMD_INDEX (top) = INVALID_PRAGMA_SIMD_SLOT;
-	    
-	  /* Now we initialize them all to zeros.  */
-	  cilkplus_ps_values->pragma_encountered = false;
-	  cilkplus_ps_values->types              = P_SIMD_NOASSERT;
-	  cilkplus_ps_values->vectorlength       = NULL_TREE;
-	  cilkplus_ps_values->private_vars       = NULL_TREE;
-	  cilkplus_ps_values->linear_vars        = NULL_TREE;
-	  cilkplus_ps_values->linear_steps       = NULL_TREE;
-	  cilkplus_ps_values->reduction_vals     = NULL;
+	  memset (&cilkplus_ps_values, 0, sizeof (cilkplus_ps_values));
 	}  
       
       add_stmt (top);

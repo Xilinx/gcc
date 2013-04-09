@@ -130,65 +130,12 @@ vectorize_loops (void)
 
   vect_location = UNKNOWN_LOC;
 
-  FOR_EACH_LOOP (li, loop, 0)
+  if (flag_enable_cilk)
     {
-      if (flag_enable_cilk)
-	{
-	  if ((!clause_resolved_p (P_SIMD_VECTORLENGTH, 
-				   loop->pragma_simd_index)))
-	    {
-	      if (pragma_simd_assert_requested_p (loop->pragma_simd_index))
-		{
-		  error ("Vectorlength not picked from the list."
-			 " ASSERT REQUESTED");
-		  exit (ICE_EXIT_CODE);
-		}
-	      else 
-		{
-		  warning (0, "Vectorlength not picked from list.");
-		}
-	    }
-	  if (!clause_resolved_p (P_SIMD_PRIVATE, loop->pragma_simd_index))
-	    { 
-	      if (pragma_simd_assert_requested_p (loop->pragma_simd_index))
-		{ 
-		  error ("Unable to make all variables private. "
-			  "ASSERT REQUESTED");
-		  exit(ICE_EXIT_CODE);
-		} 
-	      else
-		{
-		  warning (0, "Unable to make all variables private.");
-		} 
-	    }     
-	  if (!clause_resolved_p (P_SIMD_LINEAR, loop->pragma_simd_index))
-	    {
-	      if (pragma_simd_assert_requested_p (loop->pragma_simd_index))
-		{
-		  error ("Unable to pick requested step-size. "
-			 "ASSERT REQUESTED");
-		  exit(ICE_EXIT_CODE);
-		}
-	      else
-		{
-		  warning (0, "Unable to pick requested step-size.");
-		}
-	    }
-	  if (!clause_resolved_p (P_SIMD_REDUCTION, loop->pragma_simd_index))
-	    {
-	      if (pragma_simd_assert_requested_p (loop->pragma_simd_index))
-		{
-		  error ("Unable to satisfy all reductions.\nASSERT REQUESTED");
-		  exit(ICE_EXIT_CODE);
-		}
-	      else
-		{
-		  warning (0, "Unable to satisfy all reductions...continuing");
-		}
-	    }
-	}
+      FOR_EACH_LOOP (li, loop, 0)
+	pragma_simd_verify_clauses (loop->pragma_simd_index);
     }
-  
+
   statistics_counter_event (cfun, "Vectorized loops", num_vectorized_loops);
   if (dump_enabled_p ()
       || (num_vectorized_loops > 0 && dump_enabled_p ()))

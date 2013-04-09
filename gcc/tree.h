@@ -65,12 +65,22 @@ struct reduction_values
   struct reduction_values *ptr_next;
 };
 
-/* Since we can have multiple pragma simd, this will hold the values of 
-   each of the pragma simd and then as soon as it finds a for loop 
-   it will transfer those values into the loop tree structure.  */
+/* Since we can have multiple pragma simds, this holds the values of
+   each of the pragma simds as we are parsing them.  An index into
+   this table gets propagated to the tree structure for LABEL_DECL's
+   (as for loops are being parsed), then to the gimple structure for
+   GIMPLE_LABEL's, then to the BB structure, and finally to the loop
+   structure.  */
 struct pragma_simd_values
 {
   int index;
+
+  /* Location of the #pragma itself.  Ideally, we should keep the
+     location for each clause so we can give more detailed
+     diagnostics, but this will work for now.  */
+  location_t loc;
+
+  // FIXME: All these need to be commented.
   bool pragma_encountered;
   unsigned int types;
   tree vectorlength;
@@ -93,6 +103,8 @@ struct pragma_simd_values
   struct pragma_simd_values *ptr_next;
 };
 
+// FIXME: This should not be globally visible.  Instead we should have
+// accessor functions, with a more meaningful name.
 extern struct pragma_simd_values *psv_head;
 
 
@@ -3113,15 +3125,13 @@ struct GTY(()) tree_field_decl {
 #define EH_LANDING_PAD_NR(NODE) \
   (LABEL_DECL_CHECK (NODE)->label_decl.eh_landing_pad_nr)
 
-
+/* In a LABEL_DECL, the index into the pragma simd table.  */
 #define PRAGMA_SIMD_INDEX(NODE)					\
-  (LABEL_DECL_CHECK(NODE)->label_decl.pragma_simd_index)
+  (LABEL_DECL_CHECK (NODE)->label_decl.pragma_simd_index)
 
+/* As above, but for a LABEL_EXPR.  */
 #define LABEL_EXPR_PRAGMA_SIMD_INDEX(NODE)			\
-  (PRAGMA_SIMD_INDEX(TREE_OPERAND(LABEL_EXPR_CHECK(NODE), 0)))
-
-
-
+  (PRAGMA_SIMD_INDEX (TREE_OPERAND (LABEL_EXPR_CHECK (NODE), 0)))
 
 /* In LABEL_DECL nodes, nonzero means that an error message about
    jumping into such a binding contour has been printed for this label.  */
@@ -6623,14 +6633,9 @@ extern bool block_may_fallthru (const_tree);
 #define FOR_EXPR(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 2)
 #define FOR_BODY(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 3)
 
-/* Some cilk #defines */
-#define CILK_FOR_VAR(NODE)      TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 5)
-#define CILK_FOR_INIT(NODE)     TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 0)
-#define CILK_FOR_GRAIN(NODE)    TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 6)
+/* Cilk Plus supporting functions in pragma_simd.c.  */
 
-/* Here are the pragma simd specific files used by the parser and vectorizer 
-   available in pragma_simd.c.  */
-
+extern void pragma_simd_verify_clauses (int);
 extern struct pragma_simd_values *psv_find_node (int psv_index);
 extern int psv_head_insert (struct pragma_simd_values local_simd_values);
 extern bool pragma_simd_acceptable_vlength_p (int ps_index, 
@@ -6650,6 +6655,10 @@ extern void set_OK_for_certain_clause (enum pragma_simd_kind clause_type,
 				       bool set_value,
 				       int pragma_simd_index);
 extern HOST_WIDE_INT find_linear_step_size (int pragma_simd_index, tree var);
+
+#define CILK_FOR_VAR(NODE)      TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 5)
+#define CILK_FOR_INIT(NODE)     TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 0)
+#define CILK_FOR_GRAIN(NODE)    TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 6)
 
 tree build_call_list (tree return_type, tree fn, tree arglist);
 bool is_elem_fn (tree);
