@@ -409,6 +409,12 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		}
 
 	      STMT_VINFO_VECTYPE (stmt_info) = vectype;
+
+	      if (dump_enabled_p ())
+		{
+		  dump_printf_loc (MSG_NOTE, vect_location, "vectype: ");
+		  dump_generic_expr (MSG_NOTE, TDF_SLIM, vectype);
+		}
             }
 
 	  /* The vectorization factor is according to the smallest
@@ -5755,7 +5761,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
   slpeel_make_loop_iterate_ntimes (loop, ratio);
 
   /* Reduce loop iterations by the vectorization factor.  */
-  scale_loop_profile (loop, RDIV (REG_BR_PROB_BASE , vectorization_factor),
+  scale_loop_profile (loop, GCOV_COMPUTE_SCALE (1, vectorization_factor),
 		      expected_iterations / vectorization_factor);
   loop->nb_iterations_upper_bound
     = loop->nb_iterations_upper_bound.udiv (double_int::from_uhwi (vectorization_factor),

@@ -5299,7 +5299,7 @@ struct simple_ipa_opt_pass pass_ipa_free_lang_data =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_ggc_collect			/* todo_flags_finish */
+  0					/* todo_flags_finish */
  }
 };
 
@@ -6293,7 +6293,7 @@ type_hash_hash (const void *item)
 /* Look in the type hash table for a type isomorphic to TYPE.
    If one is found, return it.  Otherwise return 0.  */
 
-tree
+static tree
 type_hash_lookup (hashval_t hashcode, tree type)
 {
   struct type_hash *h, in;
@@ -6315,7 +6315,7 @@ type_hash_lookup (hashval_t hashcode, tree type)
 /* Add an entry to the type-hash-table
    for a type TYPE whose hash code is HASHCODE.  */
 
-void
+static void
 type_hash_add (hashval_t hashcode, tree type)
 {
   struct type_hash *h;

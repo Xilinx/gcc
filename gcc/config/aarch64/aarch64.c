@@ -4070,7 +4070,7 @@ aarch64_output_casesi (rtx *operands)
 {
   char buf[100];
   char label[100];
-  rtx diff_vec = PATTERN (next_real_insn (operands[2]));
+  rtx diff_vec = PATTERN (next_active_insn (operands[2]));
   int index;
   static const char *const patterns[4][2] =
   {
@@ -6407,6 +6407,21 @@ aarch64_simd_gen_const_vector_dup (enum machine_mode mode, int val)
   return gen_rtx_CONST_VECTOR (mode, v);
 }
 
+/* Check OP is a legal scalar immediate for the MOVI instruction.  */
+
+bool
+aarch64_simd_scalar_immediate_valid_for_move (rtx op, enum machine_mode mode)
+{
+  enum machine_mode vmode;
+
+  gcc_assert (!VECTOR_MODE_P (mode));
+  vmode = aarch64_preferred_simd_mode (mode);
+  rtx op_v = aarch64_simd_gen_const_vector_dup (vmode, INTVAL (op));
+  int retval = aarch64_simd_immediate_valid_for_move (op_v, vmode, 0,
+						      NULL, NULL, NULL, NULL);
+  return retval;
+}
+
 /* Construct and return a PARALLEL RTX vector.  */
 rtx
 aarch64_simd_vect_par_cnst_half (enum machine_mode mode, bool high)
@@ -7065,12 +7080,30 @@ aarch64_split_atomic_op (enum rtx_code code, rtx old_out, rtx new_out, rtx mem,
 }
 
 static void
+aarch64_print_extension (void)
+{
+  const struct aarch64_option_extension *opt = NULL;
+
+  for (opt = all_extensions; opt->name != NULL; opt++)
+    if ((aarch64_isa_flags & opt->flags_on) == opt->flags_on)
+      asm_fprintf (asm_out_file, "+%s", opt->name);
+
+  asm_fprintf (asm_out_file, "\n");
+}
+
+static void
 aarch64_start_file (void)
 {
   if (selected_arch)
-    asm_fprintf (asm_out_file, "\t.arch %s\n", selected_arch->name);
+    {
+      asm_fprintf (asm_out_file, "\t.arch %s", selected_arch->name);
+      aarch64_print_extension ();
+    }
   else if (selected_cpu)
-    asm_fprintf (asm_out_file, "\t.cpu %s\n", selected_cpu->name);
+    {
+      asm_fprintf (asm_out_file, "\t.cpu %s", selected_cpu->name);
+      aarch64_print_extension ();
+    }
   default_file_start();
 }
 

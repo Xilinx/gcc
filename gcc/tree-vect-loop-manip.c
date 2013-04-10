@@ -1236,8 +1236,8 @@ slpeel_tree_peel_loop_to_edge (struct loop *loop,
      same frequencies.  Loop exit probablities are however easy to get wrong.
      It is safer to copy value from original loop entry.  */
   bb_before_second_loop->frequency
-     = apply_probability (bb_before_first_loop->frequency,
-			  probability_of_second_loop);
+     = combine_probabilities (bb_before_first_loop->frequency,
+                              probability_of_second_loop);
   bb_before_second_loop->count
      = apply_probability (bb_before_first_loop->count,
 			  probability_of_second_loop);
@@ -2476,11 +2476,11 @@ vect_loop_versioning (loop_vec_info loop_vinfo,
 
   /* End loop-exit-fixes after versioning.  */
 
-  update_ssa (TODO_update_ssa);
   if (cond_expr_stmt_list)
     {
       cond_exp_gsi = gsi_last_bb (condition_bb);
       gsi_insert_seq_before (&cond_exp_gsi, cond_expr_stmt_list,
 			     GSI_SAME_STMT);
     }
+  update_ssa (TODO_update_ssa);
 }

@@ -4047,8 +4047,9 @@ cp_build_binary_op (location_t location,
 	      || code1 == COMPLEX_TYPE || code1 == VECTOR_TYPE))
 	{
 	  enum tree_code tcode0 = code0, tcode1 = code1;
+	  tree cop1 = fold_non_dependent_expr_sfinae (op1, tf_none);
 
-	  warn_for_div_by_zero (location, maybe_constant_value (op1));
+	  warn_for_div_by_zero (location, maybe_constant_value (cop1));
 
 	  if (tcode0 == COMPLEX_TYPE || tcode0 == VECTOR_TYPE)
 	    tcode0 = TREE_CODE (TREE_TYPE (TREE_TYPE (op0)));
@@ -4084,7 +4085,11 @@ cp_build_binary_op (location_t location,
 
     case TRUNC_MOD_EXPR:
     case FLOOR_MOD_EXPR:
-      warn_for_div_by_zero (location, maybe_constant_value (op1));
+      {
+	tree cop1 = fold_non_dependent_expr_sfinae (op1, tf_none);
+
+	warn_for_div_by_zero (location, maybe_constant_value (cop1));
+      }
 
       if (code0 == VECTOR_TYPE && code1 == VECTOR_TYPE
 	  && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE
@@ -4132,7 +4137,8 @@ cp_build_binary_op (location_t location,
 	}
       else if (code0 == INTEGER_TYPE && code1 == INTEGER_TYPE)
 	{
-	  tree const_op1 = maybe_constant_value (op1);
+	  tree const_op1 = fold_non_dependent_expr_sfinae (op1, tf_none);
+	  const_op1 = maybe_constant_value (const_op1);
 	  if (TREE_CODE (const_op1) != INTEGER_CST)
 	    const_op1 = op1;
 	  result_type = type0;
@@ -4178,7 +4184,8 @@ cp_build_binary_op (location_t location,
 	}
       else if (code0 == INTEGER_TYPE && code1 == INTEGER_TYPE)
 	{
-	  tree const_op1 = maybe_constant_value (op1);
+	  tree const_op1 = fold_non_dependent_expr_sfinae (op1, tf_none);
+	  const_op1 = maybe_constant_value (const_op1);
 	  if (TREE_CODE (const_op1) != INTEGER_CST)
 	    const_op1 = op1;
 	  result_type = type0;
@@ -5574,15 +5581,16 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
                 else
                   return error_mark_node;
               }
-	    else if ((pedantic || warn_pointer_arith)
-		     && !TYPE_PTROB_P (argtype)) 
+	    else if (!TYPE_PTROB_P (argtype)) 
               {
                 if (complain & tf_error)
-                  permerror (input_location, (code == PREINCREMENT_EXPR
+                  pedwarn (input_location,
+			   pedantic ? OPT_Wpedantic : OPT_Wpointer_arith,
+			   (code == PREINCREMENT_EXPR
                               || code == POSTINCREMENT_EXPR)
-                             ? G_("ISO C++ forbids incrementing a pointer of type %qT")
-                             : G_("ISO C++ forbids decrementing a pointer of type %qT"),
-                             argtype);
+			   ? G_("ISO C++ forbids incrementing a pointer of type %qT")
+			   : G_("ISO C++ forbids decrementing a pointer of type %qT"),
+			   argtype);
                 else
                   return error_mark_node;
               }

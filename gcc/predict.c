@@ -122,6 +122,8 @@ maybe_hot_frequency_p (struct function *fun, int freq)
   if (node->frequency == NODE_FREQUENCY_EXECUTED_ONCE
       && freq < (ENTRY_BLOCK_PTR_FOR_FUNCTION (fun)->frequency * 2 / 3))
     return false;
+  if (PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION) == 0)
+    return false;
   if (freq < (ENTRY_BLOCK_PTR_FOR_FUNCTION (fun)->frequency
 	      / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION)))
     return false;
@@ -202,10 +204,13 @@ cgraph_maybe_hot_edge_p (struct cgraph_edge *edge)
   if (edge->caller->frequency == NODE_FREQUENCY_EXECUTED_ONCE
       && edge->frequency < CGRAPH_FREQ_BASE * 3 / 2)
     return false;
-  if (flag_guess_branch_prob
-      && edge->frequency <= (CGRAPH_FREQ_BASE
-      			     / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION)))
-    return false;
+  if (flag_guess_branch_prob)
+    {
+      if (PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION) == 0
+	  || edge->frequency <= (CGRAPH_FREQ_BASE
+				 / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION)))
+        return false;
+    }
   return true;
 }
 
@@ -2911,7 +2916,7 @@ struct gimple_opt_pass pass_profile =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_ggc_collect | TODO_verify_ssa			/* todo_flags_finish */
+  TODO_verify_ssa			/* todo_flags_finish */
  }
 };
 
@@ -2931,7 +2936,7 @@ struct gimple_opt_pass pass_strip_predict_hints =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_ggc_collect | TODO_verify_ssa			/* todo_flags_finish */
+  TODO_verify_ssa			/* todo_flags_finish */
  }
 };
 

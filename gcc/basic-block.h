@@ -87,16 +87,6 @@ enum cfg_edge_flags {
    profile.c.  */
 extern const struct gcov_ctr_summary *profile_info;
 
-/* Working set size statistics for a given percentage of the entire
-   profile (sum_all from the counter summary).  */
-typedef struct gcov_working_set_info
-{
-  /* Number of hot counters included in this working set.  */
-  unsigned num_counters;
-  /* Smallest counter included in this working set.  */
-  gcov_type min_counter;
-} gcov_working_set_t;
-
 /* Structure to gather statistic about profile consistency, per pass.
    An array of this structure, indexed by pass static number, is allocated
    in passes.c.  The structure is defined here so that different CFG modes
@@ -508,6 +498,11 @@ struct edge_list
 /* Return expected execution frequency of the edge E.  */
 #define EDGE_FREQUENCY(e)		RDIV ((e)->src->frequency * (e)->probability, \
 					      REG_BR_PROB_BASE)
+
+/* Compute a scale factor (or probability) suitable for scaling of
+   gcov_type values via apply_probability().  */
+#define GCOV_COMPUTE_SCALE(num,den) \
+  ((den) ? RDIV ((num) * REG_BR_PROB_BASE, (den)) : REG_BR_PROB_BASE)
 
 /* Return nonzero if edge is critical.  */
 #define EDGE_CRITICAL_P(e)		(EDGE_COUNT ((e)->src->succs) >= 2 \
@@ -935,6 +930,7 @@ extern void rtl_profile_for_edge (edge);
 extern void default_rtl_profile (void);
 
 /* In profile.c.  */
+typedef struct gcov_working_set_info gcov_working_set_t;
 extern gcov_working_set_t *find_working_set(unsigned pct_times_10);
 
 /* Check tha probability is sane.  */
