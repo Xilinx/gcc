@@ -1566,7 +1566,10 @@ source location.}#
 
 ;;;; normalize a symbol occurrence
 (defun normexp_symbol (recv env ncx psloc)
-  (debug "normexp_symbol recv=" recv " psloc=" psloc)
+  (debug "normexp_symbol recv=" recv 
+	 "\n env=" env "\n ncx=" ncx
+	 " psloc=" psloc 
+	 )
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
   (multicall
    (bind procs)
@@ -4401,6 +4404,9 @@ source location.}#
 			      :ndhook_closv ()
 			      ))
 	 )
+    (debug "normexp_defhook newenv=" newenv
+	   "\n.. oldproc=" oldproc "\n.. nproc=" nproc
+	   "\n.. ndatahook=" ndatahook) 
     (assert_msg "check symbname" (is_string symbname))
     (assert_msg "check sinformals" (and (is_multiple_or_null sinformals)
 					(is_not_a sinformals discr_variadic_formal_sequence)))
@@ -4436,7 +4442,7 @@ source location.}#
     (debug "normexp_defhook newenv=" newenv)
     ;; add nproc into ncx
     (list_append (get_field :nctx_proclist ncx) nproc)
-    (debug "normexp_defhook sbody=" sbody " updated ncx=" ncx)
+    (debug "normexp_defhook sbody=" sbody "\n.. updated ncx=" ncx)
     (multicall
      (nbody nbindings)
      (normalize_tuple sbody newenv ncx sloc)
@@ -4447,6 +4453,13 @@ source location.}#
       (nbi :long bix)
       (put_env newenv nbi))
      (debug "normexp_defhook updated newenv=" newenv)
+     ;; restore the previous symbol cache map & the old proc 
+     (put_fields ncx 
+		 :nctx_symbcachemap oldsymbcache
+		 :nctx_curproc oldproc
+		 )
+     (debug "normexp_defhook restored ncx=" ncx)
+     ;; normalize the closed values
      (let ( (nseq (wrap_normal_letseq nbody nbindings sloc))
 	    (:long nbclosbind (list_length closbindlist))
 	    (closvtup
@@ -4469,12 +4482,6 @@ source location.}#
        (put_fields ndatahook :ndhook_closv closvtup)
        (debug "normexp_defhook nproc=" nproc "\n.. ndatahook=" ndatahook)
        ;;
-       ;; restore the previous symbol cache map & the old proc 
-       (put_fields ncx 
-		   :nctx_symbcachemap oldsymbcache
-		   :nctx_curproc oldproc
-		   )
-       (debug "normexp_defhook restored ncx=" ncx)
        (debug "normexp_defhook result nproc=" nproc)
        (return nproc)
        ))))

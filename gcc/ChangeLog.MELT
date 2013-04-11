@@ -1,5 +1,13 @@
 
 
+2013-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{thook-1.melt seems to be correctly translated}}
+	* melt/warmelt-normal.melt (normexp_symbol): More debug.
+	(normexp_defhook): Restore the ncx before normalizing the closed
+	values...
+	* melt/warmelt-outobj.melt (compilobj_datahook): More debug.
+
 2013-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate all}}

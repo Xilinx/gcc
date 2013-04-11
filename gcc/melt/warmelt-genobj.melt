@@ -1115,6 +1115,7 @@ $SBUF.}#
 	(noutbinds (get_field :nrhook_outb nhook))
 	(resctype (get_field :nrhook_ctype nhook))
 	(ndatahook (get_field :nrhook_datahook nhook))
+	(nclosvtup (get_field :ndhook_closv ndatahook))
 	(obodylist (make_list discr_list))
 	(oepiloglist (make_list discr_list))
 	(oinargs (make_multiple discr_multiple (multiple_length ninbinds)))
@@ -1155,6 +1156,7 @@ $SBUF.}#
 		       ))
 	)
     (debug "compile2obj_hook empty hookrout=" hookrout 
+	   "\n nclosvtup=" nclosvtup
 	   "\n resctype=" resctype "\n gcx=" gcx)
     (assert_msg "check resctype" (is_a resctype class_ctype))
     (let ( (retloc (get_free_objloctyped gcx '_reshook_ resctype))
@@ -5242,9 +5244,9 @@ $SBUF.}#
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_datasymbol (syv gcx)
+  (debug "compilobj_datasymbol syv=" syv)
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check syv" (is_a syv class_nrep_datasymbol))
-  (debug "compilobj_datasymbol syv=" syv)
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
 	 (chobj (mapobject_get compicache syv))
 	 (inirout (unsafe_get_field :gncx_objrout gcx))
@@ -5301,10 +5303,9 @@ $SBUF.}#
 	 )
     ;; datainstance compiled only in initial routines
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
-    (if chobj
-	(progn
-	  (debug "compilobj_datainstance return found chobj=" chobj)
-	  (return chobj)))
+    (when chobj
+      (debug "compilobj_datainstance return found chobj=" chobj)
+      (return chobj))
     (let ( (loc (unsafe_get_field :nrep_loc dai))
 	   (nam (unsafe_get_field :ndata_name dai))
 	   ;; nam is a symbol, not a string
@@ -5742,6 +5743,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_datahook (ndhook gcx)
   (debug "compilobj_datahook ndhook=" ndhook "\n gcx=" gcx)
+  (shortbacktrace_dbg "compilobj_datahook" 16)
   (assert_msg "check ndhook" (is_a ndhook class_nrep_datahook))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -5749,13 +5751,16 @@ $SBUF.}#
 	 (chobj (mapobject_get compicache ndhook))
 	 (nloc (get_field :nrep_loc ndhook))
 	 )
+    (debug "compilobj_datahook compicache=" compicache)
     (assert_msg "check compicache" (is_mapobject compicache))
     (when chobj
       (debug "compilobj_datahook return chobj=" chobj)
       (return chobj))
     (debug "compilobj_datahook inirout=" inirout)
     (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
-    (let ( (nclotup (get_field :ndhook_closv ndhook))
+    (let ( (nclotup (let ( (nct (get_field :ndhook_closv ndhook)) )
+		      (debug "compilobj_datahook nclotup=" nct)
+		      nct))
 	   (inibody (get_field :obrout_body inirout))
 	   (:long nbclo (multiple_length nclotup))
 	   (nhpro (get_field :ndhook_proc ndhook))
@@ -5770,13 +5775,18 @@ $SBUF.}#
 			     ##{dhook__$NRANK#__$HNAME}#))
 	   (locvar (get_free_objlocptr gcx '_valhook_))
 	   (oclo
-	    (multiple_map 
-	     nclotup
-	     (lambda (nclosv :long cix)
-	       (debug "compilobj_datahook/lambda nclosv=" nclosv " #" cix)
-	       (let ( (ocurclov (compile_obj nclosv gcx)) )
-		 (debug "compilobj_datahook/lambda ocurclov=" ocurclov)
-		 ocurclov))))
+	    (let ( (oc
+		    (multiple_map 
+		     nclotup
+		     (lambda (nclosv :long cix)
+		       (debug "compilobj_datahook/lambda nclosv=" nclosv " #" cix)
+		       (shortbacktrace_dbg "compilobj_datahook/lambda" 12)
+		       (let ( (ocurclov (compile_obj nclosv gcx)) )
+			 (debug "compilobj_datahook/lambda ocurclov=" ocurclov)
+			 ocurclov))))
+		   )
+	      (debug "compilobj_datahook oclo=" oc)
+	      oc))
 	   (oihook 
 	    (instance class_objinithook
 		      :obv_type ctype_value
