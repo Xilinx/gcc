@@ -1,8 +1,15 @@
 
 
 2013-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/thook-1.melt: uncomment anotherhook containing a
+	lambda, which is not yet translated correctly...
 
-	{{thook-1.melt seems to be correctly translated}}
+	* melt/warmelt-genobj.melt (compile2obj_procedure)
+	(compile2obj_initproc, compilobj_nrep_lambda): More debug.
+
+2013-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{thook-1.melt justahook seems to be correctly translated}}
 	* melt/warmelt-normal.melt (normexp_symbol): More debug.
 	(normexp_defhook): Restore the ncx before normalizing the closed
 	values...

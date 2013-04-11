@@ -13,7 +13,7 @@
     -fmelt-init=@warmelt.quicklybuilt \
     -fmelt-arg=thook-1.melt \
      "$gccmelt_cflags" \
-    -fmelt-debug empty-file-for-melt.c
+    -fmelt-debug meltbuild-empty-file.c
 |#
 
 (definstance myref class_reference)
@@ -28,7 +28,6 @@
 
 
 
-#| 
 ;; also test that lambda is closing hook input values as needed
 (defhook anotherhook (:long i :value v) (:value outv) :void
   (debug "anotherhook i=" i " v=" v)
@@ -38,5 +37,4 @@
 	(lambda (x) 
 	  (tuple x v bxi))))
 )
-|#
 ;; eof thook-1.melt
