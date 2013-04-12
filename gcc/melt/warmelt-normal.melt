@@ -4306,7 +4306,9 @@ source location.}#
     (unsafe_put_fields ncx 
 		       :nctx_curproc nproc
 		       :nctx_symbcachemap (make_mapobject discr_map_objects 40))
-    (debug "normexp_defun ndatarout=" ndatarout "\n ndataclos=" ndataclos)
+    (debug "normexp_defun nproc=" nproc 
+	   "\n.. ndatarout=" ndatarout 
+	   "\n.. ndataclos=" ndataclos)
     (add_nctx_data ncx ndatarout)
     (add_nctx_data ncx ndataclos)
     (debug "normexp_defun updated ncx=" ncx)
@@ -4470,7 +4472,7 @@ source location.}#
 		(debug "normexp_defhook/lambda bnd=" bnd)
 		(assert_msg "normexp_defhook/lambda check bnd" (is_a bnd class_any_binding))
 		(let ( (sy (unsafe_get_field :binder bnd)) 
-		       ;; normalize in the old environment
+		       ;; normalize in the *old* environment
 		       (nsy (normal_exp sy env ncx sloc))
 		       )
 		  (debug "normexp_defhook/lambda sy=" sy " nsy=" nsy)

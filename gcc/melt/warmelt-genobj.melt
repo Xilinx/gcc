@@ -1451,7 +1451,8 @@ $SBUF.}#
 	(oiniprolog (make_list discr_list))
 	(oinibody (make_list discr_list))
 	(oinitrout
-	 (instance class_initial_module_routineobj
+	 (let ( (oi
+	       (instance class_initial_module_routineobj
 		   ;; Change the "melt_start_this_module" name with
 		   ;; great care, it is known by the MELT runtime, and
 		   ;; some functions of warmelt-outobj.melt are
@@ -1468,7 +1469,9 @@ $SBUF.}#
 		   :oirout_fill (make_list discr_list)
 		   :oirout_prolog oiniprolog
 		   :oirout_modulename (get_field :mocx_modulename modctx)
-		   ))
+		   )) )
+	   (debug "compile2obj_initproc oinitrout=" oi)
+	   oi))
 	(importmap (make_mapobject discr_map_objects 50))
 	(gcx
 	 (let ( (gx (instance 
@@ -1779,22 +1782,26 @@ $SBUF.}#
 	 (modname (get_field :mocx_modulename modctx))
 	 (litvalist (get_field :morcx_litervalist modctx))
 	 (oinitxrout 
-	  (instance class_initial_extension_routineobj
-		    ;; change carefully the name, since the runtime
-		    ;; should know it, notably its
-		    ;; meltgc_run_c_extension function
-		    :named_name '"melt_start_run_extension"
-		    :obrout_proc ipro
-		    :obrout_body oinibody
-		    :obrout_nbval (make_integerbox discr_integer 0)
-		    :obrout_nblong (make_integerbox discr_integer 0)
-		    :obrout_others (make_list discr_list)
-		    :obrout_cntciter (make_integerbox discr_integer 0)
-		    :obrout_cntletrec (make_integerbox discr_integer 0)
-		    :oirout_fill (make_list discr_list)
-		    :oirout_prolog oiniprolog
-		    :oiroutx_extendname (get_field :mocx_modulename modctx)
-		    ))
+	  (let ( (oi
+		  (instance class_initial_extension_routineobj
+			    ;; change carefully the name, since the runtime
+			    ;; should know it, notably its
+			    ;; meltgc_run_c_extension function
+			    :named_name '"melt_start_run_extension"
+			    :obrout_proc ipro
+			    :obrout_body oinibody
+			    :obrout_nbval (make_integerbox discr_integer 0)
+			    :obrout_nblong (make_integerbox discr_integer 0)
+			    :obrout_others (make_list discr_list)
+			    :obrout_cntciter (make_integerbox discr_integer 0)
+			    :obrout_cntletrec (make_integerbox discr_integer 0)
+			    :oirout_fill (make_list discr_list)
+			    :oirout_prolog oiniprolog
+			    :oiroutx_extendname (get_field :mocx_modulename modctx)
+			    ))
+		 )
+	    (debug "compile2obj_initextendproc oinitxrout=" oi)
+	    oi))
 	 (importmap (make_mapobject discr_map_objects 10))
 	 (valoclist (make_list discr_list))
 	 ;; running expressions are usually smaller
@@ -5626,7 +5633,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compile a data routine
 (defun compilobj_dataroutine (ndrou gcx)
-  (debug "compilobj_dataroutine ndrou=" ndrou "\n gcx=" gcx)
+  (debug "compilobj_dataroutine ndrou=" ndrou "\n.. gcx=" gcx)
   (assert_msg "check ndrou" (is_a ndrou class_nrep_dataroutine))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -5635,7 +5642,8 @@ $SBUF.}#
 	 )
     ;; dataroutine compiled only in initial routines
     (debug "compilobj_dataroutine inirout=" inirout)
-    (assert_msg "check inirout" (is_a inirout class_initialroutineobj))
+    (shortbacktrace_dbg "compilobj_dataroutine" 10)
+    ;(assert_msg "check inirout" (is_a inirout class_initialroutineobj))
     (when chobj
       (debug "compilobj_dataroutine return chobj=" chobj)
       (return chobj))
@@ -5645,7 +5653,7 @@ $SBUF.}#
 	   (drank (unsafe_get_field :ndata_rank ndrou))
 	   (nam (unsafe_get_field :ndata_name ndrou))
 	   (npro (unsafe_get_field :ndrou_proc ndrou))
-	   (inibody (unsafe_get_field :obrout_body inirout))
+	   (inibody (get_field :obrout_body inirout))
 	   (locvar (get_free_objlocptr gcx '_valrout_))
 	   )
       (if (null nloc)

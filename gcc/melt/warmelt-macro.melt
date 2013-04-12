@@ -4853,16 +4853,6 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return)
     ))
 
-(defun mexpand_when (sexpr env mexpander modctx)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_when sexpr" sexpr)
-  (let (
-	(loc  (unsafe_get_field :loca_location sexpr))
-	)
-    (error_plain loc "WHEN cannot be macro-expanded in expression context")
-    (return)
-))
 (install_initial_patmacro 'when patexpand_when mexpand_when)
 (export_patmacro when patexpand_when mexpand_when)
 

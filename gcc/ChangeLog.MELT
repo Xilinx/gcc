@@ -1,5 +1,18 @@
 
 
+2013-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-macro.melt (mexpand_when): Was defined twice,
+	remove the old definition.
+
+	* melt/warmelt-normal.melt (normexp_defun): More debug.
+
+	* melt/warmelt-genobj.melt (compilobj_dataroutine): Tentative
+	probably wrong, remove of an assert...
+
+	* testsuite/melt/thook-1.melt: Add more code.
+
+
 2013-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/thook-1.melt: uncomment anotherhook containing a
 	lambda, which is not yet translated correctly...

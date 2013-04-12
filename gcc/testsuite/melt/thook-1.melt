@@ -26,7 +26,8 @@
   (return (+i inp 1))
   )
 
-
+(defun mybiapp (f) 
+  (lambda (x) (f x x)))
 
 ;; also test that lambda is closing hook input values as needed
 (defhook anotherhook (:long i :value v) (:value outv) :void
