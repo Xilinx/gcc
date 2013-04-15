@@ -128,7 +128,7 @@ ssa_name_has_uses_outside_loop_p (tree def, loop_p loop)
     {
       gimple use_stmt = USE_STMT (use_p);
       if (flag_enable_cilk
-	  && pragma_simd_is_private_var (loop->pragma_simd_index, def))
+	  && pragma_simd_is_private_var_p (loop->pragma_simd_index, def))
 	/* Don't do any more checks for this value.  The user has indicated that
 	   this variable is private to the loop.  */
 	;

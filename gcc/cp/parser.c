@@ -44,7 +44,6 @@ extern int array_notation_label_no;
 extern void extract_array_notation_exprs (tree, bool, tree **, int *);
 extern tree fix_unary_array_notation_exprs (tree);
 extern bool contains_array_notation_expr (tree);
-struct pragma_simd_values cilkplus_local_simd_values;
 
 /* The lexer.  */
 
@@ -649,30 +648,6 @@ cp_lexer_new_main (void)
   done_lexing = true;
 
   gcc_assert (!lexer->next_token->purged_p);
-
-  /* Here we initialize the cilkplus_local_simd_values structure.  We only need
-     it initialized the first time, after each consumptions, for-loop will
-     automatically consume the values and delete the information.  */
-  cilkplus_local_simd_values.index              = 0;
-  cilkplus_local_simd_values.pragma_encountered = false;
-  cilkplus_local_simd_values.types              = P_SIMD_NOASSERT;
-  cilkplus_local_simd_values.vectorlength       = NULL_TREE;
-  cilkplus_local_simd_values.vec_length_list    = NULL;
-  cilkplus_local_simd_values.vec_length_size    = 0;
-  cilkplus_local_simd_values.private_vars       = NULL_TREE;
-  cilkplus_local_simd_values.priv_var_list      = NULL;
-  cilkplus_local_simd_values.priv_var_size      = 0;
- 
-  cilkplus_local_simd_values.linear_vars        = NULL_TREE;
-  cilkplus_local_simd_values.linear_var_size    = 0;
-  cilkplus_local_simd_values.linear_var_list    = NULL;
-  cilkplus_local_simd_values.linear_steps       = NULL_TREE;
-  cilkplus_local_simd_values.linear_steps_list  = NULL;
-  cilkplus_local_simd_values.linear_steps_size  = 0;
-  cilkplus_local_simd_values.reduction_vals     = NULL;
-  cilkplus_local_simd_values.ptr_next           = NULL;
-
-  clear_pragma_simd_list ();
 
   array_notation_label_no = 0;
   
@@ -2435,15 +2410,16 @@ static tree cp_parser_cilk_for_condition
 static tree cp_parser_cilk_for_expression_iterator
   (cp_parser *parser);
 static void cp_parser_simd_vectorlength
-  (cp_parser *parser, cp_token *pragma_token);
+  (cp_parser *parser, cp_token *pragma_token, struct pragma_simd_values *);
 static void cp_parser_simd_private
-  (cp_parser *parser, cp_token *pragma_token);
+  (cp_parser *parser, cp_token *pragma_token, struct pragma_simd_values *);
 static void cp_parser_simd_reduction
-  (cp_parser *parser, cp_token *pragma_token);
+  (cp_parser *parser, cp_token *pragma_token, struct pragma_simd_values *);
 static void cp_parser_simd_linear
-  (cp_parser *parser, cp_token *pragma_token);
+  (cp_parser *parser, cp_token *pragma_token, struct pragma_simd_values *);
 static void cp_parser_simd_assert
-  (cp_parser *parser, cp_token *pragma_token, bool is_assert);
+  (cp_parser *parser, cp_token *pragma_token, bool is_assert,
+   struct pragma_simd_values *);
 
 
 /* Returns nonzero if we are parsing tentatively.  */
@@ -9779,19 +9755,10 @@ cp_parser_for (cp_parser *parser, struct pragma_simd_values *cilkplus_ps_values)
 
   if (!is_range_for && statement != error_mark_node)
     {
-      if (cilkplus_ps_values != NULL)
-	{
-	  FOR_STMT_PRAGMA_SIMD_INDEX (statement) = 
-	    psv_head_insert (*cilkplus_ps_values);
-	  /* Now we initialize them all to zeros.  */
-	  cilkplus_ps_values->pragma_encountered = false;
-	  cilkplus_ps_values->types              = P_SIMD_NOASSERT;
-	  cilkplus_ps_values->vectorlength       = NULL_TREE;
-	  cilkplus_ps_values->private_vars       = NULL_TREE;
-	  cilkplus_ps_values->linear_vars        = NULL_TREE;
-	  cilkplus_ps_values->linear_steps       = NULL_TREE;
-	  cilkplus_ps_values->reduction_vals     = NULL;
-	}
+      if (flag_enable_cilk && cilkplus_ps_values
+	  && p_simd_valid_stmts_in_body_p (FOR_BODY (statement)))
+	FOR_STMT_PRAGMA_SIMD_INDEX (statement) =
+	  p_simd_head_insert (cilkplus_ps_values);
       else
 	FOR_STMT_PRAGMA_SIMD_INDEX (statement) = INVALID_PRAGMA_SIMD_SLOT;
     }
@@ -28908,6 +28875,50 @@ cp_parser_initial_pragma (cp_token *first_token)
   cp_lexer_get_preprocessor_token (NULL, first_token);
 }
 
+/* Handles the parsing of next clause for pragma simd.  */
+static void
+cp_parser_simd_handle_next_clause (cp_parser *parser, const char *token_name,
+				   cp_token *pragma_token,
+				   struct pragma_simd_values *p_simd_values)
+{
+  if (!strcmp (token_name, "linear"))
+    cp_parser_simd_linear (parser, pragma_token, p_simd_values);
+  else if (!strcmp (token_name, "private"))
+    cp_parser_simd_private (parser, pragma_token, p_simd_values);
+  else if (!strcmp (token_name, "reduction"))
+    cp_parser_simd_reduction (parser, pragma_token, p_simd_values);
+  else if (!strcmp (token_name, "assert"))
+    cp_parser_simd_assert (parser, pragma_token, true, p_simd_values);
+  else if (!strcmp (token_name, "noassert"))
+    cp_parser_simd_assert (parser, pragma_token, false, p_simd_values);
+  else if (!strcmp (token_name, "vectorlength"))
+    cp_parser_simd_vectorlength (parser, pragma_token, p_simd_values);
+  else
+    {
+      error_at (input_location, "unknown pragma simd clause: %s",
+		token_name);
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+    }
+}
+
+static void
+cp_parser_simd_construct (cp_parser *parser, cp_token *pragma_token,
+			  struct pragma_simd_values *p_simd_values)
+{
+  cp_token *token = cp_lexer_peek_token (parser->lexer);
+
+  if (token->type != CPP_PRAGMA_EOL)
+    cp_lexer_consume_token (parser->lexer);
+
+  /* This would mean that it has reached CPP_PRAGMA_EOL.  */
+  if (!token->u.value || token->type == CPP_PRAGMA_EOL)
+    cp_parser_simd_assert (parser, pragma_token, false, p_simd_values);
+  else
+    cp_parser_simd_handle_next_clause (parser,
+				       IDENTIFIER_POINTER (token->u.value),
+				       pragma_token, p_simd_values);
+}
+
 /* Normal parsing of a pragma token.  Here we can (and must) use the
    regular lexer.  */
 
@@ -28916,7 +28927,8 @@ cp_parser_pragma (cp_parser *parser, enum pragma_context context)
 {
   cp_token *pragma_tok;
   unsigned int id;
-
+  struct pragma_simd_values p_simd_values;
+  
   pragma_tok = cp_lexer_consume_token (parser->lexer);
   gcc_assert (pragma_tok->type == CPP_PRAGMA);
   parser->lexer->in_pragma = true;
@@ -29023,61 +29035,12 @@ cp_parser_pragma (cp_parser *parser, enum pragma_context context)
 	}
       cp_parser_cilk_grainsize (parser, pragma_tok);
       return true;
-
-    case PRAGMA_SIMD_ASSERT:
+    case CILKPLUS_PRAGMA_SIMD:
       if (context == pragma_external)
-	{
-	  error("%<#pragma simd assert%> may only be used inside a function");
-	  break;
-	}
-      cp_parser_simd_assert (parser, pragma_tok, true);
+	goto bad_stmt;
+      memset (&p_simd_values, 0, sizeof (struct pragma_simd_values)); 
+      cp_parser_simd_construct (parser, pragma_tok, &p_simd_values);
       return true;
-      
-    case PRAGMA_SIMD_NOASSERT:
-      if (context == pragma_external)
-	{
-	  error("%<#pragma simd assert%> may only be used inside a function");
-	  break;
-	}
-      cp_parser_simd_assert (parser, pragma_tok, false);
-      return true;
-
-    case PRAGMA_SIMD_VECTORLENGTH:
-      if (context == pragma_external)
-	{
-	  error("%<#pragma simd vectorlength%> may only be used inside a function");
-	  break;
-	}
-      cp_parser_simd_vectorlength (parser, pragma_tok);
-      return true;
-
-    case PRAGMA_SIMD_PRIVATE:
-      if (context == pragma_external)
-	{
-	  error("%<#pragma simd private%> may only be used inside a function");
-	  break;
-	}
-      cp_parser_simd_private (parser, pragma_tok);
-      return true;
-
-    case PRAGMA_SIMD_LINEAR:
-      if (context == pragma_external)
-	{
-	  error("%<#pragma simd linear%> may only be used inside a function");
-	  break;
-	}
-      cp_parser_simd_linear (parser, pragma_tok);
-      return true;
-
-    case PRAGMA_SIMD_REDUCTION:
-      if (context == pragma_external)
-	{
-	  error("%<#pragma simd reduction%> may only be used inside a function");
-	  break;
-	}
-      cp_parser_simd_reduction (parser, pragma_tok);
-      return true;
-
     default:
       gcc_assert (id >= PRAGMA_FIRST_EXTERNAL);
       c_invoke_pragma_handler (id);
@@ -29439,512 +29402,461 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
 		 build2 (t_code, TREE_TYPE (name), name, expr));
 }
 
-/* This function will parse the pragma simd vectorlength.  */
 
-static void
-cp_parser_simd_vectorlength (cp_parser *parser, cp_token *pragma_token)
+/* Returns true of a same variable is found in sub-field vectors
+   linear_var_list, priv_var_list and reduction_list of P_SIMD_VALUES.  */
+
+static bool
+same_var_in_multiple_lists_p (struct pragma_simd_values *p_simd_values)
 {
-  cp_token *token = NULL;
-  tree vec_length_list = NULL_TREE, v_length_value = NULL_TREE;
-  
-  cilkplus_local_simd_values.pragma_encountered = true;
-  cilkplus_local_simd_values.types |= P_SIMD_VECTORLENGTH;
+  size_t ii, jj, kk;
+  if (!p_simd_values)
+    return false;
 
-  if (cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
-    {
-      while (true)
-	{
-	  if (cp_lexer_next_token_is_not (parser->lexer, CPP_NUMBER))
-	    {
-	      cp_parser_error (parser, "expected number");
-	      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-	      vec_length_list = NULL_TREE;
-	      break;
-	    }
-	  else
-	    {
-	      token = cp_lexer_peek_token (parser->lexer);
-	      if (token != NULL)
-		v_length_value = token->u.value;
-	      cp_lexer_consume_token (parser->lexer);
-	      vec_length_list = tree_cons (NULL_TREE, v_length_value,
-					   vec_length_list);
-	    }
-	  if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
-	    {
-	      cp_lexer_consume_token (parser->lexer);
-	      break;
-	    }
-	  if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA)) 
-	    cp_lexer_consume_token (parser->lexer);
-	}
-    }
-  else 
-    cp_parser_error (parser, "expected %<(%>");
+  /* First check linear and private lists.  */
+  for (ii = 0; ii < vec_safe_length (p_simd_values->linear_var_list); ii++)
+    for (jj = 0; jj < vec_safe_length (p_simd_values->priv_var_list); jj++)
+      {
+	tree linear_var = (*(p_simd_values->linear_var_list))[ii];
+	tree priv_var = (*(p_simd_values->priv_var_list))[jj];
+	if (simple_cst_equal (linear_var, priv_var) == 1)
+	  {
+	    error_at (p_simd_values->loc, "ill-formed pragma: variable %qE"
+		      " listed in both linear and private pragma simd clause",
+		      priv_var);
+	    return true;
+	  }
+      }
 
-  cilkplus_local_simd_values.vectorlength = vec_length_list;
-  cilkplus_local_simd_values.pragma_encountered = true;
-      
-	
-  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
-      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
-    {
-      token = cp_lexer_peek_token (parser->lexer);
-      cp_lexer_consume_token (parser->lexer);
+  /* Now check linear and reduction lists.  */
+  for (ii = 0; ii < vec_safe_length (p_simd_values->linear_var_list); ii++)
+    for (jj = 0; jj < vec_safe_length (p_simd_values->reduction_list); jj++)
+      {
+	struct reduction_node r_node = (*(p_simd_values->reduction_list))[jj];
+	for (kk = 0; kk < vec_safe_length (r_node.reduction_vars); kk++)
+	  {
+	    tree linear_var = (*(p_simd_values->linear_var_list))[ii];
+	    tree red_var = (*(r_node.reduction_vars))[kk];
+	    if (simple_cst_equal (linear_var, red_var) == 1)
+	      {
+		error_at (p_simd_values->loc,
+			  "ill-formed pragma: variable %qE listed in both "
+			  "reduction and linear pragma simd clause", red_var);
+		return true;
+	      }
+	  }
+      }
 
-      if (strcmp (IDENTIFIER_POINTER (token->u.value), "linear") == 0)
-	cp_parser_simd_linear (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "private") == 0)
-	cp_parser_simd_private (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value),
-		       "vectorlength") == 0)
-	cp_parser_simd_vectorlength (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "assert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, true);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "noassert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, false);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "reduction") == 0)
-	cp_parser_simd_reduction (parser, pragma_token);
-      else
-	cp_parser_error (parser, "Unknown identifier");
-    }
-  else
-    {
-      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
-	{ 
-	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
-	    cp_parser_error (parser, 
-			     "ill-formed pragma: Same variable in multiple " 
-			     "clause");
-	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &cilkplus_local_simd_values);
-	}
-      else 
-	cp_parser_error (parser, "for statement expected");
-    }	    
-  return;
-}
-
-/* This function will parse the pragma simd private clause.  */
-
-static void
-cp_parser_simd_private (cp_parser *parser, cp_token *pragma_token)
-{
-  cp_token *token = NULL;
-  tree private_var = NULL_TREE, private_var_list = NULL_TREE;
-  
-  cilkplus_local_simd_values.types |= P_SIMD_PRIVATE;
-  cilkplus_local_simd_values.pragma_encountered = true;
-
-  if (cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
-    {
-      while (true)
-	{
-	  if (cp_lexer_next_token_is_not (parser->lexer, CPP_NAME))
-	    {
-	      cp_parser_error (parser, "expected variable");
-	      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-	      break;
-	    }
-	  else
-	    {
-	      token = cp_lexer_peek_token (parser->lexer);
-	      if (token != NULL)
-		private_var = token->u.value;
-	      else
-		{
-		  cp_parser_error (parser, "expected variable");
-		  cp_parser_skip_to_pragma_eol (parser, pragma_token);
-		  /* you exit here because this should NEVER happen.  If it does
-		     something very bad is going on */
-		  exit (-1);
-		}
-	      cp_lexer_consume_token (parser->lexer);
-	      private_var_list = tree_cons (NULL_TREE, private_var,
-					    private_var_list);
-	    }
-	  if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
-	    {
-	      cp_lexer_consume_token (parser->lexer);
-	      break;
-	    }
-	  if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA)) 
-	    cp_lexer_consume_token (parser->lexer);
-	}
-    }
-  else 
-    cp_parser_error (parser, "expected %<(%>");
-
-  cilkplus_local_simd_values.pragma_encountered = true;
-  cilkplus_local_simd_values.types |= P_SIMD_PRIVATE;
-  cilkplus_local_simd_values.private_vars = private_var_list;
-	    
-  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
-      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
-    {
-      token = cp_lexer_peek_token (parser->lexer);
-      cp_lexer_consume_token (parser->lexer);
-
-      if (strcmp (IDENTIFIER_POINTER (token->u.value), "linear") == 0)
-	cp_parser_simd_linear (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "private") == 0)
-	cp_parser_simd_private (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value),
-		       "vectorlength") == 0)
-	cp_parser_simd_vectorlength (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "assert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, true);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "noassert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, false);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "reduction") == 0)
-	cp_parser_simd_reduction (parser, pragma_token);
-      else
-	cp_parser_error (parser, "Unknown identifier");
-    }
-  else
-    {
-      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
-	{ 
-	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
-	    cp_parser_error (parser, "ill-formed pragma: Same variable in "
-				     "multiple clause");
-	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &cilkplus_local_simd_values);
-	}
-      else 
-	cp_parser_error (parser, "for statement expected");
-    }	    
-  return;
-}
-
-/* This function will handle the pragma simd reduction clause.  */
-
-static void
-cp_parser_simd_reduction (cp_parser *parser, cp_token *pragma_token)
-{
-  cp_token  *token = NULL;
-  tree var_list = NULL_TREE, vars = NULL_TREE;
-  enum tree_code op_code = PLUS_EXPR;
-
-  if (cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
-    {
-      token = cp_lexer_peek_token (parser->lexer);
-
-      switch (token->type)
-	{
-	case CPP_PLUS:
-	  op_code = PLUS_EXPR;
-	  break;
-	case CPP_MINUS:
-	  op_code = MINUS_EXPR;
-	  break;
-	case CPP_MULT:
-	  op_code = MULT_EXPR;
-	  break;
-	case CPP_AND:
-	  op_code = BIT_AND_EXPR;
-	  break;
-	case CPP_OR:
-	  op_code = BIT_IOR_EXPR;
-	  break;
-	case CPP_XOR:
-	  op_code = BIT_XOR_EXPR;
-	  break;
-	case CPP_OR_OR:
-	  op_code = TRUTH_ORIF_EXPR;
-	  break;
-	case CPP_AND_AND:
-	  op_code = TRUTH_ANDIF_EXPR;
-	  break;
-	default:
-	  cp_parser_error (parser, "expected one of the following: "
-			   "%<+%> %<-%> %<*%> %<&%> %<|%> %<^%> %<||%> %<&&%>");
-	  cp_parser_skip_to_pragma_eol (parser, pragma_token);
-	  var_list = NULL_TREE;
-	  vars = NULL_TREE;
-	  return;
-	}
-      cp_lexer_consume_token (parser->lexer);
-
-      if (cp_lexer_next_token_is_not (parser->lexer, CPP_COLON))
-	{
-	  cp_parser_error (parser, "expected %<:%>");
-	  cp_parser_skip_to_pragma_eol (parser, pragma_token);
-	  var_list = NULL_TREE;
-	  vars = NULL_TREE;
-	  return;
-	}
-
-      cp_lexer_consume_token (parser->lexer);
-
-      while (true)
-	{
-	  if (cp_lexer_next_token_is_not (parser->lexer, CPP_NAME))
-	    {
-	      cp_parser_error (parser, "expected variable name");
-	      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-	      break;
-	    }
-	  token = cp_lexer_peek_token (parser->lexer);
-	  cp_lexer_consume_token (parser->lexer);
-	  if (token != NULL)
-	    vars = token->u.value;
-	  else
-	    {
-	      cp_parser_error (parser, "expected variable name");
-	      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-	      exit (-1);
-	    }
-	  var_list = tree_cons (NULL_TREE, vars, var_list);
-
-	  if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
-	    {
-	      cp_lexer_consume_token (parser->lexer);
-	      break;
-	    }
-
-	  if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA)) 
-	    cp_lexer_consume_token (parser->lexer);
-	}
-    }
-  else 
-    cp_parser_error (parser, "expected %<(%>");
-
-  insert_reduction_values (&cilkplus_local_simd_values.reduction_vals, op_code,
-			   var_list);
-  cilkplus_local_simd_values.types |= P_SIMD_REDUCTION;
-  cilkplus_local_simd_values.pragma_encountered = true;
-
-  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
-      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
-    {
-      token = cp_lexer_peek_token (parser->lexer);
-      cp_lexer_consume_token (parser->lexer);
-
-      if (strcmp (IDENTIFIER_POINTER (token->u.value), "linear") == 0)
-	cp_parser_simd_linear (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "private") == 0)
-	cp_parser_simd_private (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value),
-		       "vectorlength") == 0)
-	cp_parser_simd_vectorlength (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "assert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, true);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "noassert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, false);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "reduction") == 0)
-	cp_parser_simd_reduction (parser, pragma_token);
-      else
-	cp_parser_error (parser, "Unknown identifier");
-    }
-  else
-    {
-      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
-	{ 
-	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
-	    cp_parser_error (parser, 
-			     "ill-formed pragma: Same variable in multiple " 
-			     "clause");
-	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &cilkplus_local_simd_values);
-	}
-      else 
-	cp_parser_error (parser, "for statement expected");
-    }	    
-  return;
-}
-
-/* This function handles the linear clause of pragma simd of Cilk Plus.  */
-
-static void
-cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
-{
-  cp_token *token = NULL;
-  tree linear_var  = NULL_TREE, linear_var_list  = NULL_TREE;
-  tree linear_step = NULL_TREE, linear_steps_list = NULL_TREE;
-  cilkplus_local_simd_values.types |= P_SIMD_LINEAR;
-  cilkplus_local_simd_values.pragma_encountered = true;  
-  if (cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
-    {
-      while (true)
-	{
-	  if (cp_lexer_next_token_is_not (parser->lexer, CPP_NAME))
-	    {
-	      cp_parser_error (parser, "expected variable");
-	      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-	      linear_var_list = NULL_TREE;
-	      linear_steps_list = NULL_TREE;
-	      break;
-	    }
-	  token = cp_lexer_peek_token (parser->lexer);
-	  if (token) 
-	    linear_var = token->u.value;
-
-	  cp_lexer_consume_token (parser->lexer);
-	  linear_var_list = tree_cons (NULL_TREE, linear_var, linear_var_list);
-	  if (cp_lexer_next_token_is (parser->lexer, CPP_COLON))
-	    {
-	      cp_lexer_consume_token (parser->lexer);
-	      if (cp_lexer_next_token_is_not (parser->lexer, CPP_NUMBER))
-		{
-		  cp_parser_error (parser, "expected step-size");
-		  cp_parser_skip_to_pragma_eol (parser, pragma_token);
-		  linear_var = NULL_TREE;
-		  linear_var_list = NULL_TREE;
-		  break;
-		}
-	      else
-		{
-		  token = cp_lexer_peek_token (parser->lexer);
-		  if (token) 
-		    linear_step = token->u.value;
-		  cp_lexer_consume_token (parser->lexer);
-		}
-	    }
-	  else if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA)
-		   || cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN)) 
-	    linear_step = integer_one_node;
-	  else
-	    {
-	      cp_parser_error (parser, "expected : or , after variable name");
-	      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-	      return;
-	    }
-	  if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
-	    {
-	      cp_lexer_consume_token (parser->lexer);
-	      linear_steps_list = tree_cons (NULL_TREE, linear_step,
-					     linear_steps_list);
-	      break;
-	    }
-	  if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
-	    {
-	      cp_lexer_consume_token (parser->lexer);
-	      linear_steps_list = tree_cons (NULL_TREE, linear_step,
-					     linear_steps_list);
-	    }
-	}
-    }
-  else
-    {
-      cp_parser_error (parser, "expected %<(%>");
-      return;
-    }
-
-  gcc_assert (list_length (linear_steps_list) ==
-	      list_length (linear_var_list));
-
-  cilkplus_local_simd_values.linear_vars = linear_var_list;
-  cilkplus_local_simd_values.linear_var_size = list_length (linear_var_list);
-  cilkplus_local_simd_values.linear_steps = linear_steps_list;
-  cilkplus_local_simd_values.linear_steps_size =
-    list_length (linear_steps_list); 
-  
-  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
-      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
-    {
-      token = cp_lexer_peek_token (parser->lexer);
-      cp_lexer_consume_token (parser->lexer);
-
-      if (strcmp (IDENTIFIER_POINTER (token->u.value), "linear") == 0)
-	cp_parser_simd_linear (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "private") == 0)
-	cp_parser_simd_private (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value),
-		       "vectorlength") == 0)
-	cp_parser_simd_vectorlength (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "assert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, true);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "noassert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, false);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "reduction") == 0)
-	cp_parser_simd_reduction (parser, pragma_token);
-      else
-	cp_parser_error (parser, "Unknown identifier");
-    }
-  else
-    {
-      cp_parser_skip_to_pragma_eol (parser, pragma_token);
-      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
-	{ 
-	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
-	    cp_parser_error (parser, "ill-formed pragma: Same variable in " 
-			     "multiple clause");
-	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &cilkplus_local_simd_values);
-	}
-      else 
-	cp_parser_error (parser, "for statement expected");
-    }	    
-  return;
+  /* Finally check private and reduction lists.  */
+  for (ii = 0; ii < vec_safe_length (p_simd_values->priv_var_list); ii++)
+    for (jj = 0; jj < vec_safe_length (p_simd_values->reduction_list); jj++)
+      {
+	struct reduction_node r_node = (*(p_simd_values->reduction_list))[jj];
+	for (kk = 0; kk < vec_safe_length (r_node.reduction_vars); kk++)
+	  {
+	    tree priv_var = (*(p_simd_values->priv_var_list))[ii];
+	    tree red_var = (*(r_node.reduction_vars))[kk];
+	    if (simple_cst_equal (priv_var, red_var) == 1)
+	      {
+		error_at (p_simd_values->loc,
+			  "ill-formed pragma: variable %qE listed in both "
+			  "reduction and private pragma simd clause", red_var);
+		return true;
+	      }
+	  }
+      }
+  return false;
 }
 
 /* This function will parse the pragma simd assert clause.  */
 
 static void
 cp_parser_simd_assert (cp_parser *parser, cp_token *pragma_token,
-		      bool is_assert)
+		       bool is_assert, struct pragma_simd_values *p_simd_values)
 {
   cp_token *token;
 
-  if ((cilkplus_local_simd_values.types == P_SIMD_ASSERT) && is_assert)
+  if (is_assert)
     {
-      cp_parser_error (parser, "multiple simd assert/noassert pragmas found");
-      return;
+      if (p_simd_values->assert_requested == P_SIMD_NOASSERT)
+	{
+	  error_at (input_location, "assert and noassert cannot be used in the"
+		    " same pragma");
+	  cp_parser_skip_to_pragma_eol (parser, pragma_token);
+	  return;
+	}
+      p_simd_values->assert_requested = P_SIMD_ASSERT;
     }
   else
     {
-      if (is_assert)
-	cilkplus_local_simd_values.types |= P_SIMD_ASSERT;
-      else
-	cilkplus_local_simd_values.types |= P_SIMD_NOASSERT;
+      if (p_simd_values->assert_requested == P_SIMD_ASSERT)
+	{
+	  error_at (input_location, "assert and noassert cannot be used in the"
+		    "same pragma");
+	  cp_parser_skip_to_pragma_eol (parser, pragma_token);
+	  return;
+	}
+      p_simd_values->assert_requested = P_SIMD_NOASSERT;
     }
-    
-  cilkplus_local_simd_values.pragma_encountered = true;
-
-  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
-      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME))
     {
       token = cp_lexer_peek_token (parser->lexer);
       cp_lexer_consume_token (parser->lexer);
 
-      if (strcmp (IDENTIFIER_POINTER (token->u.value), "linear") == 0)
-	cp_parser_simd_linear (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "private") == 0)
-	cp_parser_simd_private (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value),
-		       "vectorlength") == 0)
-	cp_parser_simd_vectorlength (parser, pragma_token);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "assert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, true);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "noassert") == 0)
-	cp_parser_simd_assert (parser, pragma_token, false);
-      else if (strcmp (IDENTIFIER_POINTER (token->u.value), "reduction") == 0)
-	cp_parser_simd_reduction (parser, pragma_token);
-      else
-	cp_parser_error (parser, "Unknown identifier");
+      cp_parser_simd_handle_next_clause (parser,
+					 IDENTIFIER_POINTER (token->u.value),
+					 pragma_token, p_simd_values);
     }
   else
     {
       cp_parser_skip_to_pragma_eol (parser, pragma_token);
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
-	{ 
-	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
-	    cp_parser_error (parser, 
-			     "ill-formed pragma: Same variable in multiple "
-			     "clause");
-	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &cilkplus_local_simd_values);
+	{
+	  if (!same_var_in_multiple_lists_p (p_simd_values))
+	    {
+	      cp_lexer_consume_token (parser->lexer);
+	      cp_parser_for (parser, p_simd_values);
+	    }
 	}
-      else 
-	cp_parser_error (parser, "for statement expected");
-    }	    
-  return;
+      else
+	error_at (input_location, "for statement expression after pragma simd");
+    }
 }
 
+/* Parses the pragma simd linear clause in Cilk Plus language extension.
+   The syntax is:
+   #pragma simd linear (<variable>:[<steps], ... )
+*/
+
+static void
+cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token,
+		       struct pragma_simd_values *p_simd_values)
+{
+  tree linear_var, linear_step;
+  cp_token *token;
+
+  if (!cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
+    {
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      return;
+    }
+
+  while (true)
+    {
+      if (cp_lexer_next_token_is_not (parser->lexer, CPP_NAME))
+	{
+	  cp_parser_error (parser, "expected variable-name");
+	  cp_parser_skip_to_pragma_eol (parser, pragma_token);
+	  vec_safe_truncate (p_simd_values->linear_var_list, 0);
+	  vec_safe_truncate (p_simd_values->linear_steps_list, 0);
+	  break;
+	}
+      linear_var = cp_lexer_peek_token (parser->lexer)->u.value;
+      cp_lexer_consume_token (parser->lexer);
+      vec_safe_push (p_simd_values->linear_var_list, linear_var);
+
+      if (cp_lexer_next_token_is (parser->lexer, CPP_COLON))
+	{
+	  cp_lexer_consume_token (parser->lexer);
+	  if (cp_lexer_next_token_is_not (parser->lexer, CPP_NUMBER))
+	    {
+	      cp_parser_error (parser, "expected step-size");
+	      vec_safe_truncate (p_simd_values->linear_steps_list, 0);
+	      vec_safe_truncate (p_simd_values->linear_var_list, 0);
+	      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+	      return;
+	    }
+	  linear_step = cp_lexer_peek_token (parser->lexer)->u.value;
+	  cp_lexer_consume_token (parser->lexer);
+	}
+      else if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA)
+	       || cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
+	linear_step = integer_one_node;
+      else
+	{
+	  cp_parser_error (parser, "expected  %<:%> or  %<,%> after variable-"
+			   "name");
+	  vec_safe_truncate (p_simd_values->linear_steps_list, 0);
+	  vec_safe_truncate (p_simd_values->linear_var_list, 0);
+	  cp_parser_skip_to_pragma_eol (parser, pragma_token);
+	  return;
+	}
+      vec_safe_push (p_simd_values->linear_steps_list, linear_step);
+      if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
+	{
+	  cp_lexer_consume_token (parser->lexer);
+	  break;
+	}
+      if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	cp_lexer_consume_token (parser->lexer);
+    }
+
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME))
+    {
+      token = cp_lexer_peek_token (parser->lexer);
+      cp_lexer_consume_token (parser->lexer);
+
+      cp_parser_simd_handle_next_clause (parser,
+					 IDENTIFIER_POINTER (token->u.value),
+					 pragma_token, p_simd_values);
+    }
+  else
+    {
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
+	{
+	  if (!same_var_in_multiple_lists_p (p_simd_values))
+	    {
+	      cp_lexer_consume_token (parser->lexer);
+	      cp_parser_for (parser, p_simd_values);
+	    }
+	}
+      else
+	error_at (input_location, "for statement expression after pragma simd");
+    }
+}
+
+/* Parses the private clause of simd pragma that is part of Cilk Plus language
+   extension.
+   The correct syntax is:
+   #pragma simd private (<variable> [, <variable])
+*/
+
+static void
+cp_parser_simd_private (cp_parser *parser, cp_token *pragma_token,
+			struct pragma_simd_values *p_simd_values)
+{
+  tree private_var;
+  cp_token *token;
+
+  if (!cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
+    {
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      vec_safe_truncate (p_simd_values->priv_var_list, 0);
+      return;
+    }
+
+  while (true)
+    {
+      if (cp_lexer_next_token_is_not (parser->lexer, CPP_NAME))
+	{
+	  error_at (input_location, "expected variable-name");
+	  cp_parser_skip_to_pragma_eol (parser, pragma_token);
+	  vec_safe_truncate (p_simd_values->priv_var_list, 0);
+	  break;
+	}
+      private_var = cp_lexer_peek_token (parser->lexer)->u.value;
+      cp_lexer_consume_token (parser->lexer);
+      vec_safe_push (p_simd_values->priv_var_list, private_var);
+      if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
+	{
+	  cp_lexer_consume_token (parser->lexer);
+	  break;
+	}
+      else if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	cp_lexer_consume_token (parser->lexer);
+    }
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME))
+    {
+      token = cp_lexer_peek_token (parser->lexer);
+      cp_lexer_consume_token (parser->lexer);
+
+      cp_parser_simd_handle_next_clause (parser,
+					 IDENTIFIER_POINTER (token->u.value),
+					 pragma_token, p_simd_values);
+    }
+  else
+    {
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
+	{
+	  if (!same_var_in_multiple_lists_p (p_simd_values))
+	    {
+	      cp_lexer_peek_token (parser->lexer);
+	      cp_parser_for (parser, p_simd_values);
+	    }
+	}
+      else
+	error_at (input_location, "for statement expression after pragma simd");
+    }
+}
+
+/* Parses the vectorlength clause of SIMD pragmas that is part of Cilk Plus
+   language extension.
+
+   The correct syntax is:
+   #pragma simd vectorlength (<INTEGER> [, <INTEGER])
+*/
+
+static void
+cp_parser_simd_vectorlength (cp_parser *parser, cp_token *pragma_token,
+			     struct pragma_simd_values *p_simd_values)
+{
+  if (!cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
+    {
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      return;
+    }
+
+  while (true)
+    {
+      tree vlength_value = cp_parser_expression (parser, false, false, NULL);
+      if (!TREE_TYPE (vlength_value) || !TREE_CONSTANT (vlength_value)
+	  || !INTEGRAL_TYPE_P (TREE_TYPE (vlength_value)))
+	{
+	  error_at (input_location, "vectorlength must be an integral"
+		    " constant");
+	  cp_parser_skip_to_pragma_eol (parser, pragma_token);
+	  vec_safe_truncate (p_simd_values->vec_length_list, 0);
+	  break;
+	}
+      else
+	vec_safe_push (p_simd_values->vec_length_list, vlength_value);
+      if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
+	{
+	  cp_lexer_consume_token (parser->lexer);
+	  break;
+	}
+      if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	break;
+    }
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME))
+    {
+      cp_token *token = cp_lexer_peek_token (parser->lexer);
+      cp_lexer_consume_token (parser->lexer);
+
+      cp_parser_simd_handle_next_clause (parser,
+					 IDENTIFIER_POINTER (token->u.value),
+					 pragma_token, p_simd_values);
+    }
+  else
+    {
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
+	{
+	  if (!same_var_in_multiple_lists_p (p_simd_values))
+	    {
+	      cp_lexer_peek_token (parser->lexer);
+	      cp_parser_for (parser, p_simd_values);
+	    }
+	}
+      else
+	error_at (input_location, "for statement expression after pragma simd");
+    }
+}
+
+/* Parses the reduction clause of SIMD pragma that is part of the Cilk Plus
+   language specification:
+   The correct syntax is:
+   #pragma simd reduction (<operator>:<variable> [, <variable>])
+*/
+
+static void
+cp_parser_simd_reduction (cp_parser *parser, cp_token *pragma_token,
+			  struct pragma_simd_values *p_simd_values)
+{
+  tree vars = NULL_TREE;
+  enum tree_code op_code = PLUS_EXPR;
+  struct reduction_node red_node;
+
+  memset (&red_node, 0, sizeof (struct reduction_node));
+
+  if (!cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
+    {
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      return;
+    }
+
+  switch (cp_lexer_peek_token (parser->lexer)->type)
+    {
+    case CPP_PLUS:
+      op_code = PLUS_EXPR;
+      break;
+    case CPP_MINUS:
+      op_code = MINUS_EXPR;
+      break;
+    case CPP_MULT:
+      op_code = MULT_EXPR;
+      break;
+    case CPP_AND:
+      op_code = BIT_AND_EXPR;
+      break;
+    case CPP_OR:
+      op_code = BIT_IOR_EXPR;
+      break;
+    case CPP_XOR:
+      op_code = BIT_XOR_EXPR;
+      break;
+    case CPP_OR_OR:
+      op_code = TRUTH_ORIF_EXPR;
+      break;
+    case CPP_AND_AND:
+      op_code = TRUTH_ANDIF_EXPR;
+      break;
+    default:
+      error_at (input_location, "pragma simd reduction operators must be one"
+		" of the following: "
+		"%<+%> %<-%> %<*%> %<&%> %<|%> %<^%> %<||%> %<&&%>");
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      return;
+    }
+  cp_lexer_consume_token (parser->lexer);
+  red_node.reduction_type = op_code;
+  
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_COLON))
+    {
+      cp_parser_error (parser, "expected %<:%>");
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      return;
+    }
+  cp_lexer_consume_token (parser->lexer);
+
+  while (true)
+    {
+      if (cp_lexer_next_token_is_not (parser->lexer, CPP_NAME))
+	{
+	  cp_parser_error (parser, "expected variable-name");
+	  cp_parser_skip_to_pragma_eol (parser, pragma_token);
+	  break;
+	}
+      vars = cp_lexer_peek_token (parser->lexer)->u.value;
+      cp_lexer_consume_token (parser->lexer);
+      vec_safe_push (red_node.reduction_vars, vars);
+
+      if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
+	{
+	  cp_lexer_consume_token (parser->lexer);
+	  vec_safe_push (p_simd_values->reduction_list, red_node);
+	  break;
+	}
+      if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	cp_lexer_consume_token (parser->lexer);
+    }
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME))
+    {
+      cp_token *token = cp_lexer_peek_token (parser->lexer);
+      cp_lexer_consume_token (parser->lexer);
+
+      cp_parser_simd_handle_next_clause (parser,
+					 IDENTIFIER_POINTER (token->u.value),
+					 pragma_token, p_simd_values);
+    }
+  else
+    {
+      cp_parser_skip_to_pragma_eol (parser, pragma_token);
+      if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
+	{
+	  if (!same_var_in_multiple_lists_p (p_simd_values))
+	    {
+	      cp_lexer_peek_token (parser->lexer);
+	      cp_parser_for (parser, p_simd_values);
+	    }
+	}
+      else
+	error_at (input_location, "for statement expression after pragma simd");
+    }
+}
+  
 
 /* this function will handle the pragma cilk grainsize. The syntax is:
     #pragma cilk grainsize = <EXP> 

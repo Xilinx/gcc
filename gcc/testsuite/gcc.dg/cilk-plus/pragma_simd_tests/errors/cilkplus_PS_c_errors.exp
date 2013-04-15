@@ -1,5 +1,4 @@
-# Copyright (C) 2012-2013
-# Free Software Foundation, Inc.
+#   Copyright (C) 2012-2013 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,12 +14,11 @@
 # along with GCC; see the file COPYING3.  If not see
 # <http://www.gnu.org/licenses/>.
 
-# This file was written by Balaji V. Iyer <balaji.v.iyer@intel.com>
-# Many thanks to the GCC C-torture contributors.
+# Written by Balaji V. Iyer <balaji.v.iyer@intel.com>
 
-verbose "$tool $libdir" 1
+
+load_lib gcc-dg.exp
 
 dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.c]] " " " "
 dg-finish
-

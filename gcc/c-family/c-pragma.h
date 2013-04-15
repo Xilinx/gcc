@@ -48,14 +48,9 @@ typedef enum pragma_kind {
   /* This pragma allows you to get the grainsize of a Cilk for.  */
   PRAGMA_CILK_GRAINSIZE,
 
-  /* Here are all the pragma simd clauses.  */
-  PRAGMA_SIMD_VECTORLENGTH,
-  PRAGMA_SIMD_PRIVATE,
-  PRAGMA_SIMD_LINEAR,
-  PRAGMA_SIMD_REDUCTION,
-  PRAGMA_SIMD_NOASSERT,
-  PRAGMA_SIMD_ASSERT,
-  PRAGMA_SIMD_EMPTY,
+  /* Top level clause to handle all pragma simd [sub]clauses.  */
+  CILKPLUS_PRAGMA_SIMD,
+  
   PRAGMA_GCC_PCH_PREPROCESS,
 
   PRAGMA_FIRST_EXTERNAL

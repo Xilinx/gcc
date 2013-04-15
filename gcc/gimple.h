@@ -210,7 +210,7 @@ struct GTY((chain_next ("%h.next"))) gimple_statement_base {
   gimple GTY((skip)) prev;
 
   /* Index to the PRAGMA simd internal structure.  */
-  int pragma_simd_index;
+  unsigned int pragma_simd_index;
 };
 
 

@@ -1,3 +1,7 @@
+/* { dg-do run } */
+/* { dg-options "-O3 -ftree-vectorize -fcilkplus -w" } */
+
+
 int a[100];
 
 int

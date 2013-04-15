@@ -24,29 +24,101 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
 #include "tree.h"
-#include "langhooks.h"
-#include "c/c-tree.h"
-#include "c/c-lang.h"
-#include "flags.h"
-#include "output.h"
-#include "intl.h"
-#include "target.h"
-#include "tree-iterator.h"
-#include "bitmap.h"
 #include "gimple.h"
+#include "diagnostic-core.h"
 #include "cilk.h"
-#include "c-family/c-objc.h"
-		
 
-struct pragma_simd_values *psv_head;
+vec<struct pragma_simd_values, va_gc> *p_simd_info_list;
+
+/* Traverses the global vector P_SIMD_INFO_LIST and returns the node whose 
+   field "INDEX" as PRAGMA_SIMD_INDEX.  If no match is found, returns NULL.  */
+
+static struct pragma_simd_values *
+psv_find_node (unsigned int pragma_simd_index)
+{
+  unsigned int ii = 0;
+  struct pragma_simd_values *return_value = NULL; 
+  for (ii = 0; ii < vec_safe_length (p_simd_info_list); ii++)
+    if (pragma_simd_index == (*p_simd_info_list)[ii].index)
+      return_value = &(*p_simd_info_list)[ii];
+  return return_value;
+}
+
+static vec<struct reduction_node, va_gc> *
+psv_find_reduction_list (unsigned int pragma_simd_index)
+{
+  unsigned int ii = 0;
+  vec<struct reduction_node, va_gc> *return_value = NULL;
+
+  for (ii = 0; ii < vec_safe_length (p_simd_info_list); ii++)
+    if (pragma_simd_index == (*p_simd_info_list)[ii].index)
+      return_value = ((*p_simd_info_list)[ii].reduction_list);
+  return return_value;
+}
+
+/* Returns true of all the clauses of KIND in the node with the matching 'index'
+   field to PRAGMA_SIMD_INDEX.  */
+
+static bool
+clause_resolved_p (enum pragma_simd_kind kind, unsigned int pragma_simd_index)
+{
+  struct pragma_simd_values *p_simd_node;
+  if (pragma_simd_index <= INVALID_PRAGMA_SIMD_SLOT)
+    return true;
+
+  p_simd_node = psv_find_node (pragma_simd_index);
+  if (!p_simd_node)
+    return true;
+ 
+  switch (kind)
+    {
+    case P_SIMD_VECTORLENGTH:
+      if (!vec_safe_is_empty (p_simd_node->vec_length_list)) 
+	return p_simd_node->vlength_OK;
+      else
+	return true;
+    case P_SIMD_PRIVATE:
+      if (!vec_safe_is_empty (p_simd_node->priv_var_list))
+	return p_simd_node->private_OK;
+      else
+	return true;
+    case P_SIMD_LINEAR:
+      if (!vec_safe_is_empty (p_simd_node->linear_var_list))
+	return p_simd_node->linear_OK;
+      else
+	return true;
+    case P_SIMD_REDUCTION:
+      if (!vec_safe_is_empty (p_simd_node->reduction_list))
+	return p_simd_node->reduction_OK;
+      else
+	return true;
+    default:
+      return false;
+    }
+
+  /* If we can't find a certain pragma, then just return tur to make sure we
+     do not assert/halt.  */
+  return true;
+}
+
+/* Returns true of the node whose field 'index' matches PRAGMA_SIMD_INDEX
+   has the assert clause.  */
+
+bool
+pragma_simd_assert_requested_p (unsigned int pragma_simd_index)
+{
+  if (!psv_find_node (pragma_simd_index))
+    return false;
+  else
+    return psv_find_node (pragma_simd_index)->assert_requested;
+}
 
 /* Verify that the <#pragma simd> clauses have been properly resolved.
    INDEX is the pragma_simd_index into the global table.  */
 
 void
-pragma_simd_verify_clauses (int index)
+pragma_simd_verify_clauses (unsigned int index)
 {
   struct pragma_simd_values *vals = psv_find_node (index);
   location_t loc = vals ? vals->loc : UNKNOWN_LOCATION;
@@ -54,646 +126,143 @@ pragma_simd_verify_clauses (int index)
   if ((!clause_resolved_p (P_SIMD_VECTORLENGTH, index)))
     {
       if (pragma_simd_assert_requested_p (index))
-	{
-	  error_at (loc, "vectorlength in pragma simd not picked from list");
-	  exit (ICE_EXIT_CODE);
-	}
+	error_at (loc, "vectorlength in pragma simd not picked from list");
       else 
-	warning_at (0, loc,
+	warning_at (loc, 0,
 		    "vectorlength in pragma simd not picked from list");
     }
   if (!clause_resolved_p (P_SIMD_PRIVATE, index))
     { 
       if (pragma_simd_assert_requested_p (index))
-	{ 
-	  error_at (loc, "unable to make all variables private");
-	  exit (ICE_EXIT_CODE);
-	} 
+	error_at (loc, "unable to make all variables private");
       else
-	warning_at (0, loc,
+	warning_at (loc, 0,
 		    "unable to make all variables private in pragma simd");
     }     
   if (!clause_resolved_p (P_SIMD_LINEAR, index))
     {
       if (pragma_simd_assert_requested_p (index))
-	{
-	  error_at (loc, "unable to pick requested step-size in pragma simd");
-	  exit (ICE_EXIT_CODE);
-	}
+	error_at (loc, "unable to pick requested step-size in pragma simd");
       else
 	warning (loc, "unable to pick requested step-size in pragma simd");
     }
   if (!clause_resolved_p (P_SIMD_REDUCTION, index))
     {
       if (pragma_simd_assert_requested_p (index))
-	{
-	  error_at (loc, "unable to satisfy all reductions in pragma simd");
-	  exit (ICE_EXIT_CODE);
-	}
+	error_at (loc, "unable to satisfy all reductions in pragma simd");
       else
-	warning_at (0, loc, "unable to satisfy all reductions in pragma simd");
+	warning_at (loc, 0, "unable to satisfy all reductions in pragma simd");
     }
 }
 
-/* Clear the pragma simd data structure.  */
 
+/* Assigns the "OK" field of a certain clause (indicated by KIND) in a node
+   whose 'index' field matches pragma_simd_index to SET_VALUE.  */
+   
 void
-clear_pragma_simd_list (void)
+set_OK_for_certain_clause (enum pragma_simd_kind kind, bool set_value,
+			   unsigned int pragma_simd_index)
 {
-  psv_head = NULL;
-}
-
-/* this function will check and see if a certain clause is resolved
-   (i.e. checked OK).  */
-
-bool
-clause_resolved_p (enum pragma_simd_kind clause_type, int pragma_simd_index)
-{
-  struct pragma_simd_values *ps_iter = NULL;
+  unsigned int ii = 0;
+  if (pragma_simd_index <= INVALID_PRAGMA_SIMD_SLOT)
+    return;
   
-  if (pragma_simd_index <= INVALID_PRAGMA_SIMD_SLOT)
-    return true;
-
-  if (psv_head == NULL)
-    return true;
-
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
-    {
-      if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
-	{
-	  switch (clause_type)
-	    {
-	    case P_SIMD_VECTORLENGTH:
-	      return ps_iter->vlength_OK;
-	    case P_SIMD_PRIVATE:
-	      return ps_iter->pvars_OK;
-	    case P_SIMD_LINEAR:
-	      return ps_iter->lvars_OK;
-	    case P_SIMD_REDUCTION:
-	      return ps_iter->rvars_OK;
-	    default:
-	      return false;
-	    }
-	}
-    }
-
-  /* if we can't find the certain pragma, then just return true to make sure
-     we do not assert/halt and continue */
-  return true;
-}
-
-/* this function will go through and check off all the clauses we have
-   satisfied.  */
-
-void
-set_OK_for_certain_clause (enum pragma_simd_kind clause_type, bool set_value,
-			   int pragma_simd_index)
-{
-  struct pragma_simd_values *ps_iter = NULL;
-
-  if (pragma_simd_index <= INVALID_PRAGMA_SIMD_SLOT)
-    return;
-
-  if (!psv_head)
-    return;
-
-  // FIXME: Why not use psv_find_node?
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
-    {
-      if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
+  for (ii = 0; ii < vec_safe_length (p_simd_info_list); ii++)
+    if ((*p_simd_info_list)[ii].index == pragma_simd_index)
+      {
+	if (kind == P_SIMD_VECTORLENGTH)
+	  (*p_simd_info_list)[ii].vlength_OK = set_value;
+	else if (kind == P_SIMD_PRIVATE)
+	  (*p_simd_info_list)[ii].private_OK = set_value;
+	else if (kind == P_SIMD_REDUCTION)
+	  (*p_simd_info_list)[ii].reduction_OK = set_value;
+	else if (kind == P_SIMD_LINEAR)
+	  (*p_simd_info_list)[ii].linear_OK = set_value;
+	else
+	  gcc_unreachable ();
 	break;
-    }
-  if (!ps_iter)
-    return;
-
-  switch (clause_type)
-    {
-    case P_SIMD_VECTORLENGTH:
-      ps_iter->vlength_OK = set_value;
-    case P_SIMD_PRIVATE:
-      ps_iter->pvars_OK = set_value;
-    case P_SIMD_LINEAR:
-      ps_iter->lvars_OK = set_value;
-    case P_SIMD_REDUCTION:
-      ps_iter->rvars_OK = set_value;
-    default:
-      break;
-    }
-
-  return;
-}
-
-/* this function will make srue all the reductions given by pragma simd
-   reduction clauses are satisfied.  */
-
-bool
-all_reductions_satisfied_p (int pragma_simd_index)
-{
-  struct pragma_simd_values *ps_iter = NULL;
-  struct reduction_values *rv_iter = NULL;
-
-  if (psv_head == NULL)
-    return true;
-
-  if (pragma_simd_index <= INVALID_PRAGMA_SIMD_SLOT)
-    return true;
-
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
-    {
-      for (rv_iter = ps_iter->reduction_vals; rv_iter != NULL;
-	   rv_iter = rv_iter->ptr_next)
-	{
-	  if (rv_iter->not_reduced != 0)
-	    return false;
-	}
-    }
-  return true;
-}
-
-// FIXME: We should really rewrite all this psv* business to use vectors.
-/* Given an index into the pragma simd list (PSV_INDEX), find its
-   entry and return it.  */
-
-struct pragma_simd_values *
-psv_find_node (int psv_index)
-{
-  struct pragma_simd_values *ps_iter = NULL;
-
-  if (psv_index <= INVALID_PRAGMA_SIMD_SLOT)
-    return NULL;
-
-  if (psv_head == NULL)
-    return NULL;
-  
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
-    if ((ps_iter->index == psv_index) && ps_iter->pragma_encountered)
-      return ps_iter;
-
-  gcc_unreachable ();
-  return NULL;
-}
-
-/* Insert LOCAL_SIMD_VALUES into the global pragma simd table.  Return
-   the index into the table for the new entry.  */
-
-int
-psv_head_insert (struct pragma_simd_values local_simd_values)
-{
-  struct pragma_simd_values *ps_iter = NULL;
- 
-  struct reduction_values *rv_iter = NULL;
-
-  gcc_assert (local_simd_values.pragma_encountered == true);
-  if (psv_head == NULL)
-    {
-      psv_head = (struct pragma_simd_values *)
-	xcalloc (1, sizeof (struct pragma_simd_values));
-      psv_head->loc = local_simd_values.loc;
-      psv_head->pragma_encountered  = local_simd_values.pragma_encountered;
-      psv_head->index = INVALID_PRAGMA_SIMD_SLOT + 1;
-      psv_head->types = local_simd_values.types;
-      
-      psv_head->vectorlength = local_simd_values.vectorlength;
-      if (local_simd_values.vectorlength != NULL_TREE)
-	psv_head->vlength_OK = false;
-      else
-	psv_head->vlength_OK = true;
-    
-      psv_head->private_vars = local_simd_values.private_vars;
-      if (local_simd_values.private_vars != NULL_TREE)
-	psv_head->pvars_OK = false;
-      else
-	psv_head->pvars_OK = true;
-    
-      psv_head->linear_vars = local_simd_values.linear_vars;
-      if (local_simd_values.linear_vars != NULL_TREE)
-	psv_head->lvars_OK = false;
-      else
-	psv_head->lvars_OK = true;
-    
-      psv_head->linear_steps = local_simd_values.linear_steps;
-      if (local_simd_values.reduction_vals == NULL)
-	psv_head->reduction_vals = NULL;
-    
-      psv_head->reduction_vals = NULL;
-      for (rv_iter = local_simd_values.reduction_vals; rv_iter != NULL;
-	   rv_iter = rv_iter->ptr_next) 
-	insert_reduction_values (&psv_head->reduction_vals, 
-				 rv_iter->reduction_operator, 
-				 rv_iter->tree_reduction_var_list);
-
-      if (local_simd_values.reduction_vals != NULL)
-	psv_head->rvars_OK = false;
-      else
-	psv_head->rvars_OK = true;
-    
-      psv_head->ptr_next = NULL;
-      return psv_head->index;
-    }
-  
-  for (ps_iter = psv_head; ps_iter->ptr_next != NULL;
-       ps_iter = ps_iter->ptr_next)
-    ;
-
-  ps_iter->ptr_next = (struct pragma_simd_values *)
-    xcalloc (1, sizeof (struct pragma_simd_values));
-
-  // FIXME: There are a bunch of fields not initialized here:
-  // i.e. vlength_OK, pvars_OK, linear_steps_size
-  ps_iter->ptr_next->pragma_encountered = local_simd_values.pragma_encountered;
-  ps_iter->ptr_next->loc = local_simd_values.loc;
-  ps_iter->ptr_next->index = ps_iter->index + 1;
-  ps_iter->ptr_next->types = local_simd_values.types;
-  ps_iter->ptr_next->vectorlength = local_simd_values.vectorlength;
-  ps_iter->ptr_next->private_vars = local_simd_values.private_vars;
-  ps_iter->ptr_next->linear_vars = local_simd_values.linear_vars;
-  ps_iter->ptr_next->linear_steps = local_simd_values.linear_steps;
-  ps_iter->ptr_next->ptr_next = NULL;
-
-  ps_iter->ptr_next->reduction_vals = NULL;
-  for (rv_iter = local_simd_values.reduction_vals; rv_iter; 
-       rv_iter = rv_iter->ptr_next) 
-    insert_reduction_values (&ps_iter->ptr_next->reduction_vals, 
-			     rv_iter->reduction_operator, 
-			     rv_iter->tree_reduction_var_list);
-
-  return ps_iter->ptr_next->index;
-}
-
-/* this function wil check if the user requsted the assert command. That is,
-   the user requested the compiler to halt if the loop is not vectorized.  */
-
-bool
-pragma_simd_assert_requested_p (int ps_index)
-{
-  struct pragma_simd_values *ps_iter = NULL;
-
-  if (ps_index == 0) 
-    return 0;
-
-  // FIXME: Why not use psv_find_node.
-  for (ps_iter = psv_head; ps_iter; ps_iter = ps_iter->ptr_next)
-    {
-      if ((ps_iter->pragma_encountered == true) && (ps_iter->index == ps_index))
-	{
-	  if ((ps_iter->types & P_SIMD_ASSERT))
-	    return true;
-	  else
-	    return false;
-	}
-    }
-  return false;
-}
-
-/* This function will check to see if the vectorlength found by the 
-   vectorizer falls in the list of acceptable vectorlengths provided by the 
-   user.  */
-
-bool
-pragma_simd_acceptable_vlength_p (int ps_index, 
-				  int possible_vectorization_factor, 
-				  tree scalar_type)
-{
-  tree size = NULL_TREE;
-  struct pragma_simd_values *ps_iter = NULL;
-  int possible_vector_length = 0;
-  tree ii_tree = NULL_TREE;
-  tree ii_value = NULL_TREE;
-  tree vl_tree = NULL_TREE;
-  size = size_in_bytes (scalar_type);
-
-  if (ps_index <= INVALID_PRAGMA_SIMD_SLOT) 
-    return true; 
-  if (TREE_CODE (size) == INTEGER_CST) 
-    ;
-  else 
-    error ("Unable to determine size of scalar type!");
-
-  possible_vector_length = possible_vectorization_factor;
-
-  vl_tree = build_int_cst (integer_type_node, possible_vector_length);
-
-  // FIXME: Why not use psv_find_node?
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
-    {
-      if ((ps_iter->pragma_encountered == true) && (ps_iter->index == ps_index))
-	break;
-    }
-
-  gcc_assert (ps_iter != NULL);
-
-  if (list_length (ps_iter->vectorlength) == 0)
-    /* the user has not given any vectorlength, so whatever the vectorizer
-       the vectorizer found is good enough for us.  */ 
-    return true;
-
-  for (ii_tree = ps_iter->vectorlength; ii_tree; ii_tree = TREE_CHAIN (ii_tree))
-    {
-      ii_value = TREE_VALUE (ii_tree);
-      if ((TREE_CODE (ii_value) == INTEGER_CST)
-	  && tree_int_cst_equal ((const_tree) ii_value, (const_tree) vl_tree))
-	  /* We found a match, so we return TRUE.  */ 
-	return true;
-    }
-
-  /* A match was not found, hence we return a false.  */
-  return false;
-}
-
-/* this function will check if we wanted a loop to be vectorized.  */
-
-bool
-pragma_simd_vectorize_loop_p (int ps_index)
-{
-  struct pragma_simd_values *ps_iter = NULL;
-  
-  if (ps_index <= INVALID_PRAGMA_SIMD_SLOT) 
-    return false;
-
-  // FIXME: Why not use psv_find_node?
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next) 
-    if (ps_iter->index == ps_index) 
-      return ps_iter->pragma_encountered;
-
-  return false;
-}
-
-/* This function will insert the appropriate reduction values asked by pragma
-   simd reduction into the internal pragma simd list.  */
-
-void
-insert_reduction_values (struct reduction_values **reduction_val_head,
-			 enum tree_code reduction_op, tree var_list)
-{
-  struct reduction_values *red_iter = NULL;
-  bool found = false;
-  if (reduction_val_head == NULL)
-    {
-      reduction_val_head = (struct reduction_values **)
-	xmalloc (sizeof (struct reduction_values *));
-      gcc_assert (reduction_val_head != NULL);
-    }
-  if (*reduction_val_head == NULL)
-    {
-      *reduction_val_head = (struct reduction_values *)
-	xmalloc (sizeof (struct reduction_values));
-      gcc_assert (*reduction_val_head != NULL);
-
-      (*reduction_val_head)->reduction_operator = reduction_op;
-      (*reduction_val_head)->tree_reduction_var_list  = var_list;
-      (*reduction_val_head)->not_reduced = list_length (var_list);
-      (*reduction_val_head)->ptr_next = NULL;
-      return;
-    }
-  else
-    {
-      for (red_iter = *reduction_val_head; red_iter->ptr_next != NULL;
-	   red_iter = red_iter->ptr_next)
-	{
-	  if (red_iter->reduction_operator == reduction_op)
-	    {
-	      found = true;
-	      break;
-	    }
-	}
-
-      if (found)
-	{
-	  red_iter->tree_reduction_var_list =
-	    tree_cons (NULL_TREE, var_list, red_iter->tree_reduction_var_list);
-	  red_iter->not_reduced +=
-	    list_length (red_iter->tree_reduction_var_list);
-	}
-      else
-	{
-	  red_iter->ptr_next = (struct reduction_values *)
-	    xmalloc (sizeof (struct reduction_values));
-	  gcc_assert (red_iter->ptr_next != NULL);
-
-	  red_iter->ptr_next->reduction_operator = reduction_op;
-	  red_iter->ptr_next->tree_reduction_var_list = var_list;
-	  red_iter->ptr_next->not_reduced =
-	    list_length (red_iter->tree_reduction_var_list);
-	  red_iter->ptr_next->ptr_next = NULL;
-	}
-      return;
-    }
-}
-
-/* this function will check if a same variable is in multiple pragma clause 
-   for example, the following pragma is illegal and this function should flag 
-   them as true: 
-	  #pragma simd reduction (+:p) linear(p:1)
- */
-
-bool
-same_var_in_multiple_lists_p (struct pragma_simd_values *ps_values)
-{
-  tree vl_tree = NULL_TREE, vl_value = NULL_TREE;
-  tree pr_tree = NULL_TREE, pr_value = NULL_TREE;
-  tree rd_tree = NULL_TREE, rd_value = NULL_TREE;
-  struct reduction_values *rd_list = NULL;
-
-  if (ps_values->reduction_vals != NULL)
-    {
-      for (rd_list = ps_values->reduction_vals; rd_list != NULL;
-	   rd_list = rd_list->ptr_next)
-	{
-	  rd_tree = rd_list->tree_reduction_var_list;
-	  vl_tree = ps_values->vectorlength;
-	  pr_tree = ps_values->private_vars;
-	
-	  while ((vl_tree != NULL_TREE) || (rd_tree != NULL_TREE)
-		 || (pr_tree != NULL_TREE))
-	    {
-	      if (vl_tree != NULL_TREE)
-		vl_value = TREE_VALUE (vl_tree);
-	      else
-		vl_value = NULL_TREE;
-    
-	      if (pr_tree != NULL_TREE)
-		pr_value = TREE_VALUE (pr_tree);
-	      else
-		pr_value = NULL_TREE;
-
-	      if (rd_tree != NULL_TREE)
-		rd_value = TREE_VALUE (rd_tree);
-	      else
-		rd_value = NULL_TREE;
-
-	      if (((vl_value != NULL_TREE || pr_value != NULL_TREE)
-		   && (simple_cst_equal (vl_value, pr_value) == 1))
-		  || ((vl_value != NULL_TREE || rd_value != NULL_TREE)
-		      && (simple_cst_equal (vl_value, rd_value) == 1))
-		  || ((pr_value != NULL_TREE || rd_value != NULL_TREE)
-		      && (simple_cst_equal (pr_value, rd_value) == 1))) 
-		return true;
-
-	      if (vl_tree != NULL_TREE)
-		vl_tree = TREE_CHAIN (vl_tree);
-
-	      if (pr_tree != NULL_TREE)
-		pr_tree = TREE_CHAIN (pr_tree);
-
-	      if (rd_tree != NULL_TREE)
-		rd_tree = TREE_CHAIN (rd_tree);
-	    }
-	}
-    }
-  else
-    {    
-      while ((vl_tree != NULL_TREE) || (rd_tree != NULL_TREE)
-	     || (pr_tree != NULL_TREE))
-	{
-	  if (vl_tree != NULL_TREE)
-	    vl_value = TREE_VALUE (vl_tree);
-	  else
-	    vl_value = NULL_TREE;
-    
-	  if (pr_tree != NULL_TREE)
-	    pr_value = TREE_VALUE (pr_tree);
-	  else
-	    pr_value = NULL_TREE;
-
-	  if (rd_tree != NULL_TREE)
-	    rd_value = TREE_VALUE (rd_tree);
-	  else
-	    rd_value = NULL_TREE;
-
-	  /* If either one is not NULL and the trees are equal, then we 
-	     say we have found a duplicate.  */
-	  if (((vl_value != NULL_TREE || pr_value != NULL_TREE)
-	       && (simple_cst_equal (vl_value, pr_value) == 1))
-	      || ((vl_value != NULL_TREE || rd_value != NULL_TREE)
-	       && (simple_cst_equal (vl_value, rd_value) == 1))
-	      || ((pr_value != NULL_TREE || rd_value != NULL_TREE)
-	       && (simple_cst_equal (pr_value, rd_value) == 1))) 
-	    return true;
-	  if (vl_tree != NULL_TREE)
-	    vl_tree = TREE_CHAIN (vl_tree);
-
-	  if (pr_tree != NULL_TREE)
-	    pr_tree = TREE_CHAIN (pr_tree);
-
-	  if (rd_tree != NULL_TREE)
-	    rd_tree = TREE_CHAIN (rd_tree);
-	}
-    }
-  return false;
-  
-}
-
-/* This function will check to see if a variable is reduced, if so then it will 
-   mark it as being reduced.  */
-
-void
-check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index)
-{
-  struct pragma_simd_values *ps_iter = NULL;
-  struct reduction_values *rv_iter = NULL;
-  enum tree_code op_code = NOP_EXPR;
-  tree def = NULL_TREE;
-  tree ii_iter = NULL_TREE;
-  tree ii_value = NULL_TREE;
-  
-  
-  if (pragma_simd_index <= INVALID_PRAGMA_SIMD_SLOT)
-    return;
-
-  if (psv_head == NULL)
-    return;
-
-  if (!reduc_stmt || gimple_code (reduc_stmt) != GIMPLE_ASSIGN)
-    return;
-  else
-    {
-      def = gimple_assign_lhs (reduc_stmt);
-      gcc_assert (def != NULL_TREE);
-
-      if (TREE_CODE (def) == SSA_NAME) 
-	def = SSA_NAME_VAR (def);
-      op_code = gimple_assign_rhs_code (reduc_stmt);
-    }
-
-
-  // FIXME: Why not use psv_find_node?
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next) 
-    if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index)) 
-      break;
-
-  gcc_assert (ps_iter != NULL);
-
-  for (rv_iter = ps_iter->reduction_vals; rv_iter != NULL;
-       rv_iter = rv_iter->ptr_next)
-    {
-      if (rv_iter->reduction_operator == op_code)
-	{
-	  for (ii_iter = rv_iter->tree_reduction_var_list; ii_iter != NULL_TREE;
-	       ii_iter = TREE_CHAIN (ii_iter))
-	    {
-	      ii_value = TREE_VALUE (ii_iter);
-	      if (simple_cst_equal (ii_value, DECL_NAME (def))) 
-		rv_iter->not_reduced--;
-	    }
-	}
-    }
-  return;
+      }
 }
       
-/* This function will find the step size from the pragma simd linear clause.  */
 
-HOST_WIDE_INT
-find_linear_step_size (int pragma_simd_index, tree var)
+/* Clears all the node in *p_simd_info_list.  */
+
+void
+p_simd_nodes_clear (void)
 {
-  tree ii_var_iter   = NULL_TREE;
-  tree ii_var_value  = NULL_TREE;
-  tree ii_step_iter  = NULL_TREE;
-  tree ii_step_value = NULL_TREE;
-  tree real_var      = NULL_TREE;
-  HOST_WIDE_INT step = 0;
-  struct pragma_simd_values *ps_iter = NULL;
-  
-  if (psv_head == NULL)
-    return 0;
+  vec_free (p_simd_info_list);
+}
+
+/* Inserts *P_SIMD_NODE into P_SIMD_INFO_LIST and assigns index of P_SIMD_NODE
+   to the P_SIMD_INFO_LIST->head->index + 1.  Returns the P_SIMD_NODE->index of
+   type unsigned int.  */
+
+unsigned int
+p_simd_head_insert (struct pragma_simd_values *p_simd_node)
+{
+  if (p_simd_node)
+    {
+      if (vec_safe_is_empty (p_simd_info_list))
+	p_simd_node->index = INVALID_PRAGMA_SIMD_SLOT + 1;
+      else
+	{
+	  unsigned int vec_length = vec_safe_length (p_simd_info_list);
+	  p_simd_node->index = (*p_simd_info_list)[vec_length-1].index + 1;
+	}
+
+      vec_safe_push (p_simd_info_list, *p_simd_node);
+
+      return p_simd_node->index;
+    }
+  return INVALID_PRAGMA_SIMD_SLOT;
+}
+
+
+
+/* Finds the pragma_simd_node whose index matches the pragma_simd_index and
+   goes through all the vectorlengths specified and returns TRUE if there is
+   a match.  Otherwise, the function returns false.  */
+
+bool
+pragma_simd_acceptable_vlength_p (unsigned int pragma_simd_index,
+				  int possible_vect_factor,
+				  tree scalar_type ATTRIBUTE_UNUSED)
+{
+  unsigned int ii = 0, jj = 0;
+  tree vl_value;
 
   if (pragma_simd_index <= INVALID_PRAGMA_SIMD_SLOT)
-    return 0;
+    return true;
+  
+  vl_value = build_int_cst (integer_type_node, possible_vect_factor);
 
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
-    {
-      if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
-	{
-	  ii_var_iter  = ps_iter->linear_vars;
-	  ii_step_iter = ps_iter->linear_steps;
+  for (ii = 0; ii < vec_safe_length (p_simd_info_list); ii++)
+    if (pragma_simd_index == (*p_simd_info_list)[ii].index)
+      {
+	vec<tree, va_gc> *vl_vec = (*p_simd_info_list)[ii].vec_length_list;
+	if (vec_safe_length (vl_vec) == 0)
+	  return true;
+	for (jj = 0; jj < vec_safe_length (vl_vec); jj++)
+	  {
+	    if (tree_int_cst_equal ((const_tree) (*vl_vec)[jj],
+				    (const_tree) (vl_value)))
+	      return true;
+	  }
+      }
 
-	  while ((ii_var_iter  != NULL_TREE) && (ii_step_iter != NULL_TREE))
-	    {
-	      ii_var_value  = TREE_VALUE (ii_var_iter);
-	      ii_step_value = TREE_VALUE (ii_step_iter);
-	      if (TREE_CODE (var) == SSA_NAME)
-		real_var = SSA_NAME_VAR (var);
-	      else
-		real_var = var;
-
-	      if (simple_cst_equal (ii_var_value, DECL_NAME (real_var)))
-		{
-		  step = int_cst_value (ii_step_value);
-		  return step;
-		}
-	    }
-	}
-    }
-  return 0;
+  /* A match was not found, hence return false.  */
+  return false;
 }
 
 /* Goes through the private vars of pragma simd structure pointed by PS_INDEX
    and checks of DEF_VAR is in the list and if so returns true.  */
 
 bool
-pragma_simd_is_private_var (int ps_index, tree def_var)
+pragma_simd_is_private_var_p (unsigned int ps_index, tree def_var)
 {
   struct pragma_simd_values *ps_node = NULL;
-  tree variable, ii_priv_list;
+  tree variable;
+  unsigned int ii = 0, jj = 0;
   
   if (def_var == NULL_TREE)
     return false;
@@ -714,11 +283,10 @@ pragma_simd_is_private_var (int ps_index, tree def_var)
 	      tree variable = DECL_NAME (def_var);
 	      if (variable == NULL_TREE)
 		return false;
-	      for (ii_priv_list = ps_node->private_vars; ii_priv_list;
-		   ii_priv_list = TREE_CHAIN (ii_priv_list))
+	      for (ii = 0; ii < vec_safe_length (ps_node->priv_var_list); ii++)
 		{
-		  tree ii_priv_value = TREE_VALUE (ii_priv_list);
-		  if (simple_cst_equal (ii_priv_value, variable) == 1)
+		  tree priv_value = (*(ps_node->priv_var_list))[ii];
+		  if (simple_cst_equal (priv_value, variable) == 1)
 		    return true;
 		}
 	    }
@@ -747,11 +315,10 @@ pragma_simd_is_private_var (int ps_index, tree def_var)
 		 have a match, then found will be false and then we return that.
 		 This means that the variable we are looking in def is dependent
 		 on variables that are not on the private list.  */
-	      for (ii_priv_list = ps_node->private_vars; ii_priv_list;
-		   ii_priv_list = TREE_CHAIN (ii_priv_list))
+	      for (jj = 0; jj < vec_safe_length (ps_node->priv_var_list); jj++)
 		{
-		  tree ii_priv_value = TREE_VALUE (ii_priv_list);
-		  if (simple_cst_equal (ii_priv_value, var_name) == 1)
+		  tree priv_value = (*(ps_node->priv_var_list))[jj];
+		  if (simple_cst_equal (priv_value, var_name) == 1)
 		    found = true;
 		}
 	      if (found == false)
@@ -766,13 +333,217 @@ pragma_simd_is_private_var (int ps_index, tree def_var)
       if (variable == NULL_TREE)
 	return false;
 
-      for (ii_priv_list = ps_node->private_vars; ii_priv_list;
-	   ii_priv_list = TREE_CHAIN (ii_priv_list))
+      for (ii = 0; ii < vec_safe_length (ps_node->priv_var_list); ii++)
 	{
-	  tree ii_priv_value = TREE_VALUE (ii_priv_list);
-	  if (simple_cst_equal (ii_priv_value, variable) == 1)
+	  tree priv_value = (*(ps_node->priv_var_list))[ii];
+	  if (simple_cst_equal (priv_value, variable) == 1)
 	    return true;
 	}
     }
   return false;
+}
+
+/* Goes through the linear vars of pragma simd structure pointed by PS_INDEX
+   and checks of DEF_VAR is in the list and if so returns true.  */
+
+bool
+pragma_simd_is_linear_var_p (unsigned int ps_index, tree def_var)
+{
+  struct pragma_simd_values *ps_node = NULL;
+  tree variable;
+  unsigned int ii = 0, jj = 0;
+  
+  if (def_var == NULL_TREE)
+    return false;
+
+  ps_node = psv_find_node (ps_index);
+  if (!ps_node)
+    return false;
+
+  /* If it is a SSA_NAME, then this will extract the original variable name.  */
+  if (TREE_CODE (def_var) == SSA_NAME)
+    {
+      if (SSA_NAME_VAR (def_var) != NULL_TREE)
+	{
+	  def_var = SSA_NAME_VAR (def_var);
+	  if (TREE_CODE (def_var) == VAR_DECL
+	      || TREE_CODE (def_var) == PARM_DECL)
+	    {
+	      tree variable = DECL_NAME (def_var);
+	      if (variable == NULL_TREE)
+		return false;
+	      for (ii = 0; ii < vec_safe_length (ps_node->linear_var_list);
+		   ii++)
+		{
+		  tree priv_value = (*(ps_node->linear_var_list))[ii];
+		  if (simple_cst_equal (priv_value, variable) == 1)
+		    return true;
+		}
+	    }
+	}
+      else if (SSA_NAME_DEF_STMT (def_var))
+	{
+	  bool found = false;
+	  gimple def_stmt = SSA_NAME_DEF_STMT (def_var);
+
+	  /* We go through all the ops in the def_stmt's RHS.  */
+	  for (size_t ii = 1; ii < gimple_num_ops (def_stmt); ii++)
+	    {
+	      tree var_name, var = gimple_op (def_stmt, ii);
+	      if (!var)
+		continue;
+	      else if (TREE_CODE (var) == SSA_NAME && SSA_NAME_VAR (var))
+		var = SSA_NAME_VAR (var);
+
+	      if (TREE_CODE (var) == VAR_DECL || TREE_CODE (var) == PARM_DECL)
+		var_name = DECL_NAME (var);
+	      else
+		var_name = var; /* It should not get here.  */
+
+	      /* Here we go through all the variables in the private list.
+		 If we have a match, then we set found to true.  If we didn't
+		 have a match, then found will be false and then we return that.
+		 This means that the variable we are looking in def is dependent
+		 on variables that are not on the private list.  */
+	      for (jj = 0; jj < vec_safe_length (ps_node->linear_var_list);
+		   jj++)
+		{
+		  tree priv_value = (*(ps_node->linear_var_list))[jj];
+		  if (simple_cst_equal (priv_value, var_name) == 1)
+		    found = true;
+		}
+	      if (found == false)
+		return false;
+	    }
+	  return found;
+	}
+    }
+  else if (TREE_CODE (def_var) == VAR_DECL || TREE_CODE (def_var) == PARM_DECL)
+    {
+      variable = DECL_NAME (def_var);
+      if (variable == NULL_TREE)
+	return false;
+
+      for (ii = 0; ii < vec_safe_length (ps_node->priv_var_list); ii++)
+	{
+	  tree priv_value = (*(ps_node->priv_var_list))[ii];
+	  if (simple_cst_equal (priv_value, variable) == 1)
+	    return true;
+	}
+    }
+  return false;
+}
+
+/* Outputs all the index fields in P_SIMD_INFO_LIST global vector to the
+   file pointed by *FPTR.  */
+
+void
+dump_pragma_simd_values_vec (FILE *fptr)
+{
+  unsigned int ii = 0;
+
+  if (!fptr)
+    fptr = stderr;
+  for (ii = 0; ii < vec_safe_length (p_simd_info_list); ii++)
+    {
+      fprintf (fptr, "index           =  %2d\n", (*p_simd_info_list)[ii].index);
+      fprintf (fptr, "assert_requested = %s\n",
+	       (*p_simd_info_list)[ii].assert_requested ? "true" : "false");
+    }
+  return;
+}
+
+/* Returns the step size for VAR that is in the linear clause stored in the
+   pragma_simd_index data vector pointed by pragma_simd_index.  */
+
+HOST_WIDE_INT
+find_linear_step_size (unsigned int pragma_simd_index, tree var)
+{
+  unsigned int ii = 0;
+  tree real_var = NULL_TREE;
+  struct pragma_simd_values *ps_node = psv_find_node (pragma_simd_index);
+  
+  if (!ps_node)
+    return 0;
+
+  if (TREE_CODE (var) == SSA_NAME)
+    real_var = SSA_NAME_VAR (var);
+  else
+    real_var = var;
+  
+  for (ii = 0; ii < vec_safe_length (ps_node->linear_var_list); ii++)
+    if (real_var 
+	&& simple_cst_equal (DECL_NAME (real_var), 
+			     (*(ps_node->linear_var_list))[ii]))
+      return int_cst_value ((*(ps_node->linear_steps_list))[ii]);
+  
+  return 0;
+}
+
+/* Returns true when all the reductions_var in the pragma simd data structure
+   with index field matching PRAGMA_SIMD_INDEX is NULL or has a length of 0.  */
+
+bool
+all_reductions_satisfied_p (unsigned int pragma_simd_index)
+{
+  unsigned int ii;
+  bool satisfied = true;
+  vec <struct reduction_node, va_gc> *red_list =
+    psv_find_reduction_list (pragma_simd_index);
+
+  if (!red_list || vec_safe_length (red_list) == 0)
+    return true;
+
+  for (ii = 0; ii < vec_safe_length (red_list); ii++)
+    if (vec_safe_length ((*red_list)[ii].reduction_vars) != 0)
+      satisfied = false;
+
+  return satisfied;
+}
+
+/* If definition variable of REDUC_STMT is marked as a reduction variable
+   in the pragma simd data structure whose index field matches PS_INDEX, the
+   variable is removed from the list.  */
+
+void
+check_off_reduction_var (gimple reduc_stmt, unsigned int ps_index)
+{
+  enum tree_code op_code = NOP_EXPR;
+  tree def;
+  bool found = false;
+  unsigned int ii, jj;
+  vec<struct reduction_node, va_gc> *red_list =
+    psv_find_reduction_list (ps_index);
+
+  if (!red_list || vec_safe_length (red_list) == 0)
+    return;
+  
+  if (!reduc_stmt || gimple_code (reduc_stmt) != GIMPLE_ASSIGN)
+    return;
+
+  def = gimple_assign_lhs (reduc_stmt);
+  gcc_assert (def != NULL_TREE);
+
+  if (TREE_CODE (def) == SSA_NAME)
+    def = SSA_NAME_VAR (def);
+  if (TREE_CODE (def) == VAR_DECL || TREE_CODE (def) == PARM_DECL)
+    def = DECL_NAME (def);
+  op_code = gimple_assign_rhs_code (reduc_stmt);
+
+  for (ii = 0; ii < vec_safe_length (red_list); ii++)
+    if ((*red_list)[ii].reduction_type == (int) op_code)
+      {
+	unsigned int length = vec_safe_length ((*red_list)[ii].reduction_vars);
+	for (jj = 0; jj < length; jj++)
+	  {
+	    tree var = (*((*red_list)[ii].reduction_vars))[jj];
+	    if (simple_cst_equal (var, def))
+	      {
+		found = true;
+		break;
+	      }
+	  }
+	if (found)
+	  (*red_list)[ii].reduction_vars->unordered_remove (jj);
+      }
 }

@@ -1,3 +1,9 @@
+2013-04-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-pragma.c (init_pragma): Added "simd" as a deferred pragma instead
+	of it being a namespace.  Removed all definition of pragma simd's
+	optional sub-clauses.
+
 2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-cilk.c (extract_for_fields): Added a check if the increment value

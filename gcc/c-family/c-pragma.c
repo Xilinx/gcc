@@ -1347,23 +1347,10 @@ init_pragma (void)
   if (flag_enable_cilk && !flag_preprocess_only)
     {
       cpp_register_deferred_pragma (parse_in, "cilk", "grainsize",
-                                   PRAGMA_CILK_GRAINSIZE, true, false);
-      cpp_register_deferred_pragma (parse_in, "simd", "",
-                                  PRAGMA_SIMD_EMPTY, true, false);
-      cpp_register_deferred_pragma (parse_in, "simd", "assert",
-	                            PRAGMA_SIMD_ASSERT, true, false);
-      cpp_register_deferred_pragma (parse_in, "simd", "noassert",
-	                            PRAGMA_SIMD_NOASSERT, true, false);
-      cpp_register_deferred_pragma (parse_in, "simd", "vectorlength",
-	                            PRAGMA_SIMD_VECTORLENGTH, true, false);
-      cpp_register_deferred_pragma (parse_in, "simd", "private",
-	                            PRAGMA_SIMD_PRIVATE, true, false);
-      cpp_register_deferred_pragma (parse_in, "simd", "reduction",
-	                            PRAGMA_SIMD_REDUCTION, true, false);
-      cpp_register_deferred_pragma (parse_in, "simd", "linear",
-	                            PRAGMA_SIMD_LINEAR, true, false);
-    } 
-
+				    PRAGMA_CILK_GRAINSIZE, true, false);
+      cpp_register_deferred_pragma (parse_in, NULL, "simd", 
+				    CILKPLUS_PRAGMA_SIMD, true, false);
+    }
   if (!flag_preprocess_only)
     cpp_register_deferred_pragma (parse_in, "GCC", "pch_preprocess",
 				  PRAGMA_GCC_PCH_PREPROCESS, false, false);

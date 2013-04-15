@@ -266,7 +266,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      if (!vectorization_factor
 		  || (nunits > vectorization_factor))
 		{
-		  if (flag_enable_cilk != 0)
+		  if (flag_enable_cilk)
 		    {
 		      if (pragma_simd_acceptable_vlength_p
 			  (loop->pragma_simd_index, nunits, scalar_type))
@@ -467,7 +467,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		  return false;
 		}
 		/* here we set the linear info */
-		if (flag_enable_cilk != 0)
+		if (flag_enable_cilk)
 		  {
 		    linear_step_size = 
 		      find_linear_step_size (loop->pragma_simd_index,
@@ -546,7 +546,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	  if (!vectorization_factor
 	      || (nunits > vectorization_factor))
 	    {
-	      if (flag_enable_cilk != 0)
+	      if (flag_enable_cilk)
 		{
 		  if (pragma_simd_acceptable_vlength_p
 		      (loop->pragma_simd_index, nunits, scalar_type))
@@ -746,7 +746,24 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
       nested_cycle = (loop != LOOP_VINFO_LOOP (loop_vinfo));
       reduc_stmt = vect_force_simple_reduction (loop_vinfo, phi, !nested_cycle,
 						&double_reduc);
-      check_off_reduction_var (reduc_stmt, loop->pragma_simd_index);
+      if (flag_enable_cilk && reduc_stmt)
+	{ 
+	  check_off_reduction_var (reduc_stmt, loop->pragma_simd_index);
+	  if (dump_enabled_p ())
+	    {
+	      tree lhs = gimple_get_lhs (reduc_stmt);
+	      if (TREE_CODE (lhs) == SSA_NAME)
+		lhs = SSA_NAME_VAR (lhs);
+	      if (TREE_CODE (lhs) == VAR_DECL || TREE_CODE (lhs) == PARM_DECL)
+		{
+		  lhs = DECL_NAME (lhs); 
+		  dump_printf_loc (MSG_NOTE, vect_location, "%s is reduced as " 
+				   "requested by pragma simd", 
+				   IDENTIFIER_POINTER (lhs));
+		}
+	    }
+	}
+			  
       if (reduc_stmt)
         {
           if (double_reduc)
@@ -4430,6 +4447,10 @@ vect_create_epilog_for_reduction (vec<tree> vect_defs, gimple stmt,
   
 vect_finalize_reduction:
 
+  /* If we are here, then we can assume that the vectorization was a success
+     and thus can checkoff the variable from the list. */
+  if (flag_enable_cilk) 
+    check_off_reduction_var (stmt, loop->pragma_simd_index);
   if (double_reduc)
     loop = loop->inner;
 

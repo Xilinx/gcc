@@ -1,3 +1,53 @@
+2013-04-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c/Make-lang.in (C_AND_OBJC_OBJS): Added c/c-pragma-simd.o.
+	* c/c-typeck.c (c_finish_loop): Added new parameter to pass in pragma
+	simd information.
+	* c/c-parser.c (c_parser_for_statement): Likewise.
+	(c_parser_simd_pragma): added CILKPLUS_PRAGMA_SIMD case. Removed
+	PRAGMA_SIMD_ASSERT, PRAGMA_SIMD_VECTORLENGTH, PRAGMA_SIMD_PRIVATE,
+	PRAGMA_SIMD_LINEAR cases.
+	(same_var_in_multiple_lists_p): New function.
+	(c_parser_simd_construct): Likewise.
+	(c_parser_simd_assert): Changed the function to use vecs intead of
+	mallocs, linked-list and TREE_LIST.  Also, added a parameter to pass in
+	pragma simd information.
+	(c_parser_simd_vectorlength): Likewise.
+	(c_parser_simd_reduction): Likewise.
+	(c_parser_simd_linear): Likewise.
+	(c_parser_simd_private): Likewise.
+	* pragma_simd.c (psv_find_node): Changed the function to use vecs
+	instead of mallocs, linked-list and TREE_LIST.
+	(clause_resolved_p): Likewise.
+	(pragma_simd_assert_requested_p): Likewise.
+	(pragma_simd_verify_clauses): Likewise.
+	(set_OK_for_certain_clause): Likewise.
+	(psv_find_node): Likewise.
+	(pragma_simd_acceptable_vlength_p): Likewise.
+	(check_off_reduction_var): Likewise.
+	(find_linear_step_size): Likewise.
+	(all_reductions_satisfied_p): Likewise.
+	(pragma_simd_is_private_var_p): Renamed from pragma_simd_is_private_var.
+	(p_simd_nodes_clear): New function.
+	(p_simd_head_insert): Likewise.
+	(pragma_simd_is_linear_var_p): Likewise.
+	(dump_pragma_simd_values_vec): Likewise.
+	(psv_head_insert): Remove.
+	(insert_reduction_values): Likewise.
+	(same_var_in_multiple_lists_p): Likewise.
+	* tree-vectorizer.c (vectorize_loops): Removed function call
+	pragma_simd_vectorize_loop_p.
+	* tree.h (struct pragma_simd_values): Replaced dynamic arrays with
+	vecs.
+	(tree_label_decl): Made pragma_simd_index unsigned instead of signed.
+	* cfgloop.h (struct loop): Likewise.
+	* tree-vect-loop.c (vect_analyze_scalar_cycles_1): Added a check for
+	verbosity of vectorizer, and if so then emit debug information.
+	(vect_create_epilog_for_reduction): Added a call to remove reduction
+	var when a reduction has occurred.
+	* gimple.h (struct gimple_statement): Likewise.
+	* c/c-pragma-simd.c: New file.
+
 2013-04-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c/c-array-notation.c (build_array_notation_expr): Added support to

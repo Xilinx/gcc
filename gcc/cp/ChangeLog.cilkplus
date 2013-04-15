@@ -1,3 +1,25 @@
+2013-04-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* Make-lang.in (CXX_AND_OBJCXX_OBJS): Added cp/cp-pragma-simd.o.
+	* parser.c (cp_lexer_new_main): Removed cilkplus_local_simd_values
+	global variable.
+	(cp_parser_for): Likewise.
+	(cp_parser_simd_handle_next_clause): New function.
+	(cp_parser_simd_construct): Likewise.
+	(same_var_in_multiple_lists_p): Likewise.
+	(cp_parser_pragma): Added CILKPLUS_PRAGMA_SIMD case.  Removed the
+	following cases: PRAGMA_SIMD_ASSERT, PRAGMA_SIMD_EMPTY,
+	PRAGMA_SIMD_NOASSERT, PRAGMA_SIMD_VECTORLENGTH, PRAGMA_SIMD_PRIVATE,
+	and PRAGMA_SIMD_LINEAR.
+	(cp_parser_simd_assert): Changed the function to use vecs instead of
+	mallocs, TREE_LIST and arrays.  Also, added a new parameter to pass in
+	pragma simd information.
+	(cp_parser_simd_vectorlength): Likewise.
+	(cp_parser_simd_linear): Likewise.
+	(cp_parser_simd_private): Likewise.
+	(cp_parser_simd_reduction): Likewise.
+	* cp-pragma-simd.c: New file.
+
 2013-04-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-array-notation.c (build_x_array_notation_expr):  Made checking for

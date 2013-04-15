@@ -1,5 +1,5 @@
-// { dg-do compile }
-// { dg-options "-O3" }
+/* { dg-do compile } */
+/* { dg-options "-O3 -fcilkplus" } */
 
 struct stuff {
  char asdf;

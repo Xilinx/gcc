@@ -546,6 +546,7 @@ extern tree build_array_notation_expr (location_t, tree, tree, enum tree_code,
 				       location_t, tree, tree);
 extern tree build_array_notation_ref (location_t, tree, tree, tree, tree, tree);
 extern void find_rank (tree, bool, size_t *);
+extern bool p_simd_valid_stmts_in_body_p (tree);
 extern tree build_indirect_ref (location_t, tree, ref_operator);
 
 extern int field_decl_cmp (const void *, const void *);

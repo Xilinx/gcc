@@ -9052,8 +9052,7 @@ c_finish_if_stmt (location_t if_locus, tree cond, tree then_block,
 void
 c_finish_loop (location_t start_locus, tree cond, tree incr, tree body,
 	       tree blab, tree clab,
-	       struct pragma_simd_values *cilkplus_ps_values,
-	       bool cond_is_first)
+	       struct pragma_simd_values *p_simd_val, bool cond_is_first)
 {
   tree entry = NULL, exit = NULL, t;
   
@@ -9108,16 +9107,16 @@ c_finish_loop (location_t start_locus, tree cond, tree incr, tree body,
 	    exit = fold_build3_loc (input_location,
 				COND_EXPR, void_type_node, cond, exit, t);
 	}
-      if (cilkplus_ps_values)
+      if (flag_enable_cilk && p_simd_val)
 	{
-	  if  (cilkplus_ps_values->pragma_encountered == true)
-	    LABEL_EXPR_PRAGMA_SIMD_INDEX (top) =
-	      psv_head_insert (*cilkplus_ps_values);
-	  else
+	  /* If invalid statments are found in the loop-body, then just issue
+	     an error and do not store pragma simd values information.  */
+	  if (!p_simd_valid_stmts_in_body_p (body))
 	    LABEL_EXPR_PRAGMA_SIMD_INDEX (top) = INVALID_PRAGMA_SIMD_SLOT;
-	  memset (&cilkplus_ps_values, 0, sizeof (cilkplus_ps_values));
-	}  
-      
+	  else
+	    LABEL_EXPR_PRAGMA_SIMD_INDEX (top) =
+	      p_simd_head_insert (p_simd_val);
+	}
       add_stmt (top);
     }
 

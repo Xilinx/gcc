@@ -85,7 +85,8 @@ CXX_AND_OBJCXX_OBJS = cp/call.o cp/decl.o cp/expr.o cp/pt.o cp/typeck2.o \
  cp/typeck.o cp/cvt.o cp/except.o cp/friend.o cp/init.o cp/method.o \
  cp/search.o cp/semantics.o cp/tree.o cp/repo.o cp/dump.o cp/optimize.o \
  cp/mangle.o cp/cp-objcp-common.o cp/name-lookup.o cp/cxx-pretty-print.o \
- cp/cp-gimplify.o cp/cp-cilk.o cp/cp-array-notation.o $(CXX_C_OBJS)
+ cp/cp-gimplify.o cp/cp-cilk.o cp/cp-array-notation.o cp/cp-pragma-simd.o \
+ $(CXX_C_OBJS)
 
 # Language-specific object files for C++.
 CXX_OBJS = cp/cp-lang.o c-family/stub-objc.o $(CXX_AND_OBJCXX_OBJS)
@@ -274,7 +275,8 @@ cp/cp-cilk.o: cp/cp-cilk.c cilk.h cp/decl.h $(CXX_TREE_H) $(CONFIG_H) \
 cp/cp-array-notation.o: cp/cp-array-notation.c  $(CXX_TREE_H) $(TM_H) \
   $(FLAGS_H) toplev.h $(DIAGNOSTIC_H) convert.h $(C_COMMON_H) $(TARGET_H) \
   output.h c-family/c-objc.h 
-
+cp/cp-pragma-simd.o: cp/cp-pragma-simd.c $(CXX_TREE_H) $(FLAGS_H) \
+  $(DIAGNOSTIC_H) $(CILK_H)
 cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(C_PRAGMA_H) input.h cp/operators.def $(TM_P_H) \
   c-family/c-objc.h

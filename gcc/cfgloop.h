@@ -106,7 +106,7 @@ struct GTY ((chain_next ("%h.next"))) loop {
   int num;
   
   /* This holds the pragma simd index.  */
-  int pragma_simd_index;
+  unsigned int pragma_simd_index;
 
   /* Number of loop insns.  */
   unsigned ninsns;

@@ -322,11 +322,16 @@ extern void array_notation_init_builtins (void);
 extern bool is_cilk_must_expand_fn (enum built_in_function);
 extern bool is_elem_fn_attribute_p (tree);
 extern bool is_cilk_function_decl (tree, tree);
-extern void clear_pragma_simd_list (void);
 extern tree set_cilk_except_flag (tree);
 extern tree clear_cilk_except_flag (tree);
 extern tree set_cilk_except_data (tree);
 extern void c_install_body_with_frame_cleanup (tree, tree);
 tree build_cilk_catch_sync (void);
-extern bool pragma_simd_is_private_var (int, tree);
+extern void p_simd_nodes_clear (void);
+extern unsigned int p_simd_head_insert (struct pragma_simd_values *);
+extern bool pragma_simd_is_private_var_p (unsigned int, tree);
+extern bool pragma_simd_is_linear_var_p (unsigned int, tree);
+extern void set_OK_for_certain_clause (enum pragma_simd_kind, bool,
+				       unsigned int);
+extern bool pragma_simd_acceptable_vlength_p (unsigned int, int, tree);
 #endif /* GCC_CILK_H */

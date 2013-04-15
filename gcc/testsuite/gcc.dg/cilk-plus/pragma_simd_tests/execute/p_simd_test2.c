@@ -1,3 +1,7 @@
+/* { dg-do run } */
+/* { dg-options "-O3 -ftree-vectorize -fcilkplus -w" } */
+
+
 #define N 256
 #if HAVE_IO
 #include <stdio.h>

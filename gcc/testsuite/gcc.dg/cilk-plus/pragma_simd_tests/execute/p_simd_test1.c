@@ -1,5 +1,5 @@
 /* { dg-do run } */
-/* { dg-options "-O3 -ftree-vectorize -fcilkplus" } */
+/* { dg-options "-O3 -ftree-vectorize -fcilkplus -w" } */
 
 #define ARRAY_SIZE  (256)
 #if HAVE_IO
