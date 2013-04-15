@@ -2596,15 +2596,12 @@ verify_rtx_sharing (rtx orig, rtx insn)
   return;
 }
 
-/* Go through all the RTL insn bodies and check that there is no unexpected
-   sharing in between the subexpressions.  */
+/* Go through all the RTL insn bodies and clear all the USED bits.  */
 
-DEBUG_FUNCTION void
-verify_rtl_sharing (void)
+static void
+reset_all_used_flags (void)
 {
   rtx p;
-
-  timevar_push (TV_VERIFY_RTL_SHARING);
 
   for (p = get_insns (); p; p = NEXT_INSN (p))
     if (INSN_P (p))
@@ -2629,6 +2626,19 @@ verify_rtl_sharing (void)
 	      }
 	  }
       }
+}
+
+/* Go through all the RTL insn bodies and check that there is no unexpected
+   sharing in between the subexpressions.  */
+
+DEBUG_FUNCTION void
+verify_rtl_sharing (void)
+{
+  rtx p;
+
+  timevar_push (TV_VERIFY_RTL_SHARING);
+
+  reset_all_used_flags ();
 
   for (p = get_insns (); p; p = NEXT_INSN (p))
     if (INSN_P (p))
@@ -2638,6 +2648,8 @@ verify_rtl_sharing (void)
 	if (CALL_P (p))
 	  verify_rtx_sharing (CALL_INSN_FUNCTION_USAGE (p), p);
       }
+
+  reset_all_used_flags ();
 
   timevar_pop (TV_VERIFY_RTL_SHARING);
 }
@@ -3908,8 +3920,21 @@ set_insn_deleted (rtx insn)
 }
 
 
-/* Remove an insn from its doubly-linked list.  This function knows how
-   to handle sequences.  */
+/* Unlink INSN from the insn chain.
+
+   This function knows how to handle sequences.
+   
+   This function does not invalidate data flow information associated with
+   INSN (i.e. does not call df_insn_delete).  That makes this function
+   usable for only disconnecting an insn from the chain, and re-emit it
+   elsewhere later.
+
+   To later insert INSN elsewhere in the insn chain via add_insn and
+   similar functions, PREV_INSN and NEXT_INSN must be nullified by
+   the caller.  Nullifying them here breaks many insn chain walks.
+
+   To really delete an insn and related DF information, use delete_insn.  */
+
 void
 remove_insn (rtx insn)
 {
@@ -3967,10 +3992,6 @@ remove_insn (rtx insn)
 
       gcc_assert (stack);
     }
-
-  /* Invalidate data flow information associated with INSN.  */
-  if (INSN_P (insn))
-    df_insn_delete (insn);
 
   /* Fix up basic block boundaries, if necessary.  */
   if (!BARRIER_P (insn)

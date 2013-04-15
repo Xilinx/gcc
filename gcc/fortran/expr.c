@@ -1916,7 +1916,6 @@ gfc_simplify_expr (gfc_expr *p, int type)
 
     case EXPR_COMPCALL:
     case EXPR_PPC:
-      gcc_unreachable ();
       break;
     }
 
@@ -3555,6 +3554,22 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 
       if (s1 == s2 || !s1 || !s2)
 	return true;
+
+      /* F08:7.2.2.4 (4)  */
+      if (s1->attr.if_source == IFSRC_UNKNOWN
+	  && gfc_explicit_interface_required (s2, err, sizeof(err)))
+	{
+	  gfc_error ("Explicit interface required for '%s' at %L: %s",
+		     s1->name, &lvalue->where, err);
+	  return false;
+	}
+      if (s2->attr.if_source == IFSRC_UNKNOWN
+	  && gfc_explicit_interface_required (s1, err, sizeof(err)))
+	{
+	  gfc_error ("Explicit interface required for '%s' at %L: %s",
+		     s2->name, &rvalue->where, err);
+	  return false;
+	}
 
       if (!gfc_compare_interfaces (s1, s2, name, 0, 1,
 				   err, sizeof(err), NULL, NULL))

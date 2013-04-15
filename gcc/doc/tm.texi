@@ -260,7 +260,8 @@ line, but, unlike @code{LIBGCC_SPEC}, it is used unmodified.
 @defmac USE_LD_AS_NEEDED
 A macro that controls the modifications to @code{LIBGCC_SPEC}
 mentioned in @code{REAL_LIBGCC_SPEC}.  If nonzero, a spec will be
-generated that uses --as-needed and the shared libgcc in place of the
+generated that uses @option{--as-needed} or equivalent options and the
+shared @file{libgcc} in place of the
 static exception handler library, when linking without any of
 @code{-static}, @code{-static-libgcc}, or @code{-shared-libgcc}.
 @end defmac
@@ -9042,8 +9043,8 @@ The maximum number of bytes to skip before @var{label} when applying
 @end deftypefn
 
 @defmac LOOP_ALIGN (@var{label})
-The alignment (log base 2) to put in front of @var{label}, which follows
-a @code{NOTE_INSN_LOOP_BEG} note.
+The alignment (log base 2) to put in front of @var{label} that heads
+a frequently executed basic block (usually the header of a loop).
 
 This macro need not be defined if you don't want any special alignment
 to be done at such a time.  Most machine descriptions do not currently

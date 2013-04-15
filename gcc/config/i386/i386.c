@@ -3922,6 +3922,10 @@ ix86_option_override_internal (bool main_args_p)
   if (main_args_p)
     target_option_default_node = target_option_current_node
       = build_target_option_node ();
+
+  /* Handle stack protector */
+  if (!global_options_set.x_ix86_stack_protector_guard)
+    ix86_stack_protector_guard = TARGET_HAS_BIONIC ? SSP_GLOBAL : SSP_TLS;
 }
 
 /* Implement the TARGET_OPTION_OVERRIDE hook.  */
@@ -3930,7 +3934,7 @@ static void
 ix86_option_override (void)
 {
   static struct register_pass_info insert_vzeroupper_info
-    = { &pass_insert_vzeroupper.pass, "ira",
+    = { &pass_insert_vzeroupper.pass, "reload",
 	1, PASS_POS_INSERT_AFTER
       };
 
@@ -33972,10 +33976,15 @@ ix86_hard_regno_mode_ok (int regno, enum machine_mode mode)
     {
       /* Take care for QImode values - they can be in non-QI regs,
 	 but then they do cause partial register stalls.  */
-      if (TARGET_64BIT || QI_REGNO_P (regno))
+      if (ANY_QI_REGNO_P (regno))
 	return true;
       if (!TARGET_PARTIAL_REG_STALL)
 	return true;
+      /* LRA checks if the hard register is OK for the given mode.
+	 QImode values can live in non-QI regs, so we allow all
+	 registers here.  */
+      if (lra_in_progress)
+       return true;
       return !can_create_pseudo_p ();
     }
   /* We handle both integer and floats in the general purpose registers.  */
