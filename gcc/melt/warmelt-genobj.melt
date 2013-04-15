@@ -5673,6 +5673,7 @@ $SBUF.}#
 	  (add2sbuf_strconst nambuf "__")
 	  (add2sbuf_cident nambuf (unsafe_get_field :named_name nam)))
 	(let (
+	      (oinipro (mapobject_get compicache npro))
 	      (oirout 
 	       (instance class_objinitroutine
 			 :obv_type ctype_value
@@ -5680,9 +5681,12 @@ $SBUF.}#
 			 :oie_data ndrou
 			 :oie_locvar locvar
 			 :oie_cname (strbuf2string discr_string nambuf)
-			 :oir_procroutine (mapobject_get compicache npro)
+			 :oir_procroutine oinipro
 			 )) 
 	      )
+	  (debug "compilobj_dataroutine oirout=" oirout "\n .. oinipro=" oinipro
+		 "\n.. npro=" npro "\n.. compicache=" compicache)
+	  (assert_msg "check oinipro" (is_object oinipro))
 	  (mapobject_put compicache ndrou oirout)
 	  (if (is_a npro class_nrep_routproc)
 	      (let ( (pconstl (unsafe_get_field :nrpro_const npro)) 

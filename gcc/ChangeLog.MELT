@@ -1,6 +1,10 @@
 
 
 2013-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compilobj_dataroutine): Compute and
+	check oinipro.
+
+2013-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate all}}
 	* melt/generated/meltrunsup.h: Regenerate.
