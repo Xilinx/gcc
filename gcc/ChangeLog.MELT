@@ -1,5 +1,16 @@
 
 
+2013-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt (normexp_defhook): More debug.
+	(normalize_lambda): Use put_fields not unsafe_put_fields.
+
+	* melt/warmelt-genobj.melt (compilobj_dataroutine): More
+	debug. Use get_field not unsafe_get_field.
+
+	* melt/warmelt-outobj.melt (output_centraldecl_hookroutine): get
+	the oretctype thru the hookproc.
+
 2013-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-macro.melt (mexpand_when): Was defined twice,
