@@ -2546,6 +2546,53 @@ print_operand_address (FILE * file, rtx addr)
     }
 }
 
+/* Output an element in the table of global constructors. */
+void
+microblaze_asm_constructor (rtx symbol ATTRIBUTE_UNUSED, int priority)
+{
+    const char *section = ".ctors";
+    char buf[16];
+
+    if (priority != DEFAULT_INIT_PRIORITY)
+      {
+        sprintf (buf, ".ctors.%.5u",
+                /* Invert the numbering so the linker puts us in the proper
+                   order; constructors are run from right to left, and the
+                   linker sorts in increasing order.  */
+                MAX_INIT_PRIORITY - priority);
+        section = buf;
+      }
+
+    switch_to_section (get_section (section, 0, NULL));
+    assemble_align (POINTER_SIZE);
+    fputs ("\t.word\t", asm_out_file);
+    output_addr_const (asm_out_file, symbol);
+    fputs ("\n", asm_out_file);
+}
+
+/* Output an element in the table of global destructors. */
+void
+microblaze_asm_destructor (rtx symbol, int priority)
+{
+    const char *section = ".dtors";
+    char buf[16];
+    if (priority != DEFAULT_INIT_PRIORITY)
+      {
+        sprintf (buf, ".dtors.%.5u",
+                 /* Invert the numbering so the linker puts us in the proper
+                    order; constructors are run from right to left, and the
+                    linker sorts in increasing order.  */
+                MAX_INIT_PRIORITY - priority);
+        section = buf;
+      }
+
+    switch_to_section (get_section (section, 0, NULL));
+    assemble_align (POINTER_SIZE);
+    fputs ("\t.word\t", asm_out_file);
+    output_addr_const (asm_out_file, symbol);
+    fputs ("\n", asm_out_file);
+}
+
 /* Emit either a label, .comm, or .lcomm directive, and mark that the symbol
    is used, so that we don't emit an .extern for it in 
    microblaze_asm_file_end.  */
@@ -3616,6 +3663,12 @@ microblaze_legitimate_constant_p (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x
 
 #undef TARGET_ATTRIBUTE_TABLE
 #define TARGET_ATTRIBUTE_TABLE          microblaze_attribute_table
+
+#undef TARGET_ASM_CONSTRUCTOR
+#define TARGET_ASM_CONSTRUCTOR          microblaze_asm_constructor
+
+#undef TARGET_ASM_DESTRUCTOR
+#define TARGET_ASM_DESTRUCTOR           microblaze_asm_destructor
 
 #undef TARGET_IN_SMALL_DATA_P
 #define TARGET_IN_SMALL_DATA_P          microblaze_elf_in_small_data_p
