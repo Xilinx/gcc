@@ -2092,6 +2092,9 @@ gfc_copy_dt_decls_ifequal (gfc_symbol *from, gfc_symbol *to,
   gfc_component *to_cm;
   gfc_component *from_cm;
 
+  if (from == to)
+    return 1;
+
   if (from->backend_decl == NULL
 	|| !gfc_compare_derived_types (from, to))
     return 0;
@@ -2516,7 +2519,11 @@ gfc_get_function_type (gfc_symbol * sym)
 	      || sym->attr.flavor == FL_PROGRAM);
 
   if (sym->backend_decl)
-    return TREE_TYPE (sym->backend_decl);
+    {
+      if (sym->attr.proc_pointer)
+	return TREE_TYPE (TREE_TYPE (sym->backend_decl));
+      return TREE_TYPE (sym->backend_decl);
+    }
 
   alternate_return = 0;
   typelist = NULL_TREE;

@@ -10028,6 +10028,16 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	    break;
 	  }
 
+	if (TREE_CODE (t) == VAR_DECL && DECL_ANON_UNION_VAR_P (t))
+	  {
+	    /* Just use name lookup to find a member alias for an anonymous
+	       union, but then add it to the hash table.  */
+	    r = lookup_name (DECL_NAME (t));
+	    gcc_assert (DECL_ANON_UNION_VAR_P (r));
+	    register_local_specialization (r, t);
+	    break;
+	  }
+
 	/* Create a new node for the specialization we need.  */
 	r = copy_decl (t);
 	if (type == NULL_TREE)
@@ -11439,6 +11449,9 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
       mark_used (t);
       return t;
 
+    case NAMESPACE_DECL:
+      return t;
+
     case OVERLOAD:
       /* An OVERLOAD will always be a non-dependent overload set; an
 	 overload set from function scope will just be represented with an
@@ -11883,8 +11896,17 @@ tsubst_copy_asm_operands (tree t, tree args, tsubst_flags_t complain,
   if (purpose)
     purpose = RECUR (purpose);
   value = TREE_VALUE (t);
-  if (value && TREE_CODE (value) != LABEL_DECL)
-    value = RECUR (value);
+  if (value)
+    {
+      if (TREE_CODE (value) != LABEL_DECL)
+	value = RECUR (value);
+      else
+	{
+	  value = lookup_label (DECL_NAME (value));
+	  gcc_assert (TREE_CODE (value) == LABEL_DECL);
+	  TREE_USED (value) = 1;
+	}
+    }
   chain = TREE_CHAIN (t);
   if (chain && chain != void_type_node)
     chain = RECUR (chain);
@@ -12704,6 +12726,10 @@ tsubst_copy_and_build (tree t,
       return build_x_unary_op (TREE_CODE (t), RECUR (TREE_OPERAND (t, 0)),
                                complain);
 
+    case FIX_TRUNC_EXPR:
+      return cp_build_unary_op (FIX_TRUNC_EXPR, RECUR (TREE_OPERAND (t, 0)),
+				0, complain);
+
     case ADDR_EXPR:
       op1 = TREE_OPERAND (t, 0);
       if (TREE_CODE (op1) == LABEL_DECL)
@@ -13179,7 +13205,9 @@ tsubst_copy_and_build (tree t,
 	if (member == error_mark_node)
 	  return error_mark_node;
 
-	if (object_type && !CLASS_TYPE_P (object_type))
+	if (type_dependent_expression_p (object))
+	  /* We can't do much here.  */;
+	else if (!CLASS_TYPE_P (object_type))
 	  {
 	    if (SCALAR_TYPE_P (object_type))
 	      {
@@ -17234,6 +17262,8 @@ instantiate_decl (tree d, int defer_ok,
     d = DECL_CLONED_FUNCTION (d);
 
   if (DECL_TEMPLATE_INSTANTIATED (d)
+      || (TREE_CODE (d) == FUNCTION_DECL
+	  && DECL_DEFAULTED_FN (d) && DECL_INITIAL (d))
       || DECL_TEMPLATE_SPECIALIZATION (d))
     /* D has already been instantiated or explicitly specialized, so
        there's nothing for us to do here.
@@ -17765,6 +17795,7 @@ tsubst_initializer_list (tree t, tree argvec)
             }
           else
             {
+	      tree tmp;
               decl = tsubst_copy (TREE_PURPOSE (t), argvec, 
                                   tf_warning_or_error, NULL_TREE);
 
@@ -17773,10 +17804,17 @@ tsubst_initializer_list (tree t, tree argvec)
                 in_base_initializer = 1;
 
 	      init = TREE_VALUE (t);
+	      tmp = init;
 	      if (init != void_type_node)
 		init = tsubst_expr (init, argvec,
 				    tf_warning_or_error, NULL_TREE,
 				    /*integral_constant_expression_p=*/false);
+	      if (init == NULL_TREE && tmp != NULL_TREE)
+		/* If we had an initializer but it instantiated to nothing,
+		   value-initialize the object.  This will only occur when
+		   the initializer was a pack expansion where the parameter
+		   packs used in that expansion were of length zero.  */
+		init = void_type_node;
               in_base_initializer = 0;
             }
 

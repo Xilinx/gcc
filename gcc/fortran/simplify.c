@@ -3296,6 +3296,9 @@ simplify_bound_dim (gfc_expr *array, gfc_expr *kind, int d, int upper,
   gcc_assert (array->expr_type == EXPR_VARIABLE);
   gcc_assert (as);
 
+  if (gfc_resolve_array_spec (as, 0) == FAILURE)
+    return NULL;
+
   /* The last dimension of an assumed-size array is special.  */
   if ((!coarray && d == as->rank && as->type == AS_ASSUMED_SIZE && !upper)
       || (coarray && d == as->rank + as->corank))
@@ -5583,6 +5586,7 @@ gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 	  case INTRINSIC_NOT:
 	  case INTRINSIC_UPLUS:
 	  case INTRINSIC_UMINUS:
+	  case INTRINSIC_PARENTHESES:
 	    replacement = array->value.op.op1;
 	    break;
 

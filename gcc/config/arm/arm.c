@@ -243,6 +243,7 @@ static bool xscale_sched_adjust_cost (rtx, rtx, rtx, int *);
 static bool fa726te_sched_adjust_cost (rtx, rtx, rtx, int *);
 static enum machine_mode arm_preferred_simd_mode (enum machine_mode);
 static bool arm_class_likely_spilled_p (reg_class_t);
+static HOST_WIDE_INT arm_vector_alignment (const_tree type);
 static bool arm_vector_alignment_reachable (const_tree type, bool is_packed);
 static bool arm_builtin_support_vector_misalignment (enum machine_mode mode,
 						     const_tree type,
@@ -578,6 +579,9 @@ static const struct default_options arm_option_optimization_table[] =
 
 #undef TARGET_CLASS_LIKELY_SPILLED_P
 #define TARGET_CLASS_LIKELY_SPILLED_P arm_class_likely_spilled_p
+
+#undef TARGET_VECTOR_ALIGNMENT
+#define TARGET_VECTOR_ALIGNMENT arm_vector_alignment
 
 #undef TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE
 #define TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE \
@@ -2005,7 +2009,8 @@ arm_option_override (void)
 			   global_options_set.x_param_values);
 
   /* ARM EABI defaults to strict volatile bitfields.  */
-  if (TARGET_AAPCS_BASED && flag_strict_volatile_bitfields < 0)
+  if (TARGET_AAPCS_BASED && flag_strict_volatile_bitfields < 0
+      && abi_version_at_least(2))
     flag_strict_volatile_bitfields = 1;
 
   /* Enable sw prefetching at -O3 for CPUS that have prefetch, and we have deemed
@@ -3570,6 +3575,10 @@ arm_libcall_uses_aapcs_base (const_rtx libcall)
       add_libcall (libcall_htab,
 		   convert_optab_libfunc (trunc_optab, HFmode, SFmode));
       add_libcall (libcall_htab,
+		   convert_optab_libfunc (sfix_optab, SImode, DFmode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (ufix_optab, SImode, DFmode));
+      add_libcall (libcall_htab,
 		   convert_optab_libfunc (sfix_optab, DImode, DFmode));
       add_libcall (libcall_htab,
 		   convert_optab_libfunc (ufix_optab, DImode, DFmode));
@@ -3577,6 +3586,28 @@ arm_libcall_uses_aapcs_base (const_rtx libcall)
 		   convert_optab_libfunc (sfix_optab, DImode, SFmode));
       add_libcall (libcall_htab,
 		   convert_optab_libfunc (ufix_optab, DImode, SFmode));
+
+      /* Values from double-precision helper functions are returned in core
+	 registers if the selected core only supports single-precision
+	 arithmetic, even if we are using the hard-float ABI.  The same is
+	 true for single-precision helpers, but we will never be using the
+	 hard-float ABI on a CPU which doesn't support single-precision
+	 operations in hardware.  */
+      add_libcall (libcall_htab, optab_libfunc (add_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (sdiv_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (smul_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (neg_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (sub_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (eq_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (lt_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (le_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (ge_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (gt_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (unord_optab, DFmode));
+      add_libcall (libcall_htab, convert_optab_libfunc (sext_optab, DFmode,
+							SFmode));
+      add_libcall (libcall_htab, convert_optab_libfunc (trunc_optab, SFmode,
+							DFmode));
     }
 
   return libcall && htab_find (libcall_htab, libcall) != NULL;
@@ -4666,6 +4697,18 @@ arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
   return gen_rtx_REG (mode, pcum->nregs);
 }
 
+/* The AAPCS sets the maximum alignment of a vector to 64 bits.  */
+static HOST_WIDE_INT
+arm_vector_alignment (const_tree type)
+{
+  HOST_WIDE_INT align = tree_low_cst (TYPE_SIZE (type), 0);
+
+  if (TARGET_AAPCS_BASED)
+    align = MIN (align, 64);
+
+  return align;
+}
+
 static unsigned int
 arm_function_arg_boundary (enum machine_mode mode, const_tree type)
 {
@@ -5077,6 +5120,14 @@ arm_function_ok_for_sibcall (tree decl, tree exp)
   if (IS_STACKALIGN (func_type))
     return false;
 
+  /* The AAPCS says that, on bare-metal, calls to unresolved weak
+     references should become a NOP.  Don't convert such calls into
+     sibling calls.  */
+  if (TARGET_AAPCS_BASED
+      && arm_abi == ARM_ABI_AAPCS
+      && DECL_WEAK (decl))
+    return false;
+
   /* Everything else is ok.  */
   return true;
 }
@@ -5379,11 +5430,7 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
 
       if (TARGET_32BIT)
 	{
-	  emit_insn (gen_pic_load_addr_32bit (pic_reg, pic_rtx));
-	  if (TARGET_ARM)
-	    emit_insn (gen_pic_add_dot_plus_eight (pic_reg, pic_reg, labelno));
-	  else
-	    emit_insn (gen_pic_add_dot_plus_four (pic_reg, pic_reg, labelno));
+	  emit_insn (gen_pic_load_addr_unified (pic_reg, pic_rtx, labelno));
 	}
       else /* TARGET_THUMB1 */
 	{
@@ -5396,10 +5443,10 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
 				     thumb_find_work_register (saved_regs));
 	      emit_insn (gen_pic_load_addr_thumb1 (pic_tmp, pic_rtx));
 	      emit_insn (gen_movsi (pic_offset_table_rtx, pic_tmp));
+	      emit_insn (gen_pic_add_dot_plus_four (pic_reg, pic_reg, labelno));
 	    }
 	  else
-	    emit_insn (gen_pic_load_addr_thumb1 (pic_reg, pic_rtx));
-	  emit_insn (gen_pic_add_dot_plus_four (pic_reg, pic_reg, labelno));
+	    emit_insn (gen_pic_load_addr_unified (pic_reg, pic_rtx, labelno));
 	}
     }
 
@@ -5429,20 +5476,7 @@ arm_pic_static_addr (rtx orig, rtx reg)
                                UNSPEC_SYMBOL_OFFSET);
   offset_rtx = gen_rtx_CONST (Pmode, offset_rtx);
 
-  if (TARGET_32BIT)
-    {
-      emit_insn (gen_pic_load_addr_32bit (reg, offset_rtx));
-      if (TARGET_ARM)
-        insn = emit_insn (gen_pic_add_dot_plus_eight (reg, reg, labelno));
-      else
-        insn = emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
-    }
-  else /* TARGET_THUMB1 */
-    {
-      emit_insn (gen_pic_load_addr_thumb1 (reg, offset_rtx));
-      insn = emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
-    }
-
+  insn = emit_insn (gen_pic_load_addr_unified (reg, offset_rtx, labelno));
   return insn;
 }
 
@@ -5485,7 +5519,7 @@ static bool
 will_be_in_index_register (const_rtx x)
 {
   /* arm.md: calculate_pic_address will split this into a register.  */
-  return GET_CODE (x) == UNSPEC && XINT (x, 1) == UNSPEC_PIC_SYM;
+  return GET_CODE (x) == UNSPEC && (XINT (x, 1) == UNSPEC_PIC_SYM);
 }
 
 /* Return nonzero if X is a valid ARM state address operand.  */
@@ -7231,6 +7265,15 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
 	*total = COSTS_N_INSNS (1);
       else
 	*total = COSTS_N_INSNS (4);
+      return true;
+
+    case UNSPEC:
+      /* We cost this as high as our memory costs to allow this to
+	 be hoisted from loops.  */
+      if (XINT (x, 1) == UNSPEC_PIC_UNIFIED)
+	{
+	  *total = COSTS_N_INSNS (2 + ARM_NUM_REGS (mode));
+	}
       return true;
 
     default:
@@ -9426,7 +9469,8 @@ static int
 arm_note_pic_base (rtx *x, void *date ATTRIBUTE_UNUSED)
 {
   if (GET_CODE (*x) == UNSPEC
-      && XINT (*x, 1) == UNSPEC_PIC_BASE)
+      && (XINT (*x, 1) == UNSPEC_PIC_BASE
+	  || XINT (*x, 1) == UNSPEC_PIC_UNIFIED))
     return 1;
   return 0;
 }
@@ -9812,6 +9856,9 @@ store_multiple_sequence (rtx *operands, int nops, int nops_total,
   rtx base_reg_rtx = NULL;
   int i, stm_case;
 
+  /* Write back of base register is currently only supported for Thumb 1.  */
+  int base_writeback = TARGET_THUMB1;
+
   /* Can only handle up to MAX_LDM_STM_OPS insns at present, though could be
      easily extended if required.  */
   gcc_assert (nops >= 2 && nops <= MAX_LDM_STM_OPS);
@@ -9869,7 +9916,9 @@ store_multiple_sequence (rtx *operands, int nops, int nops_total,
 	  /* If it isn't an integer register, then we can't do this.  */
 	  if (unsorted_regs[i] < 0
 	      || (TARGET_THUMB1 && unsorted_regs[i] > LAST_LO_REGNUM)
-	      || (TARGET_THUMB2 && unsorted_regs[i] == base_reg)
+	      /* The effects are unpredictable if the base register is
+		 both updated and stored.  */
+	      || (base_writeback && unsorted_regs[i] == base_reg)
 	      || (TARGET_THUMB2 && unsorted_regs[i] == SP_REGNUM)
 	      || unsorted_regs[i] > 14)
 	    return 0;
@@ -19571,39 +19620,34 @@ neon_emit_pair_result_insn (enum machine_mode mode,
   emit_move_insn (mem, tmp2);
 }
 
-/* Set up operands for a register copy from src to dest, taking care not to
-   clobber registers in the process.
-   FIXME: This has rather high polynomial complexity (O(n^3)?) but shouldn't
-   be called with a large N, so that should be OK.  */
+/* Set up OPERANDS for a register copy from SRC to DEST, taking care
+   not to early-clobber SRC registers in the process.
 
+   We assume that the operands described by SRC and DEST represent a
+   decomposed copy of OPERANDS[1] into OPERANDS[0].  COUNT is the
+   number of components into which the copy has been decomposed.  */
 void
 neon_disambiguate_copy (rtx *operands, rtx *dest, rtx *src, unsigned int count)
 {
-  unsigned int copied = 0, opctr = 0;
-  unsigned int done = (1 << count) - 1;
-  unsigned int i, j;
+  unsigned int i;
 
-  while (copied != done)
+  if (!reg_overlap_mentioned_p (operands[0], operands[1])
+      || REGNO (operands[0]) < REGNO (operands[1]))
     {
       for (i = 0; i < count; i++)
-        {
-          int good = 1;
-
-          for (j = 0; good && j < count; j++)
-            if (i != j && (copied & (1 << j)) == 0
-                && reg_overlap_mentioned_p (src[j], dest[i]))
-              good = 0;
-
-          if (good)
-            {
-              operands[opctr++] = dest[i];
-              operands[opctr++] = src[i];
-              copied |= 1 << i;
-            }
-        }
+	{
+	  operands[2 * i] = dest[i];
+	  operands[2 * i + 1] = src[i];
+	}
     }
-
-  gcc_assert (opctr == count * 2);
+  else
+    {
+      for (i = 0; i < count; i++)
+	{
+	  operands[2 * i] = dest[count - i - 1];
+	  operands[2 * i + 1] = src[count - i - 1];
+	}
+    }
 }
 
 /* Expand an expression EXP that calls a built-in function,
@@ -20400,7 +20444,7 @@ thumb1_extra_regs_pushed (arm_stack_offsets *offsets, bool for_prologue)
   unsigned long l_mask = live_regs_mask & (for_prologue ? 0x40ff : 0xff);
   /* Then count how many other high registers will need to be pushed.  */
   unsigned long high_regs_pushed = bit_count (live_regs_mask & 0x0f00);
-  int n_free, reg_base;
+  int n_free, reg_base, size;
 
   if (!for_prologue && frame_pointer_needed)
     amount = offsets->locals_base - offsets->saved_regs;
@@ -20439,7 +20483,8 @@ thumb1_extra_regs_pushed (arm_stack_offsets *offsets, bool for_prologue)
   n_free = 0;
   if (!for_prologue)
     {
-      reg_base = arm_size_return_regs () / UNITS_PER_WORD;
+      size = arm_size_return_regs ();
+      reg_base = ARM_NUM_INTS (size);
       live_regs_mask >>= reg_base;
     }
 
@@ -20493,7 +20538,7 @@ thumb_unexpanded_epilogue (void)
   if (extra_pop > 0)
     {
       unsigned long extra_mask = (1 << extra_pop) - 1;
-      live_regs_mask |= extra_mask << (size / UNITS_PER_WORD);
+      live_regs_mask |= extra_mask << ARM_NUM_INTS (size);
     }
 
   /* The prolog may have pushed some high registers to use as
@@ -20858,6 +20903,8 @@ thumb1_expand_epilogue (void)
   gcc_assert (amount >= 0);
   if (amount)
     {
+      emit_insn (gen_blockage ());
+
       if (amount < 512)
 	emit_insn (gen_addsi3 (stack_pointer_rtx, stack_pointer_rtx,
 			       GEN_INT (amount)));
@@ -23392,8 +23439,11 @@ arm_output_sync_loop (emit_f emit,
 	}
     }
 
-  arm_process_output_memory_barrier (emit, NULL);
+  /* Note: label is before barrier so that in cmp failure case we still get
+     a barrier to stop subsequent loads floating upwards past the ldrex
+     PR target/48126.  */
   arm_output_asm_insn (emit, 1, operands, "%sLSYB%%=:", LOCAL_LABEL_PREFIX);
+  arm_process_output_memory_barrier (emit, NULL);
 }
 
 static rtx

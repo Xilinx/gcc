@@ -185,6 +185,7 @@ static bool pa_can_eliminate (const int, const int);
 static void pa_conditional_register_usage (void);
 static enum machine_mode pa_c_mode_for_suffix (char);
 static section *pa_function_section (tree, enum node_frequency, bool, bool);
+static unsigned int pa_section_type_flags (tree, const char *, int);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -399,6 +400,9 @@ static const struct default_options pa_option_optimization_table[] =
 #define TARGET_C_MODE_FOR_SUFFIX pa_c_mode_for_suffix
 #undef TARGET_ASM_FUNCTION_SECTION
 #define TARGET_ASM_FUNCTION_SECTION pa_function_section
+
+#undef TARGET_SECTION_TYPE_FLAGS
+#define TARGET_SECTION_TYPE_FLAGS pa_section_type_flags
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -1863,6 +1867,11 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
   /* Handle the most common case: storing into a register.  */
   else if (register_operand (operand0, mode))
     {
+      /* Legitimize TLS symbol references.  This happens for references
+	 that aren't a legitimate constant.  */
+      if (PA_SYMBOL_REF_TLS_P (operand1))
+	operand1 = legitimize_tls_address (operand1);
+
       if (register_operand (operand1, mode)
 	  || (GET_CODE (operand1) == CONST_INT
 	      && cint_ok_for_move (INTVAL (operand1)))
@@ -4437,6 +4446,24 @@ hppa_expand_epilogue (void)
     }
 }
 
+bool
+pa_can_use_return_insn (void)
+{
+  if (!reload_completed)
+    return false;
+
+  if (frame_pointer_needed)
+    return false;
+
+  if (df_regs_ever_live_p (2))
+    return false;
+
+  if (crtl->profile)
+    return false;
+
+  return compute_frame_size (get_frame_size (), 0) == 0;
+}
+
 rtx
 hppa_pic_save_rtx (void)
 {
@@ -4581,7 +4608,7 @@ return_addr_rtx (int count, rtx frameaddr)
   rtx saved_rp;
   rtx ins;
 
-  /* Instruction stream at the normal return address for the export stub:
+  /* The instruction stream at the return address of a PA1.X export stub is:
 
 	0x4bc23fd1 | stub+8:   ldw -18(sr0,sp),rp
 	0x004010a1 | stub+12:  ldsid (sr0,rp),r1
@@ -4589,10 +4616,16 @@ return_addr_rtx (int count, rtx frameaddr)
 	0xe0400002 | stub+20:  be,n 0(sr0,rp)
 
      0xe0400002 must be specified as -532676606 so that it won't be
-     rejected as an invalid immediate operand on 64-bit hosts.  */
+     rejected as an invalid immediate operand on 64-bit hosts.
 
-  HOST_WIDE_INT insns[4] = {0x4bc23fd1, 0x004010a1, 0x00011820, -532676606};
-  int i;
+     The instruction stream at the return address of a PA2.0 export stub is:
+
+	0x4bc23fd1 | stub+8:   ldw -18(sr0,sp),rp
+	0xe840d002 | stub+12:  bve,n (rp)
+  */
+
+  HOST_WIDE_INT insns[4];
+  int i, len;
 
   if (count != 0)
     return NULL_RTX;
@@ -4615,11 +4648,26 @@ return_addr_rtx (int count, rtx frameaddr)
   ins = copy_to_reg (gen_rtx_AND (Pmode, rp, MASK_RETURN_ADDR));
   label = gen_label_rtx ();
 
+  if (TARGET_PA_20)
+    {
+      insns[0] = 0x4bc23fd1;
+      insns[1] = -398405630;
+      len = 2;
+    }
+  else
+    {
+      insns[0] = 0x4bc23fd1;
+      insns[1] = 0x004010a1;
+      insns[2] = 0x00011820;
+      insns[3] = -532676606;
+      len = 4;
+    }
+
   /* Check the instruction stream at the normal return address for the
      export stub.  If it is an export stub, than our return address is
      really in -24[frameaddr].  */
 
-  for (i = 0; i < 3; i++)
+  for (i = 0; i < len; i++)
     {
       rtx op0 = gen_rtx_MEM (SImode, plus_constant (ins, i * 4)); 
       rtx op1 = GEN_INT (insns[i]);
@@ -7496,7 +7544,7 @@ attr_length_millicode_call (rtx insn)
     return 24;
   else
     {
-      if (!TARGET_LONG_CALLS && distance < 240000)
+      if (!TARGET_LONG_CALLS && distance < MAX_PCREL17F_OFFSET)
 	return 8;
 
       if (TARGET_LONG_ABS_CALL && !flag_pic)
@@ -7709,7 +7757,7 @@ attr_length_call (rtx insn, int sibcall)
   /* pc-relative branch.  */
   if (!TARGET_LONG_CALLS
       && ((TARGET_PA_20 && !sibcall && distance < 7600000)
-	  || distance < 240000))
+	  || distance < MAX_PCREL17F_OFFSET))
     length += 8;
 
   /* 64-bit plabel sequence.  */
@@ -8068,7 +8116,7 @@ attr_length_indirect_call (rtx insn)
   if (TARGET_FAST_INDIRECT_CALLS
       || (!TARGET_PORTABLE_RUNTIME
 	  && ((TARGET_PA_20 && !TARGET_SOM && distance < 7600000)
-	      || distance < 240000)))
+	      || distance < MAX_PCREL17F_OFFSET)))
     return 8;
 
   if (flag_pic)
@@ -10385,6 +10433,25 @@ pa_function_section (tree decl, enum node_frequency freq,
 
   /* Otherwise, use the default function section.  */
   return default_function_section (decl, freq, startup, exit);
+}
+
+/* Implement TARGET_SECTION_TYPE_FLAGS.  */
+
+static unsigned int
+pa_section_type_flags (tree decl, const char *name, int reloc)
+{
+  unsigned int flags;
+
+  flags = default_section_type_flags (decl, name, reloc);
+
+  /* Function labels are placed in the constant pool.  This can
+     cause a section conflict if decls are put in ".data.rel.ro"
+     or ".data.rel.ro.local" using the __attribute__ construct.  */
+  if (strcmp (name, ".data.rel.ro") == 0
+      || strcmp (name, ".data.rel.ro.local") == 0)
+    flags |= SECTION_WRITE | SECTION_RELRO;
+
+  return flags;
 }
 
 #include "gt-pa.h"

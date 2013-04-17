@@ -3658,13 +3658,17 @@ sparc_delegitimize_address (rtx x)
 {
   x = delegitimize_mem_from_attrs (x);
 
-  if (GET_CODE (x) == LO_SUM
-      && GET_CODE (XEXP (x, 1)) == UNSPEC
-      && XINT (XEXP (x, 1), 1) == UNSPEC_TLSLE)
-    {
-      x = XVECEXP (XEXP (x, 1), 0, 0);
-      gcc_assert (GET_CODE (x) == SYMBOL_REF);
-    }
+  if (GET_CODE (x) == LO_SUM && GET_CODE (XEXP (x, 1)) == UNSPEC)
+    switch (XINT (XEXP (x, 1), 1))
+      {
+      case UNSPEC_MOVE_PIC:
+      case UNSPEC_TLSLE:
+	x = XVECEXP (XEXP (x, 1), 0, 0);
+	gcc_assert (GET_CODE (x) == SYMBOL_REF);
+	break;
+      default:
+	break;
+      }
 
   return x;
 }
@@ -4569,8 +4573,9 @@ sparc_expand_prologue (void)
       else if (actual_fsize <= 8192)
 	{
 	  insn = emit_insn (gen_stack_pointer_inc (GEN_INT (-4096)));
-	  /* %sp is still the CFA register.  */
 	  RTX_FRAME_RELATED_P (insn) = 1;
+
+	  /* %sp is still the CFA register.  */
 	  insn
 	    = emit_insn (gen_stack_pointer_inc (GEN_INT (4096-actual_fsize)));
 	}
@@ -4592,8 +4597,18 @@ sparc_expand_prologue (void)
       else if (actual_fsize <= 8192)
 	{
 	  insn = emit_insn (gen_save_register_window (GEN_INT (-4096)));
+
 	  /* %sp is not the CFA register anymore.  */
 	  emit_insn (gen_stack_pointer_inc (GEN_INT (4096-actual_fsize)));
+
+	  /* Make sure no %fp-based store is issued until after the frame is
+	     established.  The offset between the frame pointer and the stack
+	     pointer is calculated relative to the value of the stack pointer
+	     at the end of the function prologue, and moving instructions that
+	     access the stack via the frame pointer between the instructions
+	     that decrement the stack pointer could result in accessing the
+	     register window save area, which is volatile.  */
+	  emit_insn (gen_frame_blockage ());
 	}
       else
 	{
@@ -9441,7 +9456,10 @@ sparc_reorg (void)
   /* We need to have the (essentially) final form of the insn stream in order
      to properly detect the various hazards.  Run delay slot scheduling.  */
   if (optimize > 0 && flag_delayed_branch)
-    dbr_schedule (get_insns ());
+    {
+      cleanup_barriers ();
+      dbr_schedule (get_insns ());
+    }
 
   /* Now look for specific patterns in the insn stream.  */
   for (insn = get_insns (); insn; insn = next)
@@ -9623,6 +9641,7 @@ sparc_file_end (void)
 						       void_list_node));
 	  DECL_RESULT (decl) = build_decl (BUILTINS_LOCATION, RESULT_DECL,
 					   NULL_TREE, void_type_node);
+	  TREE_PUBLIC (decl) = 1;
 	  TREE_STATIC (decl) = 1;
 	  make_decl_one_only (decl, DECL_ASSEMBLER_NAME (decl));
 	  DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;

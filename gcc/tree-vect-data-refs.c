@@ -1019,7 +1019,7 @@ vect_update_misalignment_for_peel (struct data_reference *dr,
       int misal = DR_MISALIGNMENT (dr);
       tree vectype = STMT_VINFO_VECTYPE (stmt_info);
       misal += negative ? -npeel * dr_size : npeel * dr_size;
-      misal &= GET_MODE_SIZE (TYPE_MODE (vectype)) - 1;
+      misal &= (TYPE_ALIGN (vectype) / BITS_PER_UNIT) - 1;
       SET_DR_MISALIGNMENT (dr, misal);
       return;
     }
@@ -2630,6 +2630,16 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo,
             }
           return false;
         }
+
+      if (is_gimple_call (stmt))
+	{
+	  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
+	    {
+	      fprintf (vect_dump, "not vectorized: dr in a call ");
+	      print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
+	    }
+	  return false;
+	}
 
       /* Update DR field in stmt_vec_info struct.  */
 

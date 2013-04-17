@@ -1237,8 +1237,18 @@ expand_loc (struct elt_loc_list *p, struct expand_value_data *evd,
   unsigned int regno = UINT_MAX;
   struct elt_loc_list *p_in = p;
 
-  for (; p; p = p -> next)
+  for (; p; p = p->next)
     {
+      /* Return these right away to avoid returning stack pointer based
+	 expressions for frame pointer and vice versa, which is something
+	 that would confuse DSE.  See the comment in cselib_expand_value_rtx_1
+	 for more details.  */
+      if (REG_P (p->loc)
+	  && (REGNO (p->loc) == STACK_POINTER_REGNUM
+	      || REGNO (p->loc) == FRAME_POINTER_REGNUM
+	      || REGNO (p->loc) == HARD_FRAME_POINTER_REGNUM
+	      || REGNO (p->loc) == cfa_base_preserved_regno))
+	return p->loc;
       /* Avoid infinite recursion trying to expand a reg into a
 	 the same reg.  */
       if ((REG_P (p->loc))
@@ -2489,8 +2499,11 @@ dump_cselib_val (void **x, void *info)
       fputs (" locs:", out);
       do
 	{
-	  fprintf (out, "\n  from insn %i ",
-		   INSN_UID (l->setting_insn));
+	  if (l->setting_insn)
+	    fprintf (out, "\n  from insn %i ",
+		     INSN_UID (l->setting_insn));
+	  else
+	    fprintf (out, "\n   ");
 	  print_inline_rtx (out, l->loc, 4);
 	}
       while ((l = l->next));

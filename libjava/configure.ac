@@ -886,13 +886,8 @@ case "${host}" in
         SYSTEMSPEC="-lunicows $SYSTEMSPEC"
       fi
     ;;
-    *-*-darwin9*)
+    *-*-darwin[[912]]*)
       SYSTEMSPEC="%{!Zdynamiclib:%{!Zbundle:-allow_stack_execute}}"
-    ;;
-    *-*-darwin[[12]]*)
-      # Something is incompatible with pie, would be nice to fix it and
-      # remove -no_pie.  PR49461
-      SYSTEMSPEC="-no_pie %{!Zdynamiclib:%{!Zbundle:-allow_stack_execute}}"
     ;;
     *)
       SYSTEMSPEC=
@@ -1060,7 +1055,7 @@ case "$THREADS" in
      *-*-cygwin*)
 	# Don't set THREADLIBS here.  Cygwin doesn't have -lpthread.
 	;;
-     *-*-freebsd[[1234]]*)
+     *-*-freebsd[[34]].*)
 	# Before FreeBSD 5, it didn't have -lpthread (or any library which
 	# merely adds pthread_* functions) but it does have a -pthread switch
 	# which is required at link-time to select -lc_r *instead* of -lc.
@@ -1135,9 +1130,14 @@ case "$THREADS" in
     # FIXME: In Java we are able to detect thread death at the end of
     # Thread.run() so we should be able to clean up the exception handling
     # contexts ourselves.
-    THREADSTARTFILESPEC='crtmt%O%s'
+    case "$host" in
+    *-w64-mingw*)
+      ;;
+    *)
+      THREADSTARTFILESPEC='crtmt%O%s'
+      ;;
+    esac
     ;;
-
  none)
     THREADH=no-threads.h
     ;;

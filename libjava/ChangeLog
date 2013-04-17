@@ -1,3 +1,41 @@
+2012-03-02  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	Backport from mainline
+	2012-02-23  Patrick Marlier  <patrick.marlier@gmail.com>
+       	    Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR target/49461
+	* configure.ac (SYSTEMSPEC): No longer pass -no_pie for darwin11.
+	* configure: Regenerate.
+
+2012-03-01  Release Manager
+
+	* GCC 4.6.3 released.
+
+2012-02-03  Kai Tietz  <ktietz@redhat.com>
+
+	PR libjava/48512
+	* configure.ac (THREADSTARTFILESPEC): Don't add crtmet.o file for
+	w64 windows targets.
+	* configure: Regenerated.
+
+2011-11-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/50888
+	* prims.cc: Don't include ctype.h.
+	(c_isspace): Define.
+	(next_property_key, next_property_value): Use it instead
+	of isspace.
+
+2011-11-20  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure.ac: Fix FreeBSD 10 detection.
+	* configure: Regenerate.
+
+2011-10-26  Release Manager
+
+	* GCC 4.6.2 released.
+
 2011-10-18  Uros Bizjak  <ubizjak@gmail.com>
 	    Eric Botcazou  <ebotcazou@adacore.com>
 
