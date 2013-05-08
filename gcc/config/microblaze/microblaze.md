@@ -1799,6 +1799,41 @@
   }
 )
 
+(define_insn "svc_jump"
+  [(set (pc) (match_operand 0 "register_operand" "d"))]
+  "svc_handler"
+  {
+    return "brki\tr11,0x8\;%#";
+  }
+  [(set_attr "type"	"jump")
+  (set_attr "mode"	"none")
+  (set_attr "length"	"4")])
+
+(define_insn "svc_jump1"
+  [(set (pc) (match_operand:SI 0 "immediate_operand" "I"))]
+  "svc_table_handler"
+  {
+    output_asm_insn ("addi\tr12,r0,0xAD", operands);
+    output_asm_insn ("cmpu\tr12,r11,r12", operands);
+    output_asm_insn ("mfs\tr11,rpc", operands);
+    return "beqi\tr12,0x14\;%#";
+  }
+  [(set_attr "type"	"jump")
+  (set_attr "mode"	"none")
+  (set_attr "length"	"4")])
+
+(define_insn "svc_jump2"
+  [(set (pc) (match_operand:SI 0 "register_operand" "d"))]
+  "svc_table_handler"
+  {
+    output_asm_insn ("addi\tr11,r0,0xAD", operands);
+    output_asm_insn ("brki\tr12,0x8", operands);
+    return "add\tr11,r0,r0\;%#";
+  }
+  [(set_attr "type"	"jump")
+  (set_attr "mode"	"none")
+  (set_attr "length"	"4")])
+
 ;; Indirect jumps. Jump to register values. Assuming absolute jumps
 
 (define_insn "indirect_jump_internal1"
@@ -1970,6 +2005,8 @@
         return "rtbd\tr16, 8\;%#";
     else if (microblaze_is_interrupt_variant ())
         return "rtid\tr14, 0\;%#";
+    else if (microblaze_is_svc_variant ())
+        return "rtbd\tr15, 8\;%#";
     else
         return "rtsd\tr15, 8\;%#";
   }
@@ -1989,6 +2026,8 @@
         return "rtbd\tr16,8\;%#";
     else if (microblaze_is_interrupt_variant ())
         return "rtid\tr14,0 \;%#";
+    else if (microblaze_is_svc_variant ())
+        return "rtbd\tr15, 8\;%#";
     else
         return "rtsd\tr15,8 \;%#";
   }

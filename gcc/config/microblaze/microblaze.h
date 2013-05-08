@@ -765,6 +765,8 @@ do {									\
 /* Handle interrupt attribute.  */
 extern int interrupt_handler;
 extern int fast_interrupt;
+extern int svc_handler;
+extern int svc_table_handler;
 extern int save_volatiles;
 
 #define INTERRUPT_HANDLER_NAME "_interrupt_handler"
