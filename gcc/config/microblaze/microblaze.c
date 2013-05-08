@@ -212,6 +212,11 @@ int interrupt_handler;
 int break_handler;
 int fast_interrupt;
 int save_volatiles;
+int svc_table_handler;
+int svc_handler;
+
+static tree svc_table_handler_attribute (tree *, tree, tree, int, bool *);
+HOST_WIDE_INT svc_table_handler_number;
 
 const struct attribute_spec microblaze_attribute_table[] = {
   /* name         min_len, max_len, decl_req, type_req, fn_type, req_handler,
@@ -223,6 +228,10 @@ const struct attribute_spec microblaze_attribute_table[] = {
   {"fast_interrupt",    0,       0,     true,    false,   false,        NULL,
     false },
   {"save_volatiles"   , 0,       0,     true,    false,   false,        NULL,
+    false },
+  {"svc_table_handler", 1,       1,     true,    false,   false,
+    svc_table_handler_attribute, false },
+  {"svc_handler",       0,       0,     true,    false,   false,        NULL,
     false },
   { NULL,        	0,       0,    false,    false,   false,        NULL,
     false }
@@ -1896,6 +1905,60 @@ microblaze_save_volatiles (tree func)
   return a != NULL_TREE;
 }
 
+static int
+microblaze_svc_handler_function_p (tree func)
+{
+  tree a;
+  if (TREE_CODE (func) != FUNCTION_DECL)
+    return 0;
+
+  a = lookup_attribute ("svc_handler", DECL_ATTRIBUTES (func));
+  return a != NULL_TREE;
+}
+
+/* Handler for "SVC" attribute;
+   struct attribute_spec.handler.  */
+static tree
+svc_table_handler_attribute (tree *node ATTRIBUTE_UNUSED,
+                                tree name,
+                                tree args,
+                                int flags ATTRIBUTE_UNUSED,
+                                bool *no_add_attrs)
+{
+  tree value = TREE_VALUE (args);
+  if (TREE_CODE (value) != INTEGER_CST)
+    {
+      warning (OPT_Wattributes,
+               "argument of %qE attribute is not a Integer constant",
+               name);
+      *no_add_attrs = true;
+    }
+  return NULL_TREE;
+}
+
+static HOST_WIDE_INT
+microblaze_svc_table_handler_number (tree func)
+{
+  tree attrs,args;
+  if (TREE_CODE (func) != FUNCTION_DECL)
+    return 0;
+
+  attrs=DECL_ATTRIBUTES(func);
+  args=TREE_VALUE(attrs);
+  HOST_WIDE_INT value1 = TREE_INT_CST_LOW (TREE_VALUE (args));
+  return value1;
+}
+
+static int
+microblaze_svc_table_handler_function_p (tree func)
+{
+  tree a;
+  if (TREE_CODE (func) != FUNCTION_DECL)
+    return 0;
+  a = lookup_attribute ("svc_table_handler", DECL_ATTRIBUTES (func));
+  return a != NULL_TREE;
+}
+
 /* Return whether function is tagged with 'interrupt_handler'
    or 'fast_interrupt' attribute.  Return true if function
    should use return from interrupt rather than normal
@@ -1909,6 +1972,14 @@ int
 microblaze_is_break_handler (void)
 {
   return break_handler;
+}
+
+/* Return whether function is tagged with 'svc_handler'
+   or 'svc_table_handler' attribute. */
+int
+microblaze_is_svc_variant (void)
+{
+  return (svc_handler || svc_table_handler);
 }
 
 /* Determine of register must be saved/restored in call.  */
@@ -2019,6 +2090,9 @@ compute_frame_size (HOST_WIDE_INT size)
   fast_interrupt =
     microblaze_fast_interrupt_function_p (current_function_decl);
   save_volatiles = microblaze_save_volatiles (current_function_decl);
+  svc_handler = microblaze_svc_handler_function_p (current_function_decl);
+  svc_table_handler =
+    microblaze_svc_table_handler_function_p (current_function_decl);
   if (break_handler)
     interrupt_handler = break_handler;
 
@@ -2895,6 +2969,22 @@ microblaze_expand_prologue (void)
 
   if (fsiz > 0)
     {
+      if (svc_handler)
+        {
+          rtx reg11 = gen_rtx_REG (SImode, MB_ABI_TEMP1_REGNUM);
+          emit_jump_insn (gen_svc_jump (reg11));
+        }
+      if (svc_table_handler)
+        {
+          svc_table_handler_number =
+            microblaze_svc_table_handler_number (current_function_decl);
+          rtx reg18 = gen_rtx_REG (SImode, MB_ABI_ASM_TEMP_REGNUM);
+          rtx reg0 = gen_rtx_REG (SImode, MB_ABI_BASE_REGNUM);
+          rtx svc_rtx = GEN_INT (svc_table_handler_number);
+          emit_jump_insn (gen_svc_jump1 (svc_rtx));
+          emit_insn (gen_addsi3 (reg18, reg0, svc_rtx));
+          emit_jump_insn (gen_svc_jump2 (reg18));
+        }
       rtx fsiz_rtx = GEN_INT (fsiz);
 
       rtx insn = NULL;
