@@ -50,6 +50,7 @@ if { [istarget *-*-eabi*]
 
 if [istarget "microblaze*-*-linux*"] {
    lappend additional_flags "-Wl,-zmuldefs"
+   lappend additional_flags "-fPIC"
 }
 
 foreach src [lsort [find $srcdir/$subdir *.c]] {
