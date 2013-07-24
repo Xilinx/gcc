@@ -4987,6 +4987,7 @@ proc check_effective_target_sync_int_long { } {
 	     || [istarget arm*-*-linux-*] 
 	     || [istarget bfin*-*linux*]
 	     || [istarget hppa*-*linux*]
+	     || [istarget microblaze*-*linux*]
 	     || [istarget s390*-*-*] 
 	     || [istarget powerpc*-*-*]
 	     || [istarget crisv32-*-*] || [istarget cris-*-*]
