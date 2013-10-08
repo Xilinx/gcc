@@ -2007,7 +2007,10 @@
   [(any_return)]
   ""
   { 
-    if (microblaze_is_interrupt_variant ())
+    if (microblaze_is_break_handler ())
+        return "rtbd\tr16, 0\;%#";
+    else if (microblaze_is_interrupt_variant ()
+                && (!microblaze_is_break_handler()))
         return "rtid\tr14, 0\;%#";
     else if (microblaze_is_svc_variant ())
         return "rtbd\tr15, 8\;%#";
@@ -2026,7 +2029,10 @@
    (use (match_operand:SI 0 "register_operand" ""))]
   ""
   {	
-    if (microblaze_is_interrupt_variant ())
+    if (microblaze_is_break_handler ())
+        return "rtbd\tr16, 0\;%#";
+    else if (microblaze_is_interrupt_variant ()
+                && (!microblaze_is_break_handler()))
         return "rtid\tr14,0 \;%#";
     else if (microblaze_is_svc_variant ())
         return "rtbd\tr15, 8\;%#";

@@ -775,12 +775,14 @@ do {									\
 
 /* Handle interrupt attribute.  */
 extern int interrupt_handler;
+extern int break_handler;
 extern int fast_interrupt;
 extern int svc_handler;
 extern int svc_table_handler;
 extern int save_volatiles;
 
 #define INTERRUPT_HANDLER_NAME "_interrupt_handler"
+#define BREAK_HANDLER_NAME "_break_handler"
 #define FAST_INTERRUPT_NAME "_fast_interrupt"
 
 /* The following #defines are used in the headers files. Always retain these.  */
