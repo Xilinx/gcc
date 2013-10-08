@@ -209,6 +209,7 @@ enum reg_class microblaze_regno_to_class[] =
 		       and epilogue and use appropriate interrupt return.
    save_volatiles    - Similar to interrupt handler, but use normal return.  */
 int interrupt_handler;
+int break_handler;
 int fast_interrupt;
 int save_volatiles;
 int svc_table_handler;
@@ -221,6 +222,8 @@ const struct attribute_spec microblaze_attribute_table[] = {
   /* name         min_len, max_len, decl_req, type_req, fn_type, req_handler,
      affects_type_identity */
   {"interrupt_handler", 0,       0,     true,    false,   false,        NULL,
+    false },
+  {"break_handler", 0,       0,     true,    false,   false,        NULL,
     false },
   {"fast_interrupt",    0,       0,     true,    false,   false,        NULL,
     false },
@@ -1865,6 +1868,18 @@ microblaze_interrupt_function_p (tree func)
 }
 
 static int
+microblaze_break_function_p (tree func)
+{
+  tree a;
+
+  if (TREE_CODE (func) != FUNCTION_DECL)
+    return 0;
+
+  a = lookup_attribute ("break_handler", DECL_ATTRIBUTES (func));
+  return a != NULL_TREE;
+}
+
+static int
 microblaze_fast_interrupt_function_p (tree func)
 {
   tree a;
@@ -1946,7 +1961,7 @@ microblaze_svc_table_handler_function_p (tree func)
 }
 
 /* Return whether function is tagged with 'interrupt_handler'
-   or 'fast_interrupt' attribute.  Return true if function
+   or 'fast_interrupt' or 'break_handler' attribute.  Return true if function
    should use return from interrupt rather than normal
    function return.  */
 int
@@ -1954,6 +1969,13 @@ microblaze_is_interrupt_variant (void)
 {
   return (interrupt_handler || fast_interrupt);
 }
+
+int
+microblaze_is_break_handler (void)
+{
+  return break_handler;
+}
+
 
 /* Return whether function is tagged with 'svc_handler'
    or 'svc_table_handler' attribute. */
@@ -2065,12 +2087,16 @@ compute_frame_size (HOST_WIDE_INT size)
 
   interrupt_handler =
     microblaze_interrupt_function_p (current_function_decl);
+  break_handler =
+    microblaze_break_function_p (current_function_decl);
   fast_interrupt =
     microblaze_fast_interrupt_function_p (current_function_decl);
   save_volatiles = microblaze_save_volatiles (current_function_decl);
   svc_handler = microblaze_svc_handler_function_p (current_function_decl);
   svc_table_handler =
     microblaze_svc_table_handler_function_p (current_function_decl);
+  if(break_handler)
+      interrupt_handler = break_handler;
 
   gp_reg_size = 0;
   mask = 0;
@@ -2763,6 +2789,8 @@ microblaze_function_prologue (FILE * file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
       fputs ("\t.ent\t", file);
       if (interrupt_handler && strcmp (INTERRUPT_HANDLER_NAME, fnname))
 	fputs ("_interrupt_handler", file);
+      else if (break_handler && strcmp (BREAK_HANDLER_NAME, fnname))
+	fputs ("_break_handler", file);
       else if (fast_interrupt && strcmp (FAST_INTERRUPT_NAME, fnname))
 	fputs ("_fast_interrupt", file);
       else
@@ -2777,6 +2805,8 @@ microblaze_function_prologue (FILE * file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 
   if (interrupt_handler && strcmp (INTERRUPT_HANDLER_NAME, fnname))
     fputs ("_interrupt_handler:\n", file);
+  if (break_handler && strcmp (BREAK_HANDLER_NAME, fnname))
+    fputs ("_break_handler:\n", file);
 
   if (!flag_inhibit_size_directive)
     {
@@ -3029,8 +3059,10 @@ microblaze_function_epilogue (FILE * file ATTRIBUTE_UNUSED,
   if (!flag_inhibit_size_directive)
     {
       fputs ("\t.end\t", file);
-      if (interrupt_handler)
+      if (interrupt_handler && !break_handler)
 	fputs ("_interrupt_handler", file);
+      else if (break_handler)
+	fputs ("_break_handler", file);
       else
 	assemble_name (file, fnname);
       fputs ("\n", file);
@@ -3144,6 +3176,8 @@ microblaze_globalize_label (FILE * stream, const char *name)
     {
       if (interrupt_handler && strcmp (name, INTERRUPT_HANDLER_NAME))
         fputs (INTERRUPT_HANDLER_NAME, stream);
+      else if (break_handler && strcmp (name, BREAK_HANDLER_NAME))
+        fputs (BREAK_HANDLER_NAME, stream);
       else if (fast_interrupt && strcmp (name, FAST_INTERRUPT_NAME))
         fputs (FAST_INTERRUPT_NAME, stream);
       fputs ("\n\t.globl\t", stream);
