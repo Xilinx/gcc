@@ -45,6 +45,7 @@ extern void print_operand_address (FILE *, rtx);
 extern void init_cumulative_args (CUMULATIVE_ARGS *,tree, rtx);
 extern bool microblaze_legitimate_address_p (enum machine_mode, rtx, bool);
 extern int microblaze_is_interrupt_handler (void);
+extern int microblaze_is_break_handler (void);
 extern int microblaze_is_fast_interrupt (void);
 extern int microblaze_is_svc_variant (void);
 extern rtx microblaze_return_addr (int, rtx);

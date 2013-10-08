@@ -2077,7 +2077,9 @@
   [(return)]
   "microblaze_can_use_return_insn ()"
   { 
-    if (microblaze_is_interrupt_handler () || microblaze_is_fast_interrupt())
+    if (microblaze_is_break_handler ())
+        return "rtbd\tr16, 0\;%#";
+    else if (microblaze_is_interrupt_handler () || microblaze_is_fast_interrupt())
         return "rtid\tr14, 0\;%#";
     else if (microblaze_is_svc_variant ())
         return "rtbd\tr15, 8\;%#";
@@ -2097,12 +2099,14 @@
               (return)])]
   ""
   {	
+    if (microblaze_is_break_handler())
+        return "rtbd\tr16, 0\;%#";
     if (microblaze_is_interrupt_handler () || microblaze_is_fast_interrupt())
-        return "rtid\tr14,0 \;%#";
+        return "rtid\tr14, 0\;%#";
     else if (microblaze_is_svc_variant ())
         return "rtbd\tr15, 8\;%#";
     else
-        return "rtsd\tr15,8 \;%#";
+        return "rtsd\tr15, 8\;%#";
   }
   [(set_attr "type"	"jump")
   (set_attr "mode"	"none")
