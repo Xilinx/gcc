@@ -283,6 +283,8 @@ extern enum pipeline_type microblaze_pipe;
       && GET_MODE_SIZE (MODE) < 4)		\
     (MODE) = SImode;
 
+#define CALL_SVC               0x00000008
+#define CALL_SVC_TABLE         0x00000010
 /* Standard register usage.  */
 
 /* On the MicroBlaze, we have 32 integer registers */
@@ -540,6 +542,7 @@ typedef struct microblaze_args
   int last_arg_fp;		/* nonzero if last arg was FP (EABI only) */
   int fp_code;			/* Mode of FP arguments */
   int num_adjusts;		/* number of adjustments made */
+  int svc_check;                /* Do special things for this call */
   /* Adjustments made to args pass in regs.  */
   /* ??? The size is doubled to work around a bug in the code that sets the 
      adjustments in function_arg.  */
@@ -547,7 +550,7 @@ typedef struct microblaze_args
 } CUMULATIVE_ARGS;
 
 #define INIT_CUMULATIVE_ARGS(CUM,FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS)	\
-  init_cumulative_args (&CUM, FNTYPE, LIBNAME)
+        init_cumulative_args (&CUM, FNTYPE, LIBNAME, FNDECL, N_NAMED_ARGS)
 
 #define NO_PROFILE_COUNTERS			1
 

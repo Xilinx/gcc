@@ -1886,41 +1886,6 @@
   }
 )
 
-(define_insn "svc_jump"
-  [(set (pc) (match_operand 0 "register_operand" "d"))]
-  "svc_handler"
-  {
-    return "brki\tr11,0x8\;%#";
-  }
-  [(set_attr "type"	"jump")
-  (set_attr "mode"	"none")
-  (set_attr "length"	"4")])
-
-(define_insn "svc_jump1"
-  [(set (pc) (match_operand:SI 0 "immediate_operand" "I"))]
-  "svc_table_handler"
-  {
-    output_asm_insn ("addi\tr12,r0,0xAD", operands);
-    output_asm_insn ("cmpu\tr12,r11,r12", operands);
-    output_asm_insn ("mfs\tr11,rpc", operands);
-    return "beqi\tr12,0x14\;%#";
-  }
-  [(set_attr "type"	"jump")
-  (set_attr "mode"	"none")
-  (set_attr "length"	"4")])
-
-(define_insn "svc_jump2"
-  [(set (pc) (match_operand:SI 0 "register_operand" "d"))]
-  "svc_table_handler"
-  {
-    output_asm_insn ("addi\tr11,r0,0xAD", operands);
-    output_asm_insn ("brki\tr12,0x8", operands);
-    return "add\tr11,r0,r0\;%#";
-  }
-  [(set_attr "type"	"jump")
-  (set_attr "mode"	"none")
-  (set_attr "length"	"4")])
-
 ;; Indirect jumps. Jump to register values. Assuming absolute jumps
 
 (define_insn "indirect_jump_internal1"
@@ -2148,16 +2113,15 @@
     if ((GET_CODE (addr) != REG && !CONSTANT_ADDRESS_P (addr))
 	|| !call_insn_operand (addr, VOIDmode))
       XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, addr);
-
     if (GET_CODE (XEXP (operands[0], 0)) == UNSPEC)
       emit_call_insn (gen_call_internal_plt0 (operands[0], operands[1],
-                        gen_rtx_REG (SImode, 
-				     GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM),
-                               	     pic_offset_table_rtx));
+						operands[2], gen_rtx_REG (SImode,
+							GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM),
+								pic_offset_table_rtx));
     else
       emit_call_insn (gen_call_internal0 (operands[0], operands[1],
-                        gen_rtx_REG (SImode, 
-				     GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM)));
+						operands[2], gen_rtx_REG (SImode,
+							GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM)));
 
         DONE;
   }
@@ -2166,17 +2130,19 @@
 (define_expand "call_internal0"
   [(parallel [(call (match_operand 0 "" "")
 		    (match_operand 1 "" ""))
-             (clobber (match_operand:SI 2 "" ""))])]
+             (use (match_operand:SI 2 "" ""))
+             (clobber (match_operand:SI 3 "" ""))])]
   ""
   {
   }
 )
- 
+
 (define_expand "call_internal_plt0"
   [(parallel [(call (match_operand 0 "" "")
 		    (match_operand 1 "" ""))
-             (clobber (match_operand:SI 2 "" ""))
-             (use (match_operand:SI 3 "" ""))])]
+             (use (match_operand:SI 2 "" ""))
+             (clobber (match_operand:SI 3 "" ""))
+             (use (match_operand:SI 4 "" ""))])]
   ""
   {
   }
@@ -2185,14 +2151,26 @@
 (define_insn "call_internal_plt"
   [(call (mem (match_operand:SI 0 "call_insn_plt_operand" ""))
 	 (match_operand:SI 1 "" "i"))
+  (use (match_operand 2 "" "i"))
   (clobber (reg:SI R_SR))
   (use (reg:SI R_GOT))]
   "flag_pic"
   {
     register rtx target2 = gen_rtx_REG (Pmode, 
 			      GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM);
-    gen_rtx_CLOBBER (VOIDmode, target2);
-    return "brlid\tr15,%0\;%#";
+    if (INTVAL (operands[2]) & CALL_SVC)
+      {
+        output_asm_insn ("addi\tr11,r0,%0", operands);
+        return "brki\tr15,8\;%#";
+      }
+    else if(INTVAL (operands[2]) & CALL_SVC_TABLE)
+      {
+        return "brki\tr15,8\;%#";
+      }
+    else {
+        gen_rtx_CLOBBER (VOIDmode, target2);
+        return "brlid\tr15,%0\;%#";
+      }
   }
   [(set_attr "type"	"call")
   (set_attr "mode"	"none")
@@ -2201,12 +2179,32 @@
 (define_insn "call_internal1"
   [(call (mem (match_operand:SI 0 "call_insn_simple_operand" "ri"))
 	 (match_operand:SI 1 "" "i"))
+  (use (match_operand 2 "" "i"))
   (clobber (reg:SI R_SR))]
   ""
   {
     register rtx target = operands[0];
     register rtx target2 = gen_rtx_REG (Pmode,
 			      GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM);
+    if (INTVAL (operands[2]) & CALL_SVC)
+      {
+        if (GET_CODE (target) == SYMBOL_REF || GET_CODE (target) == CONST_INT)
+          {
+            output_asm_insn ("addi\tr11,r0,%0", operands);
+          }
+        else if (GET_CODE (target) == REG)
+            output_asm_insn ("add\tr11,r0,%0", operands);
+        else {
+            debug_rtx(target);
+            fprintf (stderr,"Unsupported call insn\n");
+            return NULL;
+          }
+        return "brki\tr15,8\;%#";
+      }
+    if (INTVAL (operands[2]) & CALL_SVC_TABLE)
+      {
+        return "brki\tr15,8\;%#";
+      }
     if (GET_CODE (target) == SYMBOL_REF) {
         gen_rtx_CLOBBER (VOIDmode, target2);
         return "brlid\tr15,%0\;%#";
@@ -2230,8 +2228,9 @@
   [(parallel [(set (match_operand 0 "register_operand" "=d")
 		   (call (match_operand 1 "memory_operand" "m")
 			 (match_operand 2 "" "i")))
+             (use (match_operand 3 "" "i"))
              (clobber (reg:SI R_SR))
-             (use (match_operand 3 "" ""))])] ;; next_arg_reg
+             (use (match_operand 4 "" ""))])] ;; next_arg_reg
   ""
   {
     rtx addr = XEXP (operands[1], 0);
@@ -2249,13 +2248,13 @@
 
     if (GET_CODE (XEXP (operands[1], 0)) == UNSPEC)
       emit_call_insn (gen_call_value_intern_plt0 (operands[0], operands[1], 
-			operands[2],
+			operands[2], operands[3],
                         gen_rtx_REG (SImode, 
 				     GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM),
 				     pic_offset_table_rtx));
     else
       emit_call_insn (gen_call_value_internal (operands[0], operands[1], 
-			operands[2],
+			operands[2], operands[3],
                         gen_rtx_REG (SImode, 
 				     GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM)));
 
@@ -2268,7 +2267,8 @@
   [(parallel [(set (match_operand 0 "" "")
 		   (call (match_operand 1 "" "")
 			 (match_operand 2 "" "")))
-             (clobber (match_operand:SI 3 "" ""))
+             (use (match_operand 3 "" ""))
+             (clobber (match_operand:SI 4 "" ""))
              ])]
   ""
   {}
@@ -2278,8 +2278,9 @@
   [(parallel[(set (match_operand 0 "" "")
                   (call (match_operand 1 "" "")
                         (match_operand 2 "" "")))
-             (clobber (match_operand:SI 3 "" ""))
-             (use (match_operand:SI 4 "" ""))])]
+             (use (match_operand 3 "" ""))
+             (clobber (match_operand:SI 4 "" ""))
+             (use (match_operand:SI 5 "" ""))])]
   "flag_pic"
   {}
 )
@@ -2288,14 +2289,26 @@
   [(set (match_operand:VOID 0 "register_operand" "=d")
         (call (mem (match_operand:SI 1 "call_insn_plt_operand" ""))
               (match_operand:SI 2 "" "i")))
-   (clobber (match_operand:SI 3 "register_operand" "=d"))
-   (use (match_operand:SI 4 "register_operand"))]
+   (use (match_operand 3 "" "i"))
+   (clobber (match_operand:SI 4 "register_operand" "=d"))
+   (use (match_operand:SI 5 "register_operand"))]
   "flag_pic"
   { 
     register rtx target2=gen_rtx_REG (Pmode,GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM);
 
-    gen_rtx_CLOBBER (VOIDmode,target2);
-    return "brlid\tr15,%1\;%#";
+    if (INTVAL (operands[3]) & CALL_SVC)
+      {
+        output_asm_insn ("addi\tr11,r0,%1", operands);
+        return "brki\tr15,8\;%#";
+      }
+    else if(INTVAL (operands[3]) & CALL_SVC_TABLE)
+      {
+        return "brki\tr15,8\;%#";
+      }
+    else {
+        gen_rtx_CLOBBER (VOIDmode,target2);
+        return "brlid\tr15,%1\;%#";
+      }
   }
   [(set_attr "type"	"call")
   (set_attr "mode"	"none")
@@ -2305,11 +2318,38 @@
   [(set (match_operand:VOID 0 "register_operand" "=d")
         (call (mem (match_operand:VOID 1 "call_insn_operand" "ri"))
               (match_operand:SI 2 "" "i")))
-   (clobber (match_operand:SI 3 "register_operand" "=d"))]
+   (use (match_operand 3 "" ""))
+   (clobber (match_operand:SI 4 "register_operand" "=d"))]
   ""
   { 
     register rtx target = operands[1];
     register rtx target2=gen_rtx_REG (Pmode,GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM);
+    if (INTVAL (operands[3]) & CALL_SVC)
+      {
+        if (GET_CODE (target) == SYMBOL_REF)
+          {
+            gen_rtx_CLOBBER (VOIDmode,target2);
+            if (SYMBOL_REF_FLAGS (target) & SYMBOL_FLAG_FUNCTION)
+              {
+                output_asm_insn ("addi\tr11,r0,%1", operands);
+              }
+            else
+                output_asm_insn ("addi\tr11,r0,%1", operands);
+          }
+        else if (GET_CODE (target) == CONST_INT)
+            output_asm_insn ("addi\tr11,r0,%1", operands);
+        else if (GET_CODE (target) == REG)
+            output_asm_insn ("add\tr11,r0,%1", operands);
+        else {
+            return "Unsupported call insn\n";
+          }
+        return "brki\tr15,8\;%#";
+      }
+
+    if (INTVAL (operands[3]) & CALL_SVC_TABLE)
+      {
+        return "brki\tr15,8\;%#";
+      }
 
     if (GET_CODE (target) == SYMBOL_REF)
     {
@@ -2347,7 +2387,7 @@
     {
         int i;
 
-        emit_call_insn (gen_call (operands[0], const0_rtx, NULL, const0_rtx));
+        emit_call_insn (gen_call (operands[0], const0_rtx, const0_rtx, const0_rtx));
 
         for (i = 0; i < XVECLEN (operands[2], 0); i++)
 	{

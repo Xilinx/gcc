@@ -1522,12 +1522,27 @@ pic_address_needs_scratch (rtx x)
 
 void
 init_cumulative_args (CUMULATIVE_ARGS * cum, tree fntype,
-		      rtx libname ATTRIBUTE_UNUSED)
+						rtx libname ATTRIBUTE_UNUSED, tree fndecl,
+						int n_named_args ATTRIBUTE_UNUSED)
 {
   static CUMULATIVE_ARGS zero_cum;
   tree param, next_param;
 
   *cum = zero_cum;
+
+  /* if the called function has svc_handler or svc_table_handler attributes
+   * then treat them specially use brki instruction instead of bralid */
+
+  if (fndecl && lookup_attribute ("svc_handler", DECL_ATTRIBUTES (fndecl)))
+      cum->svc_check = CALL_SVC;
+
+  if (fndecl && lookup_attribute ("svc_table_handler",
+								DECL_ATTRIBUTES (fndecl)))
+    {
+      svc_table_handler_number =
+          microblaze_svc_table_handler_number (fndecl);
+      cum->svc_check = CALL_SVC_TABLE;
+    }
 
   /* Determine if this function has variable arguments.  This is
      indicated by the last argument being 'void_type_mode' if there
@@ -1539,7 +1554,7 @@ init_cumulative_args (CUMULATIVE_ARGS * cum, tree fntype,
     {
       next_param = TREE_CHAIN (param);
       if (next_param == 0 && TREE_VALUE (param) != void_type_node)
-	cum->gp_reg_found = 1;
+          cum->gp_reg_found = 1;
     }
 }
 
@@ -1642,12 +1657,21 @@ microblaze_function_arg (CUMULATIVE_ARGS * cum, enum machine_mode mode,
 
   if (mode == VOIDmode)
     {
+      /* Revisit Currently we are not using num_adjust
       if (cum->num_adjusts > 0)
-	ret = gen_rtx_PARALLEL ((enum machine_mode) cum->fp_code,
-				gen_rtvec_v (cum->num_adjusts, cum->adjust));
+	  ret = gen_rtx_PARALLEL ((enum machine_mode) cum->fp_code,
+				gen_rtvec_v (cum->num_adjusts, cum->adjust)); */
+      if (cum->svc_check == CALL_SVC_TABLE)
+        {
+          rtx reg18 = gen_rtx_REG (SImode, MB_ABI_ASM_TEMP_REGNUM);
+          rtx reg0 = gen_rtx_REG (SImode, MB_ABI_BASE_REGNUM);
+          rtx svc_rtx = GEN_INT (svc_table_handler_number);
+          emit_insn (gen_addsi3 (reg18, reg0, svc_rtx));
+        }
+      return GEN_INT (cum->svc_check);
     }
 
-  return ret;
+    return ret;
 }
 
 /* Return number of bytes of argument to put in registers. */
@@ -2043,7 +2067,7 @@ svc_table_handler_attribute (tree *node ATTRIBUTE_UNUSED,
   return NULL_TREE;
 }
 
-static HOST_WIDE_INT
+HOST_WIDE_INT
 microblaze_svc_table_handler_number (tree func)
 {
   tree attrs,args;
@@ -3096,22 +3120,6 @@ microblaze_expand_prologue (void)
 
   if (fsiz > 0)
     {
-      if (svc_handler)
-        {
-          rtx reg11 = gen_rtx_REG (SImode, MB_ABI_TEMP1_REGNUM);
-          emit_jump_insn (gen_svc_jump (reg11));
-        }
-      if (svc_table_handler)
-        {
-          svc_table_handler_number =
-            microblaze_svc_table_handler_number (current_function_decl);
-          rtx reg18 = gen_rtx_REG (SImode, MB_ABI_ASM_TEMP_REGNUM);
-          rtx reg0 = gen_rtx_REG (SImode, MB_ABI_BASE_REGNUM);
-          rtx svc_rtx = GEN_INT (svc_table_handler_number);
-          emit_jump_insn (gen_svc_jump1 (svc_rtx));
-          emit_insn (gen_addsi3 (reg18, reg0, svc_rtx));
-          emit_jump_insn (gen_svc_jump2 (reg18));
-        }
       rtx fsiz_rtx = GEN_INT (fsiz);
 
       rtx insn = NULL;
