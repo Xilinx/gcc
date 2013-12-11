@@ -3227,17 +3227,22 @@ microblaze_asm_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
     assemble_external (function);
     TREE_USED (function) = 1;
   }
+
+  rtx scratch = gen_rtx_REG (Pmode, MB_ABI_TEMP2_REGNUM);
   funexp = XEXP (DECL_RTL (function), 0);
 
   if (flag_pic)
   {
-    rtx scratch = gen_rtx_REG (Pmode, MB_ABI_TEMP2_REGNUM);
     rtx reg = microblaze_legitimize_address(funexp, scratch, FUNCTION_MODE);
     emit_move_insn (scratch, reg);
-    funexp = scratch;
+  }
+  else
+  {
+    funexp = gen_rtx_MEM (FUNCTION_MODE, funexp);
+    emit_move_insn (scratch, funexp);
   }
 
-  emit_insn (gen_jump (funexp));
+  emit_insn (gen_indirect_jump (scratch));
 
   /* Run just enough of rest_of_compilation.  This sequence was
      "borrowed" from rs6000.c.  */
