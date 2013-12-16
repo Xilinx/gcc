@@ -5798,8 +5798,15 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest,
 		return x;
 	    }
 
-	  /* If the code changed, return a whole new comparison.  */
-	  if (new_code != code)
+	  /* If the code changed, return a whole new comparison.
+	     We also need to avoid using SUBST in cases where
+	     simplify_comparison has widened a comparison with a CONST_INT,
+	     since in that case the wider CONST_INT may fail the sanity
+	     checks in do_SUBST.  */
+	  if (new_code != code
+	      || (CONST_INT_P (op1)
+		  && GET_MODE (op0) != GET_MODE (XEXP (x, 0))
+		  && GET_MODE (op0) != GET_MODE (XEXP (x, 1))))
 	    return gen_rtx_fmt_ee (new_code, mode, op0, op1);
 
 	  /* Otherwise, keep this operation, but maybe change its operands.
@@ -7991,7 +7998,7 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
   if (code == CALL || code == ASM_OPERANDS || code == CLOBBER)
     return x;
 
-  /* We want to perform the operation is its present mode unless we know
+  /* We want to perform the operation in its present mode unless we know
      that the operation is valid in MODE, in which case we do the operation
      in MODE.  */
   op_mode = ((GET_MODE_CLASS (mode) == GET_MODE_CLASS (GET_MODE (x))
@@ -8427,9 +8434,10 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 					    GET_MODE (x), GEN_INT (mask),
 					    XEXP (x, 1));
 	  if (temp && CONST_INT_P (temp))
-	    SUBST (XEXP (x, 0),
-		   force_to_mode (XEXP (x, 0), GET_MODE (x),
-				  INTVAL (temp), next_select));
+	    x = simplify_gen_binary (code, GET_MODE (x),
+				     force_to_mode (XEXP (x, 0), GET_MODE (x),
+						    INTVAL (temp), next_select),
+				     XEXP (x, 1));
 	}
       break;
 
@@ -8497,14 +8505,16 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
       /* We have no way of knowing if the IF_THEN_ELSE can itself be
 	 written in a narrower mode.  We play it safe and do not do so.  */
 
-      SUBST (XEXP (x, 1),
-	     gen_lowpart_or_truncate (GET_MODE (x),
-				      force_to_mode (XEXP (x, 1), mode,
-						     mask, next_select)));
-      SUBST (XEXP (x, 2),
-	     gen_lowpart_or_truncate (GET_MODE (x),
-				      force_to_mode (XEXP (x, 2), mode,
-						     mask, next_select)));
+      op0 = gen_lowpart_or_truncate (GET_MODE (x),
+				     force_to_mode (XEXP (x, 1), mode,
+						    mask, next_select));
+      op1 = gen_lowpart_or_truncate (GET_MODE (x),
+				     force_to_mode (XEXP (x, 2), mode,
+						    mask, next_select));
+      if (op0 != XEXP (x, 1) || op1 != XEXP (x, 2))
+	x = simplify_gen_ternary (IF_THEN_ELSE, GET_MODE (x),
+				  GET_MODE (XEXP (x, 0)), XEXP (x, 0),
+				  op0, op1);
       break;
 
     default:

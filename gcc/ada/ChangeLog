@@ -1,3 +1,60 @@
+2013-12-12  Eric Botcazou  <ebotcazou@adacore.com>
+	    Iain Sandoe  <iain@codesourcery.com>
+
+	PR ada/55946
+	* gcc-interface/Make-lang.in (ada/doctools/xgnatugn): Use gnatmake.
+	* gcc-interface/Makefile.in (GCC_LINK): Add LDFLAGS.
+	(../../gnatmake): Remove LDFLAGS.
+	(../../gnatlink): Likewise.
+
+2013-12-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/59382
+	* indepsw-darwin.adb: New file.
+
+2013-10-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (scale_by_factor_of): New function.
+	(rest_of_record_type_compilation): Use scale_by_factor_of in order to
+	scale the original offset for both rounding cases; in the second case,
+	take into accout the addend to compute the alignment.  Tidy up.
+
+2013-10-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (gnat_set_type_context): New function.
+	(gnat_pushdecl): Use it to set the context of the type.
+
+2013-10-16  Release Manager
+
+	* GCC 4.8.2 released.
+
+2013-10-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_param): Remove obsolete comment.
+
+2013-09-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/58264
+	* gcc-interface/trans.c (Attribute_to_gnu): Define GNAT_PREFIX local
+	variable and use it throughout.
+	<Attr_Length>: Note whether the prefix is the dereference of a pointer
+	to unconstrained array and, in this case, capture the result for both
+	Attr_First and Attr_Last.
+
+2013-09-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (gigi): Remove dead code.
+
+2013-09-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Subprogram_Body_to_gnu): Pop the stack of
+	return variables for subprograms using the CICO mechanism.
+
+2013-08-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (can_equal_min_or_max_val_p): Be prepared for
+	values outside of the range of the type.
+
 2013-06-13  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/ada-tree.h (DECL_BY_DOUBLE_REF_P): Delete.

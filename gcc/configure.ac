@@ -1516,13 +1516,11 @@ else
 	/* | [A-Za-z]:[\\/]* ) realsrcdir=${srcdir};;
 	*) realsrcdir=../${srcdir};;
 	esac
-	saved_CFLAGS="${CFLAGS}"
 	CC="${CC_FOR_BUILD}" CFLAGS="${CFLAGS_FOR_BUILD}" \
-	LDFLAGS="${LDFLAGS_FOR_BUILD}" \
+	LDFLAGS="${LDFLAGS_FOR_BUILD}" GMPINC="" \
 	${realsrcdir}/configure \
 		--enable-languages=${enable_languages-all} \
 		--target=$target_alias --host=$build_alias --build=$build_alias
-	CFLAGS="${saved_CFLAGS}"
 
 	# We just finished tests for the build machine, so rename
 	# the file auto-build.h in the gcc directory.
@@ -1887,6 +1885,7 @@ STMP_FIXINC=stmp-fixinc		AC_SUBST(STMP_FIXINC)
 if test x$build != x$host || test "x$coverage_flags" != x
 then
     BUILD_CFLAGS='$(INTERNAL_CFLAGS) $(T_CFLAGS) $(CFLAGS_FOR_BUILD)'
+    BUILD_CXXFLAGS='$(INTERNAL_CFLAGS) $(T_CFLAGS) $(CXXFLAGS_FOR_BUILD)'
     BUILD_LDFLAGS='$(LDFLAGS_FOR_BUILD)'
 fi
 
@@ -3611,6 +3610,19 @@ foo:
        kasumi_fi_xor %f46, %f48, %f50, %f52],,
       [AC_DEFINE(HAVE_AS_SPARC4, 1,
                 [Define if your assembler supports SPARC4 instructions.])])
+
+    gcc_GAS_CHECK_FEATURE([LEON instructions],
+      gcc_cv_as_sparc_leon,,
+      [-Aleon],
+      [.text
+       .register %g2, #scratch
+       .register %g3, #scratch
+       .align 4
+       smac %g2, %g3, %g1
+       umac %g2, %g3, %g1
+       cas [[%g2]], %g3, %g1],,
+      [AC_DEFINE(HAVE_AS_LEON, 1,
+                [Define if your assembler supports LEON instructions.])])
     ;;
 
 changequote(,)dnl
@@ -5193,15 +5205,15 @@ if test x"$enable_plugin" = x"yes"; then
   AC_MSG_CHECKING([for exported symbols])
   if test "x$export_sym_check" != x; then
     echo "int main() {return 0;} int foobar() {return 0;}" > conftest.c
-    ${CC} ${CFLAGS} ${LDFLAGS} conftest.c -o conftest > /dev/null 2>&1
-    if $export_sym_check conftest | grep foobar > /dev/null; then
+    ${CC} ${CFLAGS} ${LDFLAGS} conftest.c -o conftest$ac_exeext > /dev/null 2>&1
+    if $export_sym_check conftest$ac_exeext | grep -q foobar > /dev/null; then
       : # No need to use a flag
       AC_MSG_RESULT([yes])
     else
       AC_MSG_RESULT([yes])
       AC_MSG_CHECKING([for -rdynamic])
-      ${CC} ${CFLAGS} ${LDFLAGS} -rdynamic conftest.c -o conftest > /dev/null 2>&1
-      if $export_sym_check conftest | grep foobar > /dev/null; then
+      ${CC} ${CFLAGS} ${LDFLAGS} -rdynamic conftest.c -o conftest$ac_exeext > /dev/null 2>&1
+      if $export_sym_check conftest$ac_exeext | grep -q foobar > /dev/null; then
         plugin_rdynamic=yes
         pluginlibs="-rdynamic"
       else

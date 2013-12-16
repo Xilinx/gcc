@@ -7,8 +7,22 @@
 package reflect
 
 import (
+	"runtime"
 	"unsafe"
 )
+
+// makeFuncImpl is the closure value implementing the function
+// returned by MakeFunc.
+type makeFuncImpl struct {
+	code uintptr
+	typ  *funcType
+	fn   func([]Value) []Value
+
+	// For gccgo we use the same entry point for functions and for
+	// method values.
+	method int
+	rcvr   Value
+}
 
 // MakeFunc returns a new function of the given Type
 // that wraps the function fn. When called, that new function
@@ -37,45 +51,133 @@ func MakeFunc(typ Type, fn func(args []Value) (results []Value)) Value {
 		panic("reflect: call of MakeFunc with non-Func type")
 	}
 
-	ft := (*funcType)(unsafe.Pointer(typ.common()))
-
-	// We will build a function that uses the C stdarg routines to
-	// pull out the arguments.  Since the stdarg routines require
-	// the first parameter to be available, we need to switch on
-	// the possible first parameter types.  Note that this assumes
-	// that the calling ABI for a stdarg function is the same as
-	// that for a non-stdarg function.  The C standard does not
-	// require this, but it is true for most implementations in
-	// practice.
-
-	// Handling result types is a different problem.  There are a
-	// few cases to handle:
-	//   * No results.
-	//   * One result.
-	//   * More than one result, which is returned in a struct.
-	//     + Struct returned in registers.
-	//     + Struct returned in memory.
-
-	var result Kind
-	var resultSize uintptr
-	switch len(ft.out) {
-	case 0:
-		result = Invalid
-	case 1:
-		result = Kind(ft.out[0].kind)
-		resultSize = ft.out[0].size
+	switch runtime.GOARCH {
+	case "amd64", "386":
 	default:
-		result = Struct
+		panic("reflect.MakeFunc not implemented for " + runtime.GOARCH)
 	}
 
-	panic("reflect MakeFunc not implemented")
+	t := typ.common()
+	ftyp := (*funcType)(unsafe.Pointer(t))
 
-	// stub := func(i int) {
-	// 	var args __gnuc_va_list
-	// 	__builtin_va_start(args, i)
-	// 	v := makeInt(0, uint64(i), ft.in[0])
-	// 	return callReflect(ft, fn, v, args)
-	// }
+	// Indirect Go func value (dummy) to obtain
+	// actual code address. (A Go func value is a pointer
+	// to a C function pointer. http://golang.org/s/go11func.)
+	dummy := makeFuncStub
+	code := **(**uintptr)(unsafe.Pointer(&dummy))
 
-	// return Value{t, unsafe.Pointer(&impl.code[0]), flag(Func) << flagKindShift}
+	impl := &makeFuncImpl{code: code, typ: ftyp, fn: fn, method: -1}
+
+	return Value{t, unsafe.Pointer(&impl), flag(Func<<flagKindShift) | flagIndir}
+}
+
+// makeFuncStub is an assembly function that is the code half of
+// the function returned from MakeFunc. It expects a *callReflectFunc
+// as its context register, and its job is to invoke callReflect(ctxt, frame)
+// where ctxt is the context register and frame is a pointer to the first
+// word in the passed-in argument frame.
+func makeFuncStub()
+
+// makeMethodValue converts v from the rcvr+method index representation
+// of a method value to an actual method func value, which is
+// basically the receiver value with a special bit set, into a true
+// func value - a value holding an actual func. The output is
+// semantically equivalent to the input as far as the user of package
+// reflect can tell, but the true func representation can be handled
+// by code like Convert and Interface and Assign.
+func makeMethodValue(op string, v Value) Value {
+	if v.flag&flagMethod == 0 {
+		panic("reflect: internal error: invalid use of makePartialFunc")
+	}
+
+	switch runtime.GOARCH {
+	case "amd64", "386":
+	default:
+		panic("reflect.makeMethodValue not implemented for " + runtime.GOARCH)
+	}
+
+	// Ignoring the flagMethod bit, v describes the receiver, not the method type.
+	fl := v.flag & (flagRO | flagAddr | flagIndir)
+	fl |= flag(v.typ.Kind()) << flagKindShift
+	rcvr := Value{v.typ, v.val, fl}
+
+	// v.Type returns the actual type of the method value.
+	ft := v.Type().(*rtype)
+
+	// Indirect Go func value (dummy) to obtain
+	// actual code address. (A Go func value is a pointer
+	// to a C function pointer. http://golang.org/s/go11func.)
+	dummy := makeFuncStub
+	code := **(**uintptr)(unsafe.Pointer(&dummy))
+
+	// Cause panic if method is not appropriate.
+	// The panic would still happen during the call if we omit this,
+	// but we want Interface() and other operations to fail early.
+	t, _, _ := methodReceiver(op, rcvr, int(v.flag)>>flagMethodShift)
+
+	fv := &makeFuncImpl{
+		code:   code,
+		typ:    (*funcType)(unsafe.Pointer(t)),
+		method: int(v.flag) >> flagMethodShift,
+		rcvr:   rcvr,
+	}
+
+	return Value{ft, unsafe.Pointer(&fv), v.flag&flagRO | flag(Func)<<flagKindShift | flagIndir}
+}
+
+// makeValueMethod takes a method function and returns a function that
+// takes a value receiver and calls the real method with a pointer to
+// it.
+func makeValueMethod(v Value) Value {
+	typ := v.typ
+	if typ.Kind() != Func {
+		panic("reflect: call of makeValueMethod with non-Func type")
+	}
+	if v.flag&flagMethodFn == 0 {
+		panic("reflect: call of makeValueMethod with non-MethodFn")
+	}
+
+	switch runtime.GOARCH {
+	case "amd64", "386":
+	default:
+		panic("reflect.makeValueMethod not implemented for " + runtime.GOARCH)
+	}
+
+	t := typ.common()
+	ftyp := (*funcType)(unsafe.Pointer(t))
+
+	// Indirect Go func value (dummy) to obtain
+	// actual code address. (A Go func value is a pointer
+	// to a C function pointer. http://golang.org/s/go11func.)
+	dummy := makeFuncStub
+	code := **(**uintptr)(unsafe.Pointer(&dummy))
+
+	impl := &makeFuncImpl{
+		code:   code,
+		typ:    ftyp,
+		method: -2,
+		rcvr:   v,
+	}
+
+	return Value{t, unsafe.Pointer(&impl), flag(Func<<flagKindShift) | flagIndir}
+}
+
+// Call the function represented by a makeFuncImpl.
+func (c *makeFuncImpl) call(in []Value) []Value {
+	if c.method == -1 {
+		return c.fn(in)
+	} else if c.method == -2 {
+		if c.typ.IsVariadic() {
+			return c.rcvr.CallSlice(in)
+		} else {
+			return c.rcvr.Call(in)
+		}
+	} else {
+		m := c.rcvr.Method(c.method)
+		if c.typ.IsVariadic() {
+			return m.CallSlice(in)
+		} else {
+			return m.Call(in)
+		}
+	}
 }

@@ -11,6 +11,13 @@
 #include "runtime.h"
 #include "array.h"
 
+/* This is set to non-zero when calling backtrace_full.  This is used
+   to avoid getting hanging on a recursive lock in dl_iterate_phdr on
+   older versions of glibc when a SIGPROF signal arrives while
+   collecting a backtrace.  */
+
+uint32 runtime_in_callers;
+
 /* Argument passed to callback function.  */
 
 struct callers_data
@@ -50,6 +57,21 @@ callback (void *data, uintptr_t pc, const char *filename, int lineno,
       if (p == NULL)
 	p = filename;
       if (__builtin_strncmp (p, "/morestack.S", 12) == 0)
+	return 0;
+    }
+
+  /* Skip thunks and recover functions.  There is no equivalent to
+     these functions in the gc toolchain, so returning them here means
+     significantly different results for runtime.Caller(N).  */
+  if (function != NULL)
+    {
+      const char *p;
+
+      p = __builtin_strchr (function, '.');
+      if (p != NULL && __builtin_strncmp (p + 1, "$thunk", 6) == 0)
+	return 0;
+      p = __builtin_strrchr (function, '$');
+      if (p != NULL && __builtin_strcmp(p, "$recover") == 0)
 	return 0;
     }
 
@@ -96,8 +118,10 @@ runtime_callers (int32 skip, Location *locbuf, int32 m)
   data.skip = skip + 1;
   data.index = 0;
   data.max = m;
+  runtime_xadd (&runtime_in_callers, 1);
   backtrace_full (__go_get_backtrace_state (), 0, callback, error_callback,
 		  &data);
+  runtime_xadd (&runtime_in_callers, -1);
   return data.index;
 }
 

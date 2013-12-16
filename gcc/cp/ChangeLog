@@ -1,3 +1,211 @@
+2013-12-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/58954
+	* pt.c (resolve_overloaded_unification): Discard access checks.
+
+2013-12-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/59044
+	PR c++/59052
+	* pt.c (most_specialized_class): Use the partially instantiated
+	template for deduction.  Drop the TMPL parameter.
+
+2013-12-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/59268
+	* pt.c (tsubst_copy_and_build): Handle POINTER_PLUS_EXPR.
+
+2013-11-27  Tom de Vries  <tom@codesourcery.com>
+	    Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/59032
+	* typeck.c (cp_build_unary_op): Allow vector increment and decrement.
+
+2013-11-27  Tom de Vries  <tom@codesourcery.com>
+	    Marc Glisse  <marc.glisse@inria.fr>
+
+	PR middle-end/59037
+	* semantics.c (cxx_fold_indirect_ref): Don't create out-of-bounds
+	BIT_FIELD_REF.
+
+2013-11-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/59297
+	* semantics.c (finish_omp_atomic): Call finish_expr_stmt
+	rather than add_stmt.
+
+2013-11-23  Easwaran Raman  <eraman@google.com>
+
+	PR c++/59031
+	* call.c (build_new_method_call_1): Comnpare function context
+	with BASELINK_BINFO type rather than instance type before
+	marking the call with LOOKUP_NONVIRTUAL.
+
+2013-10-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/58162
+	* parser.c (cp_parser_late_parse_one_default_arg): Set
+	TARGET_EXPR_DIRECT_INIT_P.
+
+2013-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* cvt.c (cp_convert_to_pointer): Call build_ptrmemfunc before
+	maybe_warn_zero_as_null_pointer_constant to avoid duplicate
+	-Wzero-as-null-pointer-constant diagnostics.
+
+	* typeck.c (build_ptrmemfunc): Use cp_build_c_cast.
+
+2013-10-25  Tom de Vries  <tom@codesourcery.com>
+
+	PR c++/58282
+	* except.c (build_must_not_throw_expr): Handle
+	flag_exceptions.
+
+2013-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/58596
+	* semantics.c (lambda_expr_this_capture): Handle NSDMIs in the
+	cp_unevaluated_operand case.
+
+2013-10-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/58633
+	* parser.c (cp_parser_pseudo_destructor_name): Revert r174385 changes.
+
+2013-10-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/57850
+	* decl2.c (dump_tu): Split out from...
+	(cp_write_global_declarations): ...here.  Call it in PCH mode.
+
+2013-10-16  Release Manager
+
+	* GCC 4.8.2 released.
+
+2013-10-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/58568
+	* semantics.c (begin_lambda_type): Check return value of xref_tag
+	for error_mark_node; tidy.
+	* decl.c (grokdeclarator): Tweak error message.
+
+2013-10-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/58535
+	* parser.c (cp_parser_function_specifier_opt): Upon error about
+	virtual templates don't set ds_virtual.
+
+2013-09-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/58457
+	* class.c (instantiate_type): Loosen a bit the gcc_assert.
+
+2013-09-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/58273
+	* pt.c (any_type_dependent_elements_p): Actually check for
+	type-dependence, not value-dependence.
+
+2013-09-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/58325
+	* init.c (build_vec_delete): Call mark_rvalue_use on base.
+
+2013-08-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/58119
+	* cp-tree.h (WILDCARD_TYPE_P): Split out from...
+	(MAYBE_CLASS_TYPE_P): ...here.
+	* cvt.c (build_expr_type_conversion): Don't complain about a
+	template that can't match the desired type category.
+
+2013-08-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/58083
+	* name-lookup.c (push_class_level_binding_1): It's OK to push a
+	lambda type after the enclosing type is complete.
+
+2013-08-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/57825
+	* tree.c (strip_typedefs) [METHOD_TYPE]: Preserve ref-qualifier.
+
+2013-07-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/57901
+	* semantics.c (build_data_member_initialization, constexpr_fn_retval):
+	Use break_out_target_exprs instead of unshare_expr.
+
+	PR c++/58022
+	* typeck2.c (abstract_virtuals_error_sfinae): Don't remember
+	lookup in SFINAE context.
+
+2013-07-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/57981
+	* decl.c (check_default_argument): Take a tsubst_flags_t parameter.
+	(grokparms): Adjust.
+	* parser.c (cp_parser_late_parse_one_default_arg): Likewise.
+	* pt.c (tsubst_default_argument, tsubst_default_arguments): Take
+	a tsubst_flags_t parameter.
+	(tsubst_decl): Adjust.
+	* call.c (convert_default_arg): Likewise.
+	* cp-tree.h (check_default_argument, tsubst_default_argument):
+	Update declarations.
+
+2013-07-12  Jason Merrill  <jason@redhat.com>
+
+	* init.c (build_vec_init): Value-initialize the rest of the array.
+
+2013-07-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/57526
+	* semantics.c (lambda_capture_field_type): Build a DECLTYPE_TYPE
+	if the variable type uses 'auto'.
+
+	PR c++/57437
+	* typeck.c (check_return_expr): Lambda proxies aren't eligible
+	for nrv or return by move.
+
+	PR c++/57532
+	* parser.c (cp_parser_ref_qualifier_opt): Don't tentatively parse
+	a ref-qualifier in C++98 mode.
+
+	PR c++/57545
+	* pt.c (convert_nontype_argument) [INTEGER_CST]: Force the
+	argument to have the exact type of the parameter.
+
+	PR c++/57551
+	* semantics.c (cxx_eval_indirect_ref): Don't try to look through
+	a POINTER_PLUS_EXPR for type punning diagnostic.
+
+	PR c++/57831
+	* pt.c (tsubst_copy): Handle USING_DECL.
+
+2013-07-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/57550
+	* pt.c (fn_type_unification): Only defer during substitution.
+	(type_unification_real): Defer during defarg substitution,
+	add checks parm to pass back deferred checks.
+	(unify, do_auto_deduction): Adjust.
+	* semantics.c (reopen_deferring_access_checks): New.
+	* cp-tree.h: Declare it.
+
+2013-07-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/57645
+	* class.c (deduce_noexcept_on_destructors): Save, set, and restore
+	TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t) around the main loop over the
+	destructors.
+
+2013-07-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/57771
+	* parser.c (cp_parser_postfix_expression) <case RID_STATCAST>
+	Temporarily set parser->greater_than_is_operator_p for
+	cp_parser_expression and restore from saved value afterwards.
+
 2013-06-21  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/53211

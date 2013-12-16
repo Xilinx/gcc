@@ -5246,10 +5246,14 @@ register_edge_assert_for_1 (tree op, enum tree_code code,
 	       && gimple_assign_rhs_code (op_def) == BIT_IOR_EXPR))
     {
       /* Recurse on each operand.  */
-      retval |= register_edge_assert_for_1 (gimple_assign_rhs1 (op_def),
-					    code, e, bsi);
-      retval |= register_edge_assert_for_1 (gimple_assign_rhs2 (op_def),
-					    code, e, bsi);
+      tree op0 = gimple_assign_rhs1 (op_def);
+      tree op1 = gimple_assign_rhs2 (op_def);
+      if (TREE_CODE (op0) == SSA_NAME
+	  && has_single_use (op0))
+	retval |= register_edge_assert_for_1 (op0, code, e, bsi);
+      if (TREE_CODE (op1) == SSA_NAME
+	  && has_single_use (op1))
+	retval |= register_edge_assert_for_1 (op1, code, e, bsi);
     }
   else if (gimple_assign_rhs_code (op_def) == BIT_NOT_EXPR
 	   && TYPE_PRECISION (TREE_TYPE (gimple_assign_lhs (op_def))) == 1)
@@ -5267,9 +5271,13 @@ register_edge_assert_for_1 (tree op, enum tree_code code,
     }
   else if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (op_def)))
     {
-      /* Recurse through the type conversion.  */
-      retval |= register_edge_assert_for_1 (gimple_assign_rhs1 (op_def),
-					    code, e, bsi);
+      /* Recurse through the type conversion, unless it is a narrowing
+	 conversion or conversion from non-integral type.  */
+      tree rhs = gimple_assign_rhs1 (op_def);
+      if (INTEGRAL_TYPE_P (TREE_TYPE (rhs))
+	  && (TYPE_PRECISION (TREE_TYPE (rhs))
+	      <= TYPE_PRECISION (TREE_TYPE (op))))
+	retval |= register_edge_assert_for_1 (rhs, code, e, bsi);
     }
 
   return retval;
@@ -7449,7 +7457,8 @@ union_ranges (enum value_range_type *vr0type,
     }
   else if ((operand_less_p (vr1min, *vr0max) == 1
 	    || operand_equal_p (vr1min, *vr0max, 0))
-	   && operand_less_p (*vr0min, vr1min) == 1)
+	   && operand_less_p (*vr0min, vr1min) == 1
+	   && operand_less_p (*vr0max, vr1max) == 1)
     {
       /* [  (  ]  ) or [   ](   ) */
       if (*vr0type == VR_RANGE
@@ -7483,7 +7492,8 @@ union_ranges (enum value_range_type *vr0type,
     }
   else if ((operand_less_p (*vr0min, vr1max) == 1
 	    || operand_equal_p (*vr0min, vr1max, 0))
-	   && operand_less_p (vr1min, *vr0min) == 1)
+	   && operand_less_p (vr1min, *vr0min) == 1
+	   && operand_less_p (vr1max, *vr0max) == 1)
     {
       /* (  [  )  ] or (   )[   ] */
       if (*vr0type == VR_RANGE

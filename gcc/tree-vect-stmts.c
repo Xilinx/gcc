@@ -3796,6 +3796,7 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
   enum vect_def_type dt;
   stmt_vec_info prev_stmt_info = NULL;
   tree dataref_ptr = NULL_TREE;
+  gimple ptr_incr = NULL;
   int nunits = TYPE_VECTOR_SUBPARTS (vectype);
   int ncopies;
   int j;
@@ -4040,7 +4041,6 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
   for (j = 0; j < ncopies; j++)
     {
       gimple new_stmt;
-      gimple ptr_incr;
 
       if (j == 0)
 	{
@@ -4313,7 +4313,7 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
   tree dummy;
   enum dr_alignment_support alignment_support_scheme;
   tree dataref_ptr = NULL_TREE;
-  gimple ptr_incr;
+  gimple ptr_incr = NULL;
   int nunits = TYPE_VECTOR_SUBPARTS (vectype);
   int ncopies;
   int i, j, group_size;
@@ -6054,8 +6054,7 @@ get_vectype_for_scalar_type_and_size (tree scalar_type, unsigned size)
      corresponding to that mode.  The theory is that any use that
      would cause problems with this will disable vectorization anyway.  */
   else if (!SCALAR_FLOAT_TYPE_P (scalar_type)
-	   && !INTEGRAL_TYPE_P (scalar_type)
-	   && !POINTER_TYPE_P (scalar_type))
+	   && !INTEGRAL_TYPE_P (scalar_type))
     scalar_type = lang_hooks.types.type_for_mode (inner_mode, 1);
 
   /* We can't build a vector type of elements with alignment bigger than

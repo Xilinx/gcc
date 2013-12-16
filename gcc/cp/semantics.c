@@ -155,6 +155,17 @@ push_deferring_access_checks (deferring_kind deferring)
     }
 }
 
+/* Save the current deferred access states and start deferred access
+   checking, continuing the set of deferred checks in CHECKS.  */
+
+void
+reopen_deferring_access_checks (vec<deferred_access_check, va_gc> * checks)
+{
+  push_deferring_access_checks (dk_deferred);
+  if (!deferred_access_no_check)
+    deferred_access_stack->last().deferred_access_checks = checks;
+}
+
 /* Resume deferring access checks again after we stopped doing
    this previously.  */
 
@@ -5048,7 +5059,7 @@ finish_omp_atomic (enum tree_code code, enum tree_code opcode, tree lhs,
 	}
       stmt = build2 (OMP_ATOMIC, void_type_node, integer_zero_node, stmt);
     }
-  add_stmt (stmt);
+  finish_expr_stmt (stmt);
 }
 
 void
@@ -5945,7 +5956,7 @@ build_data_member_initialization (tree t, vec<constructor_elt, va_gc> **vec)
       || TREE_CODE (t) == MODIFY_EXPR)
     {
       member = TREE_OPERAND (t, 0);
-      init = unshare_expr (TREE_OPERAND (t, 1));
+      init = break_out_target_exprs (TREE_OPERAND (t, 1));
     }
   else if (TREE_CODE (t) == CALL_EXPR)
     {
@@ -5953,7 +5964,7 @@ build_data_member_initialization (tree t, vec<constructor_elt, va_gc> **vec)
       /* We don't use build_cplus_new here because it complains about
 	 abstract bases.  Leaving the call unwrapped means that it has the
 	 wrong type, but cxx_eval_constant_expression doesn't care.  */
-      init = unshare_expr (t);
+      init = break_out_target_exprs (t);
     }
   else if (TREE_CODE (t) == DECL_EXPR)
     /* Declaring a temporary, don't add it to the CONSTRUCTOR.  */
@@ -6190,7 +6201,7 @@ constexpr_fn_retval (tree body)
       }
 
     case RETURN_EXPR:
-      return unshare_expr (TREE_OPERAND (body, 0));
+      return break_out_target_exprs (TREE_OPERAND (body, 0));
 
     case DECL_EXPR:
       if (TREE_CODE (DECL_EXPR_DECL (body)) == USING_DECL)
@@ -7532,7 +7543,7 @@ cxx_fold_indirect_ref (location_t loc, tree type, tree op0, bool *empty_base)
 	      unsigned HOST_WIDE_INT indexi = offset * BITS_PER_UNIT;
 	      tree index = bitsize_int (indexi);
 
-	      if (offset/part_widthi <= TYPE_VECTOR_SUBPARTS (op00type))
+	      if (offset / part_widthi < TYPE_VECTOR_SUBPARTS (op00type))
 		return fold_build3_loc (loc,
 					BIT_FIELD_REF, type, op00,
 					part_width, index);
@@ -7635,11 +7646,6 @@ cxx_eval_indirect_ref (const constexpr_call *call, tree t,
     {
       tree sub = op0;
       STRIP_NOPS (sub);
-      if (TREE_CODE (sub) == POINTER_PLUS_EXPR)
-	{
-	  sub = TREE_OPERAND (sub, 0);
-	  STRIP_NOPS (sub);
-	}
       if (TREE_CODE (sub) == ADDR_EXPR)
 	{
 	  /* We couldn't fold to a constant value.  Make sure it's not
@@ -9001,6 +9007,8 @@ begin_lambda_type (tree lambda)
                      name,
                      /*scope=*/ts_lambda,
                      /*template_header_p=*/false);
+    if (type == error_mark_node)
+      return error_mark_node;
   }
 
   /* Designate it as a struct so that we can use aggregate initialization.  */
@@ -9015,8 +9023,6 @@ begin_lambda_type (tree lambda)
 
   /* Start the class.  */
   type = begin_class_definition (type);
-  if (type == error_mark_node)
-    return error_mark_node;
 
   return type;
 }
@@ -9072,7 +9078,8 @@ lambda_capture_field_type (tree expr)
 {
   tree type;
   if (type_dependent_expression_p (expr)
-      && !(TREE_TYPE (expr) && TREE_CODE (TREE_TYPE (expr)) == POINTER_TYPE))
+      && !(TREE_TYPE (expr) && TREE_CODE (TREE_TYPE (expr)) == POINTER_TYPE
+	   && !type_uses_auto (TREE_TYPE (expr))))
     {
       type = cxx_make_type (DECLTYPE_TYPE);
       DECLTYPE_TYPE_EXPR (type) = expr;
@@ -9474,7 +9481,14 @@ lambda_expr_this_capture (tree lambda)
   /* In unevaluated context this isn't an odr-use, so just return the
      nearest 'this'.  */
   if (cp_unevaluated_operand)
-    return lookup_name (this_identifier);
+    {
+      /* In an NSDMI the fake 'this' pointer that we're using for
+	 parsing is in scope_chain.  */
+      if (LAMBDA_EXPR_EXTRA_SCOPE (lambda)
+	  && TREE_CODE (LAMBDA_EXPR_EXTRA_SCOPE (lambda)) == FIELD_DECL)
+	return scope_chain->x_current_class_ptr;
+      return lookup_name (this_identifier);
+    }
 
   /* Try to default capture 'this' if we can.  */
   if (!this_capture

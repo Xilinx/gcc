@@ -1192,6 +1192,27 @@ Gogo::record_interface_type(Interface_type* itype)
   this->interface_types_.push_back(itype);
 }
 
+// Return an erroneous name that indicates that an error has already
+// been reported.
+
+std::string
+Gogo::erroneous_name()
+{
+  static int erroneous_count;
+  char name[50];
+  snprintf(name, sizeof name, "$erroneous%d", erroneous_count);
+  ++erroneous_count;
+  return name;
+}
+
+// Return whether a name is an erroneous name.
+
+bool
+Gogo::is_erroneous_name(const std::string& name)
+{
+  return name.compare(0, 10, "$erroneous") == 0;
+}
+
 // Return a name for a thunk object.
 
 std::string
@@ -1277,6 +1298,14 @@ Gogo::define_global_names()
 		   "%qs defined as both imported name and global name",
 		   n.c_str());
 	  inform(pf->second, "%qs imported here", n.c_str());
+	}
+
+      // No package scope identifier may be named "init".
+      if (!p->second->is_function()
+	  && Gogo::unpack_hidden_name(p->second->name()) == "init")
+	{
+	  error_at(p->second->location(),
+	           "cannot declare init - must be func");
 	}
     }
 }
@@ -1762,8 +1791,8 @@ Create_function_descriptors::function(Named_object* no)
   if (no->is_function()
       && no->func_value()->enclosing() == NULL
       && !no->func_value()->is_method()
-      && !no->func_value()->is_descriptor_wrapper()
-      && !Gogo::is_hidden_name(no->name()))
+      && !Gogo::is_hidden_name(no->name())
+      && !Gogo::is_thunk(no))
     no->func_value()->descriptor(this->gogo_, no);
 
   return TRAVERSE_CONTINUE;
@@ -2359,7 +2388,7 @@ Shortcuts::convert_shortcut(Block* enclosing, Expression** pshortcut)
   Block* retblock = new Block(enclosing, loc);
   retblock->set_end_location(loc);
 
-  Temporary_statement* ts = Statement::make_temporary(Type::lookup_bool_type(),
+  Temporary_statement* ts = Statement::make_temporary(shortcut->type(),
 						      left, loc);
   retblock->add_statement(ts);
 
@@ -2533,13 +2562,38 @@ Order_eval::statement(Block* block, size_t* pindex, Statement* s)
     return TRAVERSE_CONTINUE;
 
   // If there is only one expression with a side-effect, we can
-  // usually leave it in place.  However, for an assignment statement,
-  // we need to evaluate an expression on the right hand side before
-  // we evaluate any index expression on the left hand side, so for
-  // that case we always move the expression.  Otherwise we mishandle
-  // m[0] = len(m) where m is a map.
-  if (c == 1 && s->classification() != Statement::STATEMENT_ASSIGNMENT)
-    return TRAVERSE_CONTINUE;
+  // usually leave it in place.
+  if (c == 1)
+    {
+      switch (s->classification())
+	{
+	case Statement::STATEMENT_ASSIGNMENT:
+	  // For an assignment statement, we need to evaluate an
+	  // expression on the right hand side before we evaluate any
+	  // index expression on the left hand side, so for that case
+	  // we always move the expression.  Otherwise we mishandle
+	  // m[0] = len(m) where m is a map.
+	  break;
+
+	case Statement::STATEMENT_EXPRESSION:
+	  {
+	    // If this is a call statement that doesn't return any
+	    // values, it will not have been counted as a value to
+	    // move.  We need to move any subexpressions in case they
+	    // are themselves call statements that require passing a
+	    // closure.
+	    Expression* expr = s->expression_statement()->expr();
+	    if (expr->call_expression() != NULL
+		&& expr->call_expression()->result_count() == 0)
+	      break;
+	    return TRAVERSE_CONTINUE;
+	  }
+
+	default:
+	  // We can leave the expression in place.
+	  return TRAVERSE_CONTINUE;
+	}
+    }
 
   bool is_thunk = s->thunk_statement() != NULL;
   for (Find_eval_ordering::const_iterator p = find_eval_ordering.begin();
@@ -2768,7 +2822,10 @@ Build_recover_thunks::function(Named_object* orig_no)
   if (orig_fntype->is_varargs())
     new_fntype->set_is_varargs();
 
-  std::string name = orig_no->name() + "$recover";
+  std::string name = orig_no->name();
+  if (orig_fntype->is_method())
+    name += "$" + orig_fntype->receiver()->type()->mangled_name(gogo);
+  name += "$recover";
   Named_object *new_no = gogo->start_function(name, new_fntype, false,
 					      location);
   Function *new_func = new_no->func_value();
@@ -2795,7 +2852,7 @@ Build_recover_thunks::function(Named_object* orig_no)
       Named_object* orig_closure_no = orig_func->closure_var();
       Variable* orig_closure_var = orig_closure_no->var_value();
       Variable* new_var = new Variable(orig_closure_var->type(), NULL, false,
-				       true, false, location);
+				       false, false, location);
       snprintf(buf, sizeof buf, "closure.%u", count);
       ++count;
       Named_object* new_closure_no = Named_object::make_variable(buf, NULL,
@@ -2862,7 +2919,25 @@ Build_recover_thunks::function(Named_object* orig_no)
 		 && !orig_rec_no->var_value()->is_receiver());
       orig_rec_no->var_value()->set_is_receiver();
 
-      const std::string& new_receiver_name(orig_fntype->receiver()->name());
+      std::string new_receiver_name(orig_fntype->receiver()->name());
+      if (new_receiver_name.empty())
+	{
+	  // Find the receiver.  It was named "r.NNN" in
+	  // Gogo::start_function.
+	  for (Bindings::const_definitions_iterator p =
+		 new_bindings->begin_definitions();
+	       p != new_bindings->end_definitions();
+	       ++p)
+	    {
+	      const std::string& pname((*p)->name());
+	      if (pname[0] == 'r' && pname[1] == '.')
+		{
+		  new_receiver_name = pname;
+		  break;
+		}
+	    }
+	  go_assert(!new_receiver_name.empty());
+	}
       Named_object* new_rec_no = new_bindings->lookup_local(new_receiver_name);
       if (new_rec_no == NULL)
 	go_assert(saw_errors());
@@ -3125,7 +3200,8 @@ Check_return_statements_traverse::function(Named_object* no)
     return TRAVERSE_CONTINUE;
 
   if (func->block()->may_fall_through())
-    error_at(func->location(), "control reaches end of non-void function");
+    error_at(func->block()->end_location(),
+	     "missing return at end of function");
 
   return TRAVERSE_CONTINUE;
 }
@@ -3265,8 +3341,9 @@ Function::Function(Function_type* type, Function* enclosing, Block* block,
     closure_var_(NULL), block_(block), location_(location), labels_(),
     local_type_count_(0), descriptor_(NULL), fndecl_(NULL), defer_stack_(NULL),
     is_sink_(false), results_are_named_(false), nointerface_(false),
-    calls_recover_(false), is_recover_thunk_(false), has_recover_thunk_(false),
-    in_unique_section_(false), is_descriptor_wrapper_(false)
+    is_unnamed_type_stub_method_(false), calls_recover_(false),
+    is_recover_thunk_(false), has_recover_thunk_(false),
+    in_unique_section_(false)
 {
 }
 
@@ -3348,9 +3425,9 @@ Function::closure_var()
       Struct_field_list* sfl = new Struct_field_list;
       Type* struct_type = Type::make_struct_type(sfl, loc);
       Variable* var = new Variable(Type::make_pointer_type(struct_type),
-				   NULL, false, true, false, loc);
+				   NULL, false, false, false, loc);
       var->set_is_used();
-      this->closure_var_ = Named_object::make_variable("closure", NULL, var);
+      this->closure_var_ = Named_object::make_variable("$closure", NULL, var);
       // Note that the new variable is not in any binding contour.
     }
   return this->closure_var_;
@@ -3372,7 +3449,7 @@ Function::set_closure_type()
   st->push_field(Struct_field(Typed_identifier(".$f", voidptr_type,
 					       this->location_)));
 
-  unsigned int index = 0;
+  unsigned int index = 1;
   for (Closure_fields::const_iterator p = this->closure_fields_.begin();
        p != this->closure_fields_.end();
        ++p, ++index)
@@ -3553,93 +3630,16 @@ Function::determine_types()
     this->block_->determine_types();
 }
 
-// Build a wrapper function for a function descriptor.  A function
-// descriptor refers to a function that takes a closure as its last
-// argument.  In this case there will be no closure, but an indirect
-// call will pass nil as the last argument.  We need to build a
-// wrapper function that accepts and discards that last argument, so
-// that cases like -mrtd will work correctly.  In most cases the
-// wrapper function will simply be a jump.
-
-Named_object*
-Function::make_descriptor_wrapper(Gogo* gogo, Named_object* no,
-				  Function_type* orig_fntype)
-{
-  Location loc = no->location();
-
-  Type* vt = Type::make_pointer_type(Type::make_void_type());
-  Function_type* new_fntype = orig_fntype->copy_with_closure(vt);
-
-  std::string name = no->name() + "$descriptorfn";
-  Named_object* dno = gogo->start_function(name, new_fntype, false, loc);
-  dno->func_value()->is_descriptor_wrapper_ = true;
-
-  gogo->start_block(loc);
-
-  Expression* fn = Expression::make_func_reference(no, NULL, loc);
-
-  // Call the function begin wrapped, passing all of the arguments
-  // except for the last one (the last argument is the ignored
-  // closure).
-  const Typed_identifier_list* orig_params = orig_fntype->parameters();
-  Expression_list* args;
-  if (orig_params == NULL || orig_params->empty())
-    args = NULL;
-  else
-    {
-      const Typed_identifier_list* new_params = new_fntype->parameters();
-      args = new Expression_list();
-      for (Typed_identifier_list::const_iterator p = new_params->begin();
-	   p + 1 != new_params->end();
-	   ++p)
-	{
-	  Named_object* p_no = gogo->lookup(p->name(), NULL);
-	  go_assert(p_no != NULL
-		    && p_no->is_variable()
-		    && p_no->var_value()->is_parameter());
-	  args->push_back(Expression::make_var_reference(p_no, loc));
-	}
-    }
-
-  Call_expression* call = Expression::make_call(fn, args,
-						orig_fntype->is_varargs(),
-						loc);
-  call->set_varargs_are_lowered();
-
-  Statement* s = Statement::make_return_from_call(call, loc);
-  gogo->add_statement(s);
-  Block* b = gogo->finish_block(loc);
-  gogo->add_block(b, loc);
-  gogo->lower_block(dno, b);
-  gogo->finish_function(loc);
-
-  return dno;
-}
-
 // Return the function descriptor, the value you get when you refer to
 // the function in Go code without calling it.
 
 Expression*
-Function::descriptor(Gogo* gogo, Named_object* no)
+Function::descriptor(Gogo*, Named_object* no)
 {
   go_assert(!this->is_method());
   go_assert(this->closure_var_ == NULL);
-  go_assert(!this->is_descriptor_wrapper_);
   if (this->descriptor_ == NULL)
-    {
-      // Make and record the descriptor first, so that when we lower
-      // the descriptor wrapper we don't try to make it again.
-      Func_descriptor_expression* descriptor =
-	Expression::make_func_descriptor(no);
-      this->descriptor_ = descriptor;
-      if (no->package() == NULL
-	  && !Linemap::is_predeclared_location(no->location()))
-	{
-	  Named_object* dno = Function::make_descriptor_wrapper(gogo, no,
-								this->type_);
-	  descriptor->set_descriptor_wrapper(dno);
-	}
-    }
+    this->descriptor_ = Expression::make_func_descriptor(no);
   return this->descriptor_;
 }
 
@@ -3839,6 +3839,81 @@ Function::import_func(Import* imp, std::string* pname,
     }
   imp->require_c_string(";\n");
   *presults = results;
+}
+
+// Get the backend representation.
+
+Bfunction*
+Function::get_or_make_decl(Gogo* gogo, Named_object* no)
+{
+  if (this->fndecl_ == NULL)
+    {
+      std::string asm_name;
+      bool is_visible = false;
+      if (no->package() != NULL)
+        ;
+      else if (this->enclosing_ != NULL || Gogo::is_thunk(no))
+        ;
+      else if (Gogo::unpack_hidden_name(no->name()) == "init"
+               && !this->type_->is_method())
+        ;
+      else if (Gogo::unpack_hidden_name(no->name()) == "main"
+               && gogo->is_main_package())
+        is_visible = true;
+      // Methods have to be public even if they are hidden because
+      // they can be pulled into type descriptors when using
+      // anonymous fields.
+      else if (!Gogo::is_hidden_name(no->name())
+               || this->type_->is_method())
+        {
+	  if (!this->is_unnamed_type_stub_method_)
+	    is_visible = true;
+          std::string pkgpath = gogo->pkgpath_symbol();
+          if (this->type_->is_method()
+              && Gogo::is_hidden_name(no->name())
+              && Gogo::hidden_name_pkgpath(no->name()) != gogo->pkgpath())
+            {
+              // This is a method we created for an unexported
+              // method of an imported embedded type.  We need to
+              // use the pkgpath of the imported package to avoid
+              // a possible name collision.  See bug478 for a test
+              // case.
+              pkgpath = Gogo::hidden_name_pkgpath(no->name());
+              pkgpath = Gogo::pkgpath_for_symbol(pkgpath);
+            }
+
+          asm_name = pkgpath;
+          asm_name.append(1, '.');
+          asm_name.append(Gogo::unpack_hidden_name(no->name()));
+          if (this->type_->is_method())
+            {
+              asm_name.append(1, '.');
+              Type* rtype = this->type_->receiver()->type();
+              asm_name.append(rtype->mangled_name(gogo));
+            }
+        }
+
+      // If a function calls the predeclared recover function, we
+      // can't inline it, because recover behaves differently in a
+      // function passed directly to defer.  If this is a recover
+      // thunk that we built to test whether a function can be
+      // recovered, we can't inline it, because that will mess up
+      // our return address comparison.
+      bool is_inlinable = !(this->calls_recover_ || this->is_recover_thunk_);
+
+      // If this is a thunk created to call a function which calls
+      // the predeclared recover function, we need to disable
+      // stack splitting for the thunk.
+      bool disable_split_stack = this->is_recover_thunk_;
+
+      Btype* functype = this->type_->get_backend_fntype(gogo);
+      this->fndecl_ =
+          gogo->backend()->function(functype, no->get_id(gogo), asm_name,
+                                    is_visible, false, is_inlinable,
+                                    disable_split_stack,
+                                    this->in_unique_section_, this->location());
+    }
+  return this->fndecl_;
 }
 
 // Class Block.
@@ -4178,24 +4253,11 @@ Bindings_snapshot::check_goto_defs(Location loc, const Block* block,
 // Return the function descriptor.
 
 Expression*
-Function_declaration::descriptor(Gogo* gogo, Named_object* no)
+Function_declaration::descriptor(Gogo*, Named_object* no)
 {
   go_assert(!this->fntype_->is_method());
   if (this->descriptor_ == NULL)
-    {
-      // Make and record the descriptor first, so that when we lower
-      // the descriptor wrapper we don't try to make it again.
-      Func_descriptor_expression* descriptor =
-	Expression::make_func_descriptor(no);
-      this->descriptor_ = descriptor;
-      if (no->package() == NULL
-	  && !Linemap::is_predeclared_location(no->location()))
-	{
-	  Named_object* dno = Function::make_descriptor_wrapper(gogo, no,
-								this->fntype_);
-	  descriptor->set_descriptor_wrapper(dno);
-	}
-    }
+    this->descriptor_ = Expression::make_func_descriptor(no);
   return this->descriptor_;
 }
 
@@ -5143,6 +5205,75 @@ Named_object::get_backend_variable(Gogo* gogo, Named_object* function)
 							  this->name_);
   else
     go_unreachable();
+}
+
+
+// Return the external identifier for this object.
+
+std::string
+Named_object::get_id(Gogo* gogo)
+{
+  go_assert(!this->is_variable() && !this->is_result_variable());
+  std::string decl_name;
+  if (this->is_function_declaration()
+      && !this->func_declaration_value()->asm_name().empty())
+    decl_name = this->func_declaration_value()->asm_name();
+  else if (this->is_type()
+	   && Linemap::is_predeclared_location(this->type_value()->location()))
+    {
+      // We don't need the package name for builtin types.
+      decl_name = Gogo::unpack_hidden_name(this->name_);
+    }
+  else
+    {
+      std::string package_name;
+      if (this->package_ == NULL)
+	package_name = gogo->package_name();
+      else
+	package_name = this->package_->package_name();
+
+      // Note that this will be misleading if this is an unexported
+      // method generated for an embedded imported type.  In that case
+      // the unexported method should have the package name of the
+      // package from which it is imported, but we are going to give
+      // it our package name.  Fixing this would require knowing the
+      // package name, but we only know the package path.  It might be
+      // better to use package paths here anyhow.  This doesn't affect
+      // the assembler code, because we always set that name in
+      // Function::get_or_make_decl anyhow.  FIXME.
+
+      decl_name = package_name + '.' + Gogo::unpack_hidden_name(this->name_);
+
+      Function_type* fntype;
+      if (this->is_function())
+	fntype = this->func_value()->type();
+      else if (this->is_function_declaration())
+	fntype = this->func_declaration_value()->type();
+      else
+	fntype = NULL;
+      if (fntype != NULL && fntype->is_method())
+	{
+	  decl_name.push_back('.');
+	  decl_name.append(fntype->receiver()->type()->mangled_name(gogo));
+	}
+    }
+  if (this->is_type())
+    {
+      unsigned int index;
+      const Named_object* in_function = this->type_value()->in_function(&index);
+      if (in_function != NULL)
+	{
+	  decl_name += '$' + Gogo::unpack_hidden_name(in_function->name());
+	  if (index > 0)
+	    {
+	      char buf[30];
+	      snprintf(buf, sizeof buf, "%u", index);
+	      decl_name += '$';
+	      decl_name += buf;
+	    }
+	}
+    }
+  return decl_name;
 }
 
 // Class Bindings.

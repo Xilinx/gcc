@@ -3061,6 +3061,9 @@ peep2_reg_dead_p (int ofs, rtx reg)
   return 1;
 }
 
+/* Regno offset to be used in the register search.  */
+static int search_ofs;
+
 /* Try to find a hard register of mode MODE, matching the register class in
    CLASS_STR, which is available at the beginning of insn CURRENT_INSN and
    remains available until the end of LAST_INSN.  LAST_INSN may be NULL_RTX,
@@ -3076,7 +3079,6 @@ rtx
 peep2_find_free_register (int from, int to, const char *class_str,
 			  enum machine_mode mode, HARD_REG_SET *reg_set)
 {
-  static int search_ofs;
   enum reg_class cl;
   HARD_REG_SET live;
   df_ref *def_rec;
@@ -3120,32 +3122,53 @@ peep2_find_free_register (int from, int to, const char *class_str,
       regno = raw_regno;
 #endif
 
-      /* Don't allocate fixed registers.  */
-      if (fixed_regs[regno])
-	continue;
-      /* Don't allocate global registers.  */
-      if (global_regs[regno])
-	continue;
-      /* Make sure the register is of the right class.  */
-      if (! TEST_HARD_REG_BIT (reg_class_contents[cl], regno))
-	continue;
-      /* And can support the mode we need.  */
+      /* Can it support the mode we need?  */
       if (! HARD_REGNO_MODE_OK (regno, mode))
-	continue;
-      /* And that we don't create an extra save/restore.  */
-      if (! call_used_regs[regno] && ! df_regs_ever_live_p (regno))
-	continue;
-      if (! targetm.hard_regno_scratch_ok (regno))
-	continue;
-
-      /* And we don't clobber traceback for noreturn functions.  */
-      if ((regno == FRAME_POINTER_REGNUM || regno == HARD_FRAME_POINTER_REGNUM)
-	  && (! reload_completed || frame_pointer_needed))
 	continue;
 
       success = 1;
-      for (j = hard_regno_nregs[regno][mode] - 1; j >= 0; j--)
+      for (j = 0; success && j < hard_regno_nregs[regno][mode]; j++)
 	{
+	  /* Don't allocate fixed registers.  */
+	  if (fixed_regs[regno + j])
+	    {
+	      success = 0;
+	      break;
+	    }
+	  /* Don't allocate global registers.  */
+	  if (global_regs[regno + j])
+	    {
+	      success = 0;
+	      break;
+	    }
+	  /* Make sure the register is of the right class.  */
+	  if (! TEST_HARD_REG_BIT (reg_class_contents[cl], regno + j))
+	    {
+	      success = 0;
+	      break;
+	    }
+	  /* And that we don't create an extra save/restore.  */
+	  if (! call_used_regs[regno + j] && ! df_regs_ever_live_p (regno + j))
+	    {
+	      success = 0;
+	      break;
+	    }
+
+	  if (! targetm.hard_regno_scratch_ok (regno + j))
+	    {
+	      success = 0;
+	      break;
+	    }
+
+	  /* And we don't clobber traceback for noreturn functions.  */
+	  if ((regno + j == FRAME_POINTER_REGNUM
+	       || regno + j == HARD_FRAME_POINTER_REGNUM)
+	      && (! reload_completed || frame_pointer_needed))
+	    {
+	      success = 0;
+	      break;
+	    }
+
 	  if (TEST_HARD_REG_BIT (*reg_set, regno + j)
 	      || TEST_HARD_REG_BIT (live, regno + j))
 	    {
@@ -3153,6 +3176,7 @@ peep2_find_free_register (int from, int to, const char *class_str,
 	      break;
 	    }
 	}
+
       if (success)
 	{
 	  add_to_hard_reg_set (reg_set, mode, regno);
@@ -3519,6 +3543,7 @@ peephole2_optimize (void)
   /* Initialize the regsets we're going to use.  */
   for (i = 0; i < MAX_INSNS_PER_PEEP2 + 1; ++i)
     peep2_insn_data[i].live_before = BITMAP_ALLOC (&reg_obstack);
+  search_ofs = 0;
   live = BITMAP_ALLOC (&reg_obstack);
 
   FOR_EACH_BB_REVERSE (bb)

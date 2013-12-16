@@ -6917,6 +6917,10 @@ get_priority (tree args, bool is_destructor)
     }
 
   arg = TREE_VALUE (args);
+  if (TREE_CODE (arg) == IDENTIFIER_NODE)
+    goto invalid;
+  if (arg == error_mark_node)
+    return DEFAULT_INIT_PRIORITY;
   arg = default_conversion (arg);
   if (!host_integerp (arg, /*pos=*/0)
       || !INTEGRAL_TYPE_P (TREE_TYPE (arg)))
@@ -9761,6 +9765,11 @@ invalid_indirection_error (location_t loc, tree type, ref_operator errstring)
     case RO_ARROW:
       error_at (loc,
 		"invalid type argument of %<->%> (have %qT)",
+		type);
+      break;
+    case RO_ARROW_STAR:
+      error_at (loc,
+		"invalid type argument of %<->*%> (have %qT)",
 		type);
       break;
     case RO_IMPLICIT_CONVERSION:

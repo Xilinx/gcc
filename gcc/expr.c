@@ -119,7 +119,7 @@ struct store_by_pieces_d
   int reverse;
 };
 
-static void move_by_pieces_1 (rtx (*) (rtx, ...), enum machine_mode,
+static void move_by_pieces_1 (insn_gen_fn, machine_mode,
 			      struct move_by_pieces_d *);
 static bool block_move_libcall_safe_for_call_parm (void);
 static bool emit_block_move_via_movmem (rtx, rtx, rtx, unsigned, unsigned, HOST_WIDE_INT);
@@ -128,7 +128,7 @@ static void emit_block_move_via_loop (rtx, rtx, rtx, unsigned);
 static rtx clear_by_pieces_1 (void *, HOST_WIDE_INT, enum machine_mode);
 static void clear_by_pieces (rtx, unsigned HOST_WIDE_INT, unsigned int);
 static void store_by_pieces_1 (struct store_by_pieces_d *, unsigned int);
-static void store_by_pieces_2 (rtx (*) (rtx, ...), enum machine_mode,
+static void store_by_pieces_2 (insn_gen_fn, machine_mode,
 			       struct store_by_pieces_d *);
 static tree clear_storage_libcall_fn (int);
 static rtx compress_float_constant (rtx, rtx);
@@ -1043,7 +1043,7 @@ move_by_pieces_ninsns (unsigned HOST_WIDE_INT l, unsigned int align,
    to make a move insn for that mode.  DATA has all the other info.  */
 
 static void
-move_by_pieces_1 (rtx (*genfun) (rtx, ...), enum machine_mode mode,
+move_by_pieces_1 (insn_gen_fn genfun, machine_mode mode,
 		  struct move_by_pieces_d *data)
 {
   unsigned int size = GET_MODE_SIZE (mode);
@@ -1994,12 +1994,14 @@ emit_group_store (rtx orig_dst, rtx src, tree type ATTRIBUTE_UNUSED, int ssize)
       HOST_WIDE_INT bytepos = INTVAL (XEXP (XVECEXP (src, 0, i), 1));
       enum machine_mode mode = GET_MODE (tmps[i]);
       unsigned int bytelen = GET_MODE_SIZE (mode);
-      unsigned int adj_bytelen = bytelen;
+      unsigned int adj_bytelen;
       rtx dest = dst;
 
       /* Handle trailing fragments that run over the size of the struct.  */
       if (ssize >= 0 && bytepos + (HOST_WIDE_INT) bytelen > ssize)
 	adj_bytelen = ssize - bytepos;
+      else
+	adj_bytelen = bytelen;
 
       if (GET_CODE (dst) == CONCAT)
 	{
@@ -2040,6 +2042,7 @@ emit_group_store (rtx orig_dst, rtx src, tree type ATTRIBUTE_UNUSED, int ssize)
 	    }
 	}
 
+      /* Handle trailing fragments that run over the size of the struct.  */
       if (ssize >= 0 && bytepos + (HOST_WIDE_INT) bytelen > ssize)
 	{
 	  /* store_bit_field always takes its value from the lsb.
@@ -2057,16 +2060,22 @@ emit_group_store (rtx orig_dst, rtx src, tree type ATTRIBUTE_UNUSED, int ssize)
 	      tmps[i] = expand_shift (RSHIFT_EXPR, mode, tmps[i],
 				      shift, tmps[i], 0);
 	    }
-	  bytelen = adj_bytelen;
+
+	  /* Make sure not to write past the end of the struct.  */
+	  store_bit_field (dest,
+			   adj_bytelen * BITS_PER_UNIT, bytepos * BITS_PER_UNIT,
+			   bytepos * BITS_PER_UNIT, ssize * BITS_PER_UNIT - 1,
+			   VOIDmode, tmps[i]);
 	}
 
       /* Optimize the access just a bit.  */
-      if (MEM_P (dest)
-	  && (! SLOW_UNALIGNED_ACCESS (mode, MEM_ALIGN (dest))
-	      || MEM_ALIGN (dest) >= GET_MODE_ALIGNMENT (mode))
-	  && bytepos * BITS_PER_UNIT % GET_MODE_ALIGNMENT (mode) == 0
-	  && bytelen == GET_MODE_SIZE (mode))
+      else if (MEM_P (dest)
+	       && (!SLOW_UNALIGNED_ACCESS (mode, MEM_ALIGN (dest))
+		   || MEM_ALIGN (dest) >= GET_MODE_ALIGNMENT (mode))
+	       && bytepos * BITS_PER_UNIT % GET_MODE_ALIGNMENT (mode) == 0
+	       && bytelen == GET_MODE_SIZE (mode))
 	emit_move_insn (adjust_address (dest, mode, bytepos), tmps[i]);
+
       else
 	store_bit_field (dest, bytelen * BITS_PER_UNIT, bytepos * BITS_PER_UNIT,
 			 0, 0, mode, tmps[i]);
@@ -2657,7 +2666,7 @@ store_by_pieces_1 (struct store_by_pieces_d *data ATTRIBUTE_UNUSED,
    to make a move insn for that mode.  DATA has all the other info.  */
 
 static void
-store_by_pieces_2 (rtx (*genfun) (rtx, ...), enum machine_mode mode,
+store_by_pieces_2 (insn_gen_fn genfun, machine_mode mode,
 		   struct store_by_pieces_d *data)
 {
   unsigned int size = GET_MODE_SIZE (mode);
@@ -4551,19 +4560,19 @@ get_bit_range (unsigned HOST_WIDE_INT *bitstart,
 		- tree_low_cst (DECL_FIELD_BIT_OFFSET (repr), 1));
 
   /* If the adjustment is larger than bitpos, we would have a negative bit
-     position for the lower bound and this may wreak havoc later.  This can
-     occur only if we have a non-null offset, so adjust offset and bitpos
-     to make the lower bound non-negative.  */
+     position for the lower bound and this may wreak havoc later.  Adjust
+     offset and bitpos to make the lower bound non-negative in that case.  */
   if (bitoffset > *bitpos)
     {
       HOST_WIDE_INT adjust = bitoffset - *bitpos;
-
       gcc_assert ((adjust % BITS_PER_UNIT) == 0);
-      gcc_assert (*offset != NULL_TREE);
 
       *bitpos += adjust;
-      *offset
-	= size_binop (MINUS_EXPR, *offset, size_int (adjust / BITS_PER_UNIT));
+      if (*offset == NULL_TREE)
+	*offset = size_int (-adjust / BITS_PER_UNIT);
+      else
+	*offset
+	  = size_binop (MINUS_EXPR, *offset, size_int (adjust / BITS_PER_UNIT));
       *bitstart = 0;
     }
   else
@@ -4668,8 +4677,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
 	  expand_insn (icode, 2, ops);
 	}
       else
-	store_bit_field (mem, GET_MODE_BITSIZE (mode),
-			 0, 0, 0, mode, reg);
+	store_bit_field (mem, GET_MODE_BITSIZE (mode), 0, 0, 0, mode, reg);
       return;
     }
 
@@ -4697,6 +4705,15 @@ expand_assignment (tree to, tree from, bool nontemporal)
       push_temp_slots ();
       tem = get_inner_reference (to, &bitsize, &bitpos, &offset, &mode1,
 				 &unsignedp, &volatilep, true);
+
+      /* Make sure bitpos is not negative, it can wreak havoc later.  */
+      if (bitpos < 0)
+	{
+	  gcc_assert (offset == NULL_TREE);
+	  offset = size_int (bitpos >> (BITS_PER_UNIT == 8
+					? 3 : exact_log2 (BITS_PER_UNIT)));
+	  bitpos &= BITS_PER_UNIT - 1;
+	}
 
       if (TREE_CODE (to) == COMPONENT_REF
 	  && DECL_BIT_FIELD_TYPE (TREE_OPERAND (to, 1)))

@@ -1207,18 +1207,18 @@
    (set_attr "type" "fcmpd")]
 )
 
-;; Fixed point to floating point conversions. 
+;; Fixed point to floating point conversions.
 (define_code_iterator FCVT [unsigned_float float])
 (define_code_attr FCVTI32typename [(unsigned_float "u32") (float "s32")])
 
 (define_insn "*combine_vcvt_f32_<FCVTI32typename>"
   [(set (match_operand:SF 0 "s_register_operand" "=t")
 	(mult:SF (FCVT:SF (match_operand:SI 1 "s_register_operand" "0"))
-		 (match_operand 2 
+		 (match_operand 2
 			"const_double_vcvt_power_of_two_reciprocal" "Dt")))]
   "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP3 && !flag_rounding_math"
-  "vcvt.f32.<FCVTI32typename>\\t%0, %1, %v2"
- [(set_attr "predicable" "no")
+  "vcvt%?.f32.<FCVTI32typename>\\t%0, %1, %v2"
+ [(set_attr "predicable" "yes")
   (set_attr "type" "f_cvt")]
 )
 
@@ -1227,15 +1227,16 @@
 (define_insn "*combine_vcvt_f64_<FCVTI32typename>"
   [(set (match_operand:DF 0 "s_register_operand" "=x,x,w")
 	(mult:DF (FCVT:DF (match_operand:SI 1 "s_register_operand" "r,t,r"))
-		 (match_operand 2 
+		 (match_operand 2
 		     "const_double_vcvt_power_of_two_reciprocal" "Dt,Dt,Dt")))]
-  "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP3 && !flag_rounding_math 
+  "TARGET_32BIT && TARGET_HARD_FLOAT && TARGET_VFP3 && !flag_rounding_math
   && !TARGET_VFP_SINGLE"
   "@
-  vmov.f32\\t%0, %1\;vcvt.f64.<FCVTI32typename>\\t%P0, %P0, %v2
-  vmov.f32\\t%0, %1\;vcvt.f64.<FCVTI32typename>\\t%P0, %P0, %v2
-  vmov.f64\\t%P0, %1, %1\;vcvt.f64.<FCVTI32typename>\\t%P0, %P0, %v2"
- [(set_attr "predicable" "no")
+  vmov%?.f32\\t%0, %1\;vcvt%?.f64.<FCVTI32typename>\\t%P0, %P0, %v2
+  vmov%?.f32\\t%0, %1\;vcvt%?.f64.<FCVTI32typename>\\t%P0, %P0, %v2
+  vmov%?.f64\\t%P0, %1, %1\;vcvt%?.f64.<FCVTI32typename>\\t%P0, %P0, %v2"
+ [(set_attr "predicable" "yes")
+  (set_attr "ce_count" "2")
   (set_attr "type" "f_cvt")
   (set_attr "length" "8")]
 )
@@ -1263,6 +1264,7 @@
   "TARGET_HARD_FLOAT && TARGET_FPU_ARMV8 <vfp_double_cond>"
   "vrint<vrint_variant>%?.<V_if_elem>\\t%<V_reg>0, %<V_reg>1"
   [(set_attr "predicable" "<vrint_predicable>")
+   (set_attr "conds" "<vrint_conds>")
    (set_attr "type" "f_rint<vfp_type>")]
 )
 
@@ -1279,7 +1281,8 @@
 		  (match_operand:SDF 2 "register_operand" "<F_constraint>")))]
   "TARGET_HARD_FLOAT && TARGET_FPU_ARMV8 <vfp_double_cond>"
   "vmaxnm.<V_if_elem>\\t%<V_reg>0, %<V_reg>1, %<V_reg>2"
-  [(set_attr "type" "f_minmax<vfp_type>")]
+  [(set_attr "type" "f_minmax<vfp_type>")
+   (set_attr "conds" "unconditional")]
 )
 
 (define_insn "smin<mode>3"
@@ -1288,7 +1291,8 @@
 		  (match_operand:SDF 2 "register_operand" "<F_constraint>")))]
   "TARGET_HARD_FLOAT && TARGET_FPU_ARMV8 <vfp_double_cond>"
   "vminnm.<V_if_elem>\\t%<V_reg>0, %<V_reg>1, %<V_reg>2"
-  [(set_attr "type" "f_minmax<vfp_type>")]
+  [(set_attr "type" "f_minmax<vfp_type>")
+   (set_attr "conds" "unconditional")]
 )
 
 ;; Unimplemented insns:

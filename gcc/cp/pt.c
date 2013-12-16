@@ -138,6 +138,7 @@ static int maybe_adjust_types_for_deduction (unification_kind_t, tree*, tree*,
 					     tree);
 static int type_unification_real (tree, tree, tree, const tree *,
 				  unsigned int, int, unification_kind_t, int,
+				  vec<deferred_access_check, va_gc> **,
 				  bool);
 static void note_template_header (int);
 static tree convert_nontype_argument_function (tree, tree);
@@ -169,7 +170,7 @@ static tree tsubst_template_arg (tree, tree, tsubst_flags_t, tree);
 static tree tsubst_template_args (tree, tree, tsubst_flags_t, tree);
 static tree tsubst_template_parms (tree, tree, tsubst_flags_t);
 static void regenerate_decl_from_template (tree, tree);
-static tree most_specialized_class (tree, tree, tsubst_flags_t);
+static tree most_specialized_class (tree, tsubst_flags_t);
 static tree tsubst_aggr_type (tree, tree, tsubst_flags_t, tree, int);
 static tree tsubst_arg_types (tree, tree, tree, tsubst_flags_t, tree);
 static tree tsubst_function_type (tree, tree, tsubst_flags_t, tree);
@@ -183,7 +184,7 @@ static int coerce_template_template_parms (tree, tree, tsubst_flags_t,
 					   tree, tree);
 static bool template_template_parm_bindings_ok_p (tree, tree);
 static int template_args_equal (tree, tree);
-static void tsubst_default_arguments (tree);
+static void tsubst_default_arguments (tree, tsubst_flags_t);
 static tree for_each_template_parm_r (tree *, int *, void *);
 static tree copy_default_args_to_explicit_spec_1 (tree, tree);
 static void copy_default_args_to_explicit_spec (tree);
@@ -4260,7 +4261,7 @@ process_partial_specialization (tree decl)
       if (COMPLETE_TYPE_P (inst_type)
 	  && CLASSTYPE_IMPLICIT_INSTANTIATION (inst_type))
 	{
-	  tree spec = most_specialized_class (inst_type, maintmpl, tf_none);
+	  tree spec = most_specialized_class (inst_type, tf_none);
 	  if (spec && TREE_TYPE (spec) == type)
 	    permerror (input_location,
 		       "partial specialization of %qT after instantiation "
@@ -5612,6 +5613,10 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 	  else
 	    return NULL_TREE;
 	}
+
+      /* Avoid typedef problems.  */
+      if (TREE_TYPE (expr) != type)
+	expr = fold_convert (type, expr);
     }
   /* [temp.arg.nontype]/5, bullet 2
 
@@ -8567,7 +8572,7 @@ instantiate_class_template_1 (tree type)
 
   /* Determine what specialization of the original template to
      instantiate.  */
-  t = most_specialized_class (type, templ, tf_warning_or_error);
+  t = most_specialized_class (type, tf_warning_or_error);
   if (t == error_mark_node)
     {
       TYPE_BEING_DEFINED (type) = 1;
@@ -9859,7 +9864,7 @@ tsubst_aggr_type (tree t,
    FN), which has the indicated TYPE.  */
 
 tree
-tsubst_default_argument (tree fn, tree type, tree arg)
+tsubst_default_argument (tree fn, tree type, tree arg, tsubst_flags_t complain)
 {
   tree saved_class_ptr = NULL_TREE;
   tree saved_class_ref = NULL_TREE;
@@ -9899,7 +9904,7 @@ tsubst_default_argument (tree fn, tree type, tree arg)
      stack.  */
   ++function_depth;
   arg = tsubst_expr (arg, DECL_TI_ARGS (fn),
-		     tf_warning_or_error, NULL_TREE,
+		     complain, NULL_TREE,
 		     /*integral_constant_expression_p=*/false);
   --function_depth;
   pop_deferring_access_checks();
@@ -9911,12 +9916,13 @@ tsubst_default_argument (tree fn, tree type, tree arg)
       cp_function_chain->x_current_class_ref = saved_class_ref;
     }
 
-  if (errorcount+sorrycount > errs)
+  if (errorcount+sorrycount > errs
+      && (complain & tf_warning_or_error))
     inform (input_location,
 	    "  when instantiating default argument for call to %D", fn);
 
   /* Make sure the default argument is reasonable.  */
-  arg = check_default_argument (type, arg);
+  arg = check_default_argument (type, arg, complain);
 
   pop_access_scope (fn);
 
@@ -9926,7 +9932,7 @@ tsubst_default_argument (tree fn, tree type, tree arg)
 /* Substitute into all the default arguments for FN.  */
 
 static void
-tsubst_default_arguments (tree fn)
+tsubst_default_arguments (tree fn, tsubst_flags_t complain)
 {
   tree arg;
   tree tmpl_args;
@@ -9947,7 +9953,8 @@ tsubst_default_arguments (tree fn)
     if (TREE_PURPOSE (arg))
       TREE_PURPOSE (arg) = tsubst_default_argument (fn,
 						    TREE_VALUE (arg),
-						    TREE_PURPOSE (arg));
+						    TREE_PURPOSE (arg),
+						    complain);
 }
 
 /* Substitute the ARGS into the T, which is a _DECL.  Return the
@@ -10298,7 +10305,7 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	    if (!member
 		&& !PRIMARY_TEMPLATE_P (gen_tmpl)
 		&& !uses_template_parms (argvec))
-	      tsubst_default_arguments (r);
+	      tsubst_default_arguments (r, complain);
 	  }
 	else
 	  DECL_TEMPLATE_INFO (r) = NULL_TREE;
@@ -12507,6 +12514,9 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
     case TYPE_DECL:
       return tsubst (t, args, complain, in_decl);
 
+    case USING_DECL:
+      t = DECL_NAME (t);
+      /* Fall through.  */
     case IDENTIFIER_NODE:
       if (IDENTIFIER_TYPENAME_P (t))
 	{
@@ -13699,6 +13709,10 @@ tsubst_copy_and_build (tree t,
 
 	RETURN (r);
       }
+
+    case POINTER_PLUS_EXPR:
+      return fold_build_pointer_plus (RECUR (TREE_OPERAND (t, 0)),
+				      RECUR (TREE_OPERAND (t, 1)));
 
     case SCOPE_REF:
       RETURN (tsubst_qualified_id (t, args, complain, in_decl, /*done=*/true,
@@ -14974,7 +14988,6 @@ fn_type_unification (tree fn,
     return error_mark_node;
   tinst = build_tree_list (fn, NULL_TREE);
   ++deduction_depth;
-  push_deferring_access_checks (dk_deferred);
 
   gcc_assert (TREE_CODE (fn) == TEMPLATE_DECL);
 
@@ -15066,20 +15079,19 @@ fn_type_unification (tree fn,
 	}
       processing_template_decl += incomplete;
       input_location = DECL_SOURCE_LOCATION (fn);
+      /* Ignore any access checks; we'll see them again in
+	 instantiate_template and they might have the wrong
+	 access path at this point.  */
+      push_deferring_access_checks (dk_deferred);
       fntype = tsubst (TREE_TYPE (fn), explicit_targs,
 		       complain | tf_partial, NULL_TREE);
+      pop_deferring_access_checks ();
       input_location = loc;
       processing_template_decl -= incomplete;
       pop_tinst_level ();
 
       if (fntype == error_mark_node)
 	goto fail;
-
-      /* Throw away these access checks; we'll see them again in
-	 instantiate_template and they might have the wrong
-	 access path at this point.  */
-      pop_deferring_access_checks ();
-      push_deferring_access_checks (dk_deferred);
 
       /* Place the explicitly specified arguments in TARGS.  */
       for (i = NUM_TMPL_ARGS (explicit_targs); i--;)
@@ -15106,9 +15118,15 @@ fn_type_unification (tree fn,
      callers must be ready to deal with unification failures in any
      event.  */
 
+  /* type_unification_real will pass back any access checks from default
+     template argument substitution.  */
+  vec<deferred_access_check, va_gc> *checks;
+  checks = NULL;
+
   ok = !type_unification_real (DECL_INNERMOST_TEMPLATE_PARMS (fn),
 			       targs, parms, args, nargs, /*subr=*/0,
-			       strict, flags, explain_p);
+			       strict, flags, &checks, explain_p);
+
   if (!ok)
     goto fail;
 
@@ -15155,16 +15173,23 @@ fn_type_unification (tree fn,
       excessive_deduction_depth = true;
       goto fail;
     }
+
+  /* Also collect access checks from the instantiation.  */
+  reopen_deferring_access_checks (checks);
+
   decl = instantiate_template (fn, targs, complain);
+
+  checks = get_deferred_access_checks ();
+  pop_deferring_access_checks ();
+
   pop_tinst_level ();
 
   if (decl == error_mark_node)
     goto fail;
 
-  /* Now perform any access checks encountered during deduction, such as
-     for default template arguments.  */
+  /* Now perform any access checks encountered during substitution.  */
   push_access_scope (decl);
-  ok = perform_deferred_access_checks (complain);
+  ok = perform_access_checks (checks, complain);
   pop_access_scope (decl);
   if (!ok)
     goto fail;
@@ -15193,7 +15218,6 @@ fn_type_unification (tree fn,
   r = decl;
 
  fail:
-  pop_deferring_access_checks ();
   --deduction_depth;
   if (excessive_deduction_depth)
     {
@@ -15454,7 +15478,10 @@ unify_one_argument (tree tparms, tree targs, tree parm, tree arg,
 
    If SUBR is 1, we're being called recursively (to unify the
    arguments of a function or method parameter of a function
-   template). */
+   template).
+
+   CHECKS is a pointer to a vector of access checks encountered while
+   substituting default template arguments.  */
 
 static int
 type_unification_real (tree tparms,
@@ -15465,6 +15492,7 @@ type_unification_real (tree tparms,
 		       int subr,
 		       unification_kind_t strict,
 		       int flags,
+		       vec<deferred_access_check, va_gc> **checks,
 		       bool explain_p)
 {
   tree parm, arg;
@@ -15604,6 +15632,7 @@ type_unification_real (tree tparms,
 	    {
 	      tree parm = TREE_VALUE (TREE_VEC_ELT (tparms, i));
 	      tree arg = TREE_PURPOSE (TREE_VEC_ELT (tparms, i));
+	      reopen_deferring_access_checks (*checks);
 	      location_t save_loc = input_location;
 	      if (DECL_P (parm))
 		input_location = DECL_SOURCE_LOCATION (parm);
@@ -15611,6 +15640,8 @@ type_unification_real (tree tparms,
 	      arg = convert_template_argument (parm, arg, targs, complain,
 					       i, NULL_TREE);
 	      input_location = save_loc;
+	      *checks = get_deferred_access_checks ();
+	      pop_deferring_access_checks ();
 	      if (arg == error_mark_node)
 		return 1;
 	      else
@@ -15722,7 +15753,7 @@ resolve_overloaded_unification (tree tparms,
 	  if (subargs != error_mark_node
 	      && !any_dependent_template_arguments_p (subargs))
 	    {
-	      elem = tsubst (TREE_TYPE (fn), subargs, tf_none, NULL_TREE);
+	      elem = TREE_TYPE (instantiate_template (fn, subargs, tf_none));
 	      if (try_one_overload (tparms, targs, tempargs, parm,
 				    elem, strict, sub_strict, addr_p, explain_p)
 		  && (!goodfn || !same_type_p (goodfn, elem)))
@@ -17078,7 +17109,7 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
 
 	return type_unification_real (tparms, targs, TYPE_ARG_TYPES (parm),
 				      args, nargs, 1, DEDUCE_EXACT,
-				      LOOKUP_NORMAL, explain_p);
+				      LOOKUP_NORMAL, NULL, explain_p);
       }
 
     case OFFSET_TYPE:
@@ -17526,7 +17557,7 @@ more_specialized_fn (tree pat1, tree pat2, int len)
     return -1;
 }
 
-/* Determine which of two partial specializations of MAIN_TMPL is more
+/* Determine which of two partial specializations of TMPL is more
    specialized.
 
    PAT1 is a TREE_LIST whose TREE_TYPE is the _TYPE node corresponding
@@ -17542,7 +17573,7 @@ more_specialized_fn (tree pat1, tree pat2, int len)
    two templates is more specialized.  */
 
 static int
-more_specialized_class (tree main_tmpl, tree pat1, tree pat2)
+more_specialized_class (tree tmpl, tree pat1, tree pat2)
 {
   tree targs;
   tree tmpl1, tmpl2;
@@ -17557,7 +17588,7 @@ more_specialized_class (tree main_tmpl, tree pat1, tree pat2)
      types in the arguments, and we need our dependency check functions
      to behave correctly.  */
   ++processing_template_decl;
-  targs = get_class_bindings (main_tmpl, TREE_VALUE (pat1),
+  targs = get_class_bindings (tmpl, TREE_VALUE (pat1),
 			      CLASSTYPE_TI_ARGS (tmpl1),
 			      CLASSTYPE_TI_ARGS (tmpl2));
   if (targs)
@@ -17566,7 +17597,7 @@ more_specialized_class (tree main_tmpl, tree pat1, tree pat2)
       any_deductions = true;
     }
 
-  targs = get_class_bindings (main_tmpl, TREE_VALUE (pat2),
+  targs = get_class_bindings (tmpl, TREE_VALUE (pat2),
 			      CLASSTYPE_TI_ARGS (tmpl2),
 			      CLASSTYPE_TI_ARGS (tmpl1));
   if (targs)
@@ -17646,7 +17677,7 @@ get_bindings (tree fn, tree decl, tree explicit_args, bool check_rettype)
 }
 
 /* Return the innermost template arguments that, when applied to a partial
-   specialization of MAIN_TMPL whose innermost template parameters are
+   specialization of TMPL whose innermost template parameters are
    TPARMS, and whose specialization arguments are SPEC_ARGS, yield the
    ARGS.
 
@@ -17661,7 +17692,7 @@ get_bindings (tree fn, tree decl, tree explicit_args, bool check_rettype)
    is bound to `double'.  */
 
 static tree
-get_class_bindings (tree main_tmpl, tree tparms, tree spec_args, tree args)
+get_class_bindings (tree tmpl, tree tparms, tree spec_args, tree args)
 {
   int i, ntparms = TREE_VEC_LENGTH (tparms);
   tree deduced_args;
@@ -17701,8 +17732,8 @@ get_class_bindings (tree main_tmpl, tree tparms, tree spec_args, tree args)
      `T' is `A' but unify () does not check whether `typename T::X'
      is `int'.  */
   spec_args = tsubst (spec_args, deduced_args, tf_none, NULL_TREE);
-  spec_args = coerce_template_parms (DECL_INNERMOST_TEMPLATE_PARMS (main_tmpl),
-				     spec_args, main_tmpl,
+  spec_args = coerce_template_parms (DECL_INNERMOST_TEMPLATE_PARMS (tmpl),
+				     spec_args, tmpl,
 				     tf_none, false, false);
   if (spec_args == error_mark_node
       /* We only need to check the innermost arguments; the other
@@ -17850,30 +17881,30 @@ most_general_template (tree decl)
 }
 
 /* Return the most specialized of the class template partial
-   specializations of TMPL which can produce TYPE, a specialization of
-   TMPL.  The value returned is actually a TREE_LIST; the TREE_TYPE is
+   specializations which can produce TYPE, a specialization of some class
+   template.  The value returned is actually a TREE_LIST; the TREE_TYPE is
    a _TYPE node corresponding to the partial specialization, while the
    TREE_PURPOSE is the set of template arguments that must be
    substituted into the TREE_TYPE in order to generate TYPE.
 
    If the choice of partial specialization is ambiguous, a diagnostic
    is issued, and the error_mark_node is returned.  If there are no
-   partial specializations of TMPL matching TYPE, then NULL_TREE is
-   returned.  */
+   partial specializations matching TYPE, then NULL_TREE is
+   returned, indicating that the primary template should be used.  */
 
 static tree
-most_specialized_class (tree type, tree tmpl, tsubst_flags_t complain)
+most_specialized_class (tree type, tsubst_flags_t complain)
 {
   tree list = NULL_TREE;
   tree t;
   tree champ;
   int fate;
   bool ambiguous_p;
-  tree args;
   tree outer_args = NULL_TREE;
 
-  tmpl = most_general_template (tmpl);
-  args = CLASSTYPE_TI_ARGS (type);
+  tree tmpl = CLASSTYPE_TI_TEMPLATE (type);
+  tree main_tmpl = most_general_template (tmpl);
+  tree args = CLASSTYPE_TI_ARGS (type);
 
   /* For determining which partial specialization to use, only the
      innermost args are interesting.  */
@@ -17883,7 +17914,7 @@ most_specialized_class (tree type, tree tmpl, tsubst_flags_t complain)
       args = INNERMOST_TEMPLATE_ARGS (args);
     }
 
-  for (t = DECL_TEMPLATE_SPECIALIZATIONS (tmpl); t; t = TREE_CHAIN (t))
+  for (t = DECL_TEMPLATE_SPECIALIZATIONS (main_tmpl); t; t = TREE_CHAIN (t))
     {
       tree partial_spec_args;
       tree spec_args;
@@ -17917,8 +17948,7 @@ most_specialized_class (tree type, tree tmpl, tsubst_flags_t complain)
 
       partial_spec_args =
 	  coerce_template_parms (DECL_INNERMOST_TEMPLATE_PARMS (tmpl),
-				 add_to_template_args (outer_args,
-						       partial_spec_args),
+				 partial_spec_args,
 				 tmpl, tf_none,
 				 /*require_all_args=*/true,
 				 /*use_default_args=*/true);
@@ -20100,7 +20130,7 @@ bool
 any_type_dependent_elements_p (const_tree list)
 {
   for (; list; list = TREE_CHAIN (list))
-    if (value_dependent_expression_p (TREE_VALUE (list)))
+    if (type_dependent_expression_p (TREE_VALUE (list)))
       return true;
 
   return false;
@@ -20649,7 +20679,7 @@ do_auto_deduction (tree type, tree init, tree auto_node)
     = build_tree_list (NULL_TREE, TYPE_NAME (auto_node));
   val = type_unification_real (tparms, targs, parms, args, 1, 0,
 			       DEDUCE_CALL, LOOKUP_NORMAL,
-			       /*explain_p=*/false);
+			       NULL, /*explain_p=*/false);
   if (val > 0)
     {
       if (processing_template_decl)

@@ -4459,7 +4459,9 @@ aapcs_vfp_allocate (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
     if (((pcum->aapcs_vfp_regs_free >> regno) & mask) == mask)
       {
 	pcum->aapcs_vfp_reg_alloc = mask << regno;
-	if (mode == BLKmode || (mode == TImode && !TARGET_NEON))
+	if (mode == BLKmode
+	    || (mode == TImode && ! TARGET_NEON)
+	    || ! arm_hard_regno_mode_ok (FIRST_VFP_REGNUM + regno, mode))
 	  {
 	    int i;
 	    int rcount = pcum->aapcs_vfp_rcount;
@@ -5423,7 +5425,8 @@ require_pic_register (void)
   if (!crtl->uses_pic_offset_table)
     {
       gcc_assert (can_create_pseudo_p ());
-      if (arm_pic_register != INVALID_REGNUM)
+      if (arm_pic_register != INVALID_REGNUM
+	  && !(TARGET_THUMB1 && arm_pic_register > LAST_LO_REGNUM))
 	{
 	  if (!cfun->machine->pic_reg)
 	    cfun->machine->pic_reg = gen_rtx_REG (Pmode, arm_pic_register);
@@ -5449,7 +5452,12 @@ require_pic_register (void)
 	      crtl->uses_pic_offset_table = 1;
 	      start_sequence ();
 
-	      arm_load_pic_register (0UL);
+	      if (TARGET_THUMB1 && arm_pic_register != INVALID_REGNUM
+		  && arm_pic_register > LAST_LO_REGNUM)
+		emit_move_insn (cfun->machine->pic_reg,
+				gen_rtx_REG (Pmode, arm_pic_register));
+	      else
+		arm_load_pic_register (0UL);
 
 	      seq = get_insns ();
 	      end_sequence ();
@@ -5706,6 +5714,14 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
 	      emit_insn (gen_pic_load_addr_thumb1 (pic_tmp, pic_rtx));
 	      emit_insn (gen_movsi (pic_offset_table_rtx, pic_tmp));
 	      emit_insn (gen_pic_add_dot_plus_four (pic_reg, pic_reg, labelno));
+	    }
+	  else if (arm_pic_register != INVALID_REGNUM
+		   && arm_pic_register > LAST_LO_REGNUM
+		   && REGNO (pic_reg) <= LAST_LO_REGNUM)
+	    {
+	      emit_insn (gen_pic_load_addr_unified (pic_reg, pic_rtx, labelno));
+	      emit_move_insn (gen_rtx_REG (Pmode, arm_pic_register), pic_reg);
+	      emit_use (gen_rtx_REG (Pmode, arm_pic_register));
 	    }
 	  else
 	    emit_insn (gen_pic_load_addr_unified (pic_reg, pic_rtx, labelno));
@@ -7094,7 +7110,7 @@ static inline int
 thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
 {
   enum machine_mode mode = GET_MODE (x);
-  int total;
+  int total, words;
 
   switch (code)
     {
@@ -7102,6 +7118,8 @@ thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
     case ASHIFTRT:
     case LSHIFTRT:
     case ROTATERT:
+      return (mode == SImode) ? COSTS_N_INSNS (1) : COSTS_N_INSNS (2);
+
     case PLUS:
     case MINUS:
     case COMPARE:
@@ -7125,7 +7143,10 @@ thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
       return COSTS_N_INSNS (1) + 16;
 
     case SET:
-      return (COSTS_N_INSNS (1)
+      /* A SET doesn't have a mode, so let's look at the SET_DEST to get
+	 the mode.  */
+      words = ARM_NUM_INTS (GET_MODE_SIZE (GET_MODE (SET_DEST (x))));
+      return (COSTS_N_INSNS (words)
 	      + 4 * ((MEM_P (SET_SRC (x)))
 		     + MEM_P (SET_DEST (x))));
 
@@ -7822,6 +7843,7 @@ static inline int
 thumb1_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
 {
   enum machine_mode mode = GET_MODE (x);
+  int words;
 
   switch (code)
     {
@@ -7829,8 +7851,19 @@ thumb1_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
     case ASHIFTRT:
     case LSHIFTRT:
     case ROTATERT:
+      return (mode == SImode) ? COSTS_N_INSNS (1) : COSTS_N_INSNS (2);
+
     case PLUS:
     case MINUS:
+      /* Thumb-1 needs two instructions to fulfill shiftadd/shiftsub0/shiftsub1
+	 defined by RTL expansion, especially for the expansion of
+	 multiplication.  */
+      if ((GET_CODE (XEXP (x, 0)) == MULT
+	   && power_of_two_operand (XEXP (XEXP (x,0),1), SImode))
+	  || (GET_CODE (XEXP (x, 1)) == MULT
+	      && power_of_two_operand (XEXP (XEXP (x, 1), 1), SImode)))
+	return COSTS_N_INSNS (2);
+      /* On purpose fall through for normal RTX.  */
     case COMPARE:
     case NEG:
     case NOT:
@@ -7847,7 +7880,10 @@ thumb1_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
       return COSTS_N_INSNS (1);
 
     case SET:
-      return (COSTS_N_INSNS (1)
+      /* A SET doesn't have a mode, so let's look at the SET_DEST to get
+	 the mode.  */
+      words = ARM_NUM_INTS (GET_MODE_SIZE (GET_MODE (SET_DEST (x))));
+      return (COSTS_N_INSNS (words)
               + 4 * ((MEM_P (SET_SRC (x)))
                      + MEM_P (SET_DEST (x))));
 
@@ -17453,7 +17489,8 @@ arm_expand_prologue (void)
 	    }
 	}
 
-      if (current_tune->prefer_ldrd_strd
+      if (TARGET_LDRD
+	  && current_tune->prefer_ldrd_strd
           && !optimize_function_for_size_p (cfun))
         {
           if (TARGET_THUMB2)
@@ -23532,6 +23569,7 @@ arm_expand_epilogue_apcs_frame (bool really_return)
   num_regs = bit_count (saved_regs_mask);
   if ((offsets->outgoing_args != (1 + num_regs)) || cfun->calls_alloca)
     {
+      emit_insn (gen_blockage ());
       /* Unwind the stack to just below the saved registers.  */
       emit_insn (gen_addsi3 (stack_pointer_rtx,
                              hard_frame_pointer_rtx,
@@ -23767,7 +23805,8 @@ arm_expand_epilogue (bool really_return)
         }
       else
         {
-          if (current_tune->prefer_ldrd_strd
+          if (TARGET_LDRD
+	      && current_tune->prefer_ldrd_strd
               && !optimize_function_for_size_p (cfun))
             {
               if (TARGET_THUMB2)

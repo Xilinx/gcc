@@ -1,3 +1,63 @@
+2013-12-12  Zhenqiang Chen  <zhenqiang.chen@arm.com>
+
+	Backport from trunk r205917.
+	2013-12-12  Zhenqiang Chen  <zhenqiang.chen@arm.com>
+	* config.host (arm*-*-uclinux*): Move t-arm before t-bpabi.
+
+2013-12-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sfp-exceptions.c (__sfp_handle_exceptions): Emit SSE
+	instructions when __SSE_MATH__ is defined.
+
+2013-12-06  Ralf Corsépius  <ralf.corsepius@rtems.org>
+
+	* config.host (microblaze-*-rtems*): New.
+
+2013-11-10  Kai Tietz  <ktietz@redhat.com>
+
+	Back-merged from trunk
+	* config/i386/cygming-crtbegin.c (__gcc_register_frame):
+	Increment load-count on use of LIBGCC_SONAME DLL.
+	(hmod_libgcc): New static variable to hold handle of
+	LIBGCC_SONAME DLL.
+	(__gcc_deregister_frame): Decrement load-count of
+	LIBGCC_SONAME DLL.
+
+2013-11-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sfp-exceptions.c (__sfp_handle_exceptions): Handle
+	FP_EX_DENORM.  Store result to volatile location after SSE division
+	to close interrupt window.  Remove unneeded fwait after x87
+	division since interrupt window will be closed by emitted fstp.
+	Rewrite FP_EX_INEXACT handling.
+
+2013-10-16  Release Manager
+
+	* GCC 4.8.2 released.
+
+2013-08-01  Maxim Kuvyrkov  <maxim@kugelworks.com>
+
+	Backport from trunk: Fix licenses on several libgcc files.
+
+	* config/aarch64/sfp-machine.h, config/aarch64/sync-cache.c,
+	* config/i386/cpuinfo.c, config/ia64/unwind-ia64.h,
+	* config/mips/vr4120-div.S: Fix license from GPL-3.0+ to
+	GPL-3.0-with-GCC-exception.
+
+2013-07-19  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2013-07-19 trunk r201051.
+
+	PR target/57516
+	* config/avr/lib1funcs-fixed.S (__roundqq3, __rounduqq3)
+	(__round_s2_const, __round_u2_const)
+	(__round_s4_const, __round_u4_const, __round_x8):
+	Saturate result if addition result cannot be represented.
+
+2013-07-09  Janis Johnson  <janisjo@codesourcery.com>
+
+	* config.host (powerpc-*-eabispe*): Add t-fdpbit to tmake_file.
+
 2013-06-19  Alan Modra  <amodra@gmail.com>
 
 	Apply mainline patches
@@ -124,7 +184,7 @@
 	* config/mips/crtn.S (fini, init): New labels.
 
 2012-02-19  Edgar E. Iglesias  <edgar.iglesias@gmail.com>
-	* config/microblaze/modsi3.S (modsi3): Fix case with 0x80000000 
+	* config/microblaze/modsi3.S (modsi3): Fix case with 0x80000000
 	as dividend.
 
 2013-02-16  Alan Modra  <amodra@gmail.com>

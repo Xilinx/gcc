@@ -98,9 +98,12 @@ go_struct_to_ffi (const struct __go_struct_type *descriptor)
   const struct __go_struct_field *fields;
   int i;
 
+  field_count = descriptor->__fields.__count;
+  if (field_count == 0) {
+    return &ffi_type_void;
+  }
   ret = (ffi_type *) __go_alloc (sizeof (ffi_type));
   ret->type = FFI_TYPE_STRUCT;
-  field_count = descriptor->__fields.__count;
   fields = (const struct __go_struct_field *) descriptor->__fields.__values;
   ret->elements = (ffi_type **) __go_alloc ((field_count + 1)
 					    * sizeof (ffi_type *));
@@ -302,9 +305,7 @@ go_func_to_cif (const struct __go_func_type *func, _Bool is_interface,
   in_types = ((const struct __go_type_descriptor **)
 	      func->__in.__values);
 
-  num_args = (num_params
-	      + (is_interface ? 1 : 0)
-	      + (!is_interface && !is_method ? 1 : 0));
+  num_args = num_params + (is_interface ? 1 : 0);
   args = (ffi_type **) __go_alloc (num_args * sizeof (ffi_type *));
   i = 0;
   off = 0;
@@ -320,12 +321,6 @@ go_func_to_cif (const struct __go_func_type *func, _Bool is_interface,
     }
   for (; i < num_params; ++i)
     args[i + off] = go_type_to_ffi (in_types[i]);
-
-  if (!is_interface && !is_method)
-    {
-      // There is a closure argument, a pointer.
-      args[i + off] = &ffi_type_pointer;
-    }
 
   rettype = go_func_return_ffi (func);
 
@@ -511,9 +506,8 @@ go_set_results (const struct __go_func_type *func, unsigned char *call_result,
    regardless of FUNC_TYPE, it is passed as a pointer.
 
    If neither IS_INTERFACE nor IS_METHOD is true then we are calling a
-   function indirectly, and the caller is responsible for passing a
-   trailing closure argument, a pointer, which is not described in
-   FUNC_TYPE.  */
+   function indirectly, and we must pass a closure pointer via
+   __go_set_closure.  The pointer to pass is simply FUNC_VAL.  */
 
 void
 reflect_call (const struct __go_func_type *func_type, FuncVal *func_val,
@@ -528,6 +522,8 @@ reflect_call (const struct __go_func_type *func_type, FuncVal *func_val,
 
   call_result = (unsigned char *) malloc (go_results_size (func_type));
 
+  if (!is_interface && !is_method)
+    __go_set_closure (func_val);
   ffi_call (&cif, func_val->fn, call_result, params);
 
   /* Some day we may need to free result values if RESULTS is
