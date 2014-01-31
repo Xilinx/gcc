@@ -21293,7 +21293,11 @@ arm_expand_neon_args (rtx target, int icode, int have_retval,
 						    type_mode);
             }
 
-          op[argc] = expand_normal (arg[argc]);
+	  /* Use EXPAND_MEMORY for NEON_ARG_MEMORY to ensure a MEM_P
+	     be returned.  */
+	  op[argc] = expand_expr (arg[argc], NULL_RTX, VOIDmode,
+				  (thisarg == NEON_ARG_MEMORY
+				   ? EXPAND_MEMORY : EXPAND_NORMAL));
 
           switch (thisarg)
             {
@@ -21312,6 +21316,9 @@ arm_expand_neon_args (rtx target, int icode, int have_retval,
               break;
 
             case NEON_ARG_MEMORY:
+	      /* Check if expand failed.  */
+	      if (op[argc] == const0_rtx)
+		return 0;
 	      gcc_assert (MEM_P (op[argc]));
 	      PUT_MODE (op[argc], mode[argc]);
 	      /* ??? arm_neon.h uses the same built-in functions for signed
@@ -23598,8 +23605,8 @@ arm_expand_epilogue_apcs_frame (bool really_return)
 
   if (crtl->calls_eh_return)
     emit_insn (gen_addsi3 (stack_pointer_rtx,
-               stack_pointer_rtx,
-               GEN_INT (ARM_EH_STACKADJ_REGNUM)));
+			   stack_pointer_rtx,
+			   gen_rtx_REG (SImode, ARM_EH_STACKADJ_REGNUM)));
 
   if (IS_STACKALIGN (func_type))
     /* Restore the original stack pointer.  Before prologue, the stack was

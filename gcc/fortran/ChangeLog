@@ -1,3 +1,72 @@
+2014-01-26  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/58007
+	* module.c
+	(fp2, find_pointer2): Remove.
+	(mio_component_ref): Don't forcedfully set the containing derived type
+	symbol for loading.  Remove unused argument.
+	(mio_ref): Update caller
+	(skip_list): New argument nest_level.  Initialize level with the new
+	argument.
+	(read_module): Add forced pointer components association for derived
+	type symbols.
+
+2014-01-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backport from mainline
+	2013-12-01  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/58410
+	* trans-array.c (gfc_alloc_allocatable_for_assignment): Do not
+	use the array bounds of an unallocated array but set its size
+	to zero instead.
+
+2014-01-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backport from mainline
+	2013-12-01  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34547
+	* resolve.c (resolve_transfer): EXPR_NULL is always in an
+	invalid context in a transfer statement.
+
+2014-01-11  Janus Weil  <janus@gcc.gnu.org>
+
+	Backport from mainline
+	2013-12-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/59612
+	PR fortran/57042
+	* dump-parse-tree.c (show_typespec): Check for charlen.
+	* invoke.texi: Fix documentation of -fdump-fortran-optimized and
+	-fdump-parse-tree.
+
+2014-01-04  Janus Weil  <janus@gcc.gnu.org>
+
+	Backport from mainline
+	2014-01-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/59654
+	* resolve.c (resolve_typebound_procedures): No need to create the vtab
+	here.
+
+2013-12-31  Janus Weil  <janus@gcc.gnu.org>
+
+	Backport from mainline
+	2013-12-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/58998
+	* resolve.c (resolve_symbol): Check that symbol is not only flavorless
+	but also untyped.
+
+2013-12-18  Janus Weil  <janus@gcc.gnu.org>
+
+	Backport from mainline
+	2013-12-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/59493
+	* class.c (gfc_find_intrinsic_vtab): Handle BT_CLASS.
+
 2013-11-30  Paul Thomas  <pault@gcc.gnu.org>
 
 	Backport from mainline

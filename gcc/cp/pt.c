@@ -3436,7 +3436,7 @@ expand_template_argument_pack (tree args)
           for (i = 0; i < num_packed; ++i, ++out_arg)
             TREE_VEC_ELT (result_args, out_arg) = TREE_VEC_ELT(packed, i);
 	  if (non_default_args_count > 0)
-	    non_default_args_count += num_packed;
+	    non_default_args_count += num_packed - 1;
         }
       else
         {
@@ -3490,6 +3490,11 @@ check_template_shadow (tree decl)
   if (decl == olddecl
       || TEMPLATE_PARMS_FOR_INLINE (current_template_parms))
     return true;
+
+  /* Don't complain about the injected class name, as we've already
+     complained about the class itself.  */
+  if (DECL_SELF_REFERENCE_P (decl))
+    return false;
 
   error ("declaration of %q+#D", decl);
   error (" shadows template parm %q+#D", olddecl);
@@ -3818,6 +3823,7 @@ template_parm_to_arg (tree t)
 	  SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT
 	    (vec, TREE_VEC_LENGTH (vec));
 #endif
+	  t = convert_from_reference (t);
 	  TREE_VEC_ELT (vec, 0) = make_pack_expansion (t);
 
 	  t  = make_node (NONTYPE_ARGUMENT_PACK);
@@ -9107,10 +9113,6 @@ tsubst_template_arg (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 		       /*integral_constant_expression_p=*/true);
       if (!(complain & tf_warning))
 	--c_inhibit_evaluation_warnings;
-      /* Preserve the raw-reference nature of T.  */
-      if (TREE_TYPE (t) && TREE_CODE (TREE_TYPE (t)) == REFERENCE_TYPE
-	  && REFERENCE_REF_P (r))
-	r = TREE_OPERAND (r, 0);
     }
   return r;
 }
@@ -14475,12 +14477,12 @@ tsubst_copy_and_build (tree t,
 
     case TRAIT_EXPR:
       {
-	tree type1 = tsubst_copy (TRAIT_EXPR_TYPE1 (t), args,
-				  complain, in_decl);
+	tree type1 = tsubst (TRAIT_EXPR_TYPE1 (t), args,
+			     complain, in_decl);
 
 	tree type2 = TRAIT_EXPR_TYPE2 (t);
 	if (type2)
-	  type2 = tsubst_copy (type2, args, complain, in_decl);
+	  type2 = tsubst (type2, args, complain, in_decl);
 	
 	RETURN (finish_trait_expr (TRAIT_EXPR_KIND (t), type1, type2));
       }
@@ -16211,6 +16213,9 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
   tree pattern = PACK_EXPANSION_PATTERN (parm);
   tree pack, packs = NULL_TREE;
   int i, start = TREE_VEC_LENGTH (packed_parms) - 1;
+
+  packed_args = expand_template_argument_pack (packed_args);
+
   int len = TREE_VEC_LENGTH (packed_args);
 
   /* Determine the parameter packs we will be deducing from the
@@ -19957,6 +19962,10 @@ type_dependent_expression_p (tree expression)
       /* SCOPE_REF with non-null TREE_TYPE is always non-dependent.  */
       if (TREE_CODE (expression) == SCOPE_REF)
 	return false;
+
+      /* Always dependent, on the number of arguments if nothing else.  */
+      if (TREE_CODE (expression) == EXPR_PACK_EXPANSION)
+	return true;
 
       if (BASELINK_P (expression))
 	expression = BASELINK_FUNCTIONS (expression);
