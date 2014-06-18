@@ -1465,6 +1465,27 @@
   (set_attr "length"	"4,4")]
 )
 
+(define_insn "*ashrsi3_with_size_opt"
+  [(set (match_operand:SI 0 "register_operand" "=&d")
+       (ashiftrt:SI (match_operand:SI 1 "register_operand"  "d")
+                   (match_operand:SI 2 "immediate_operand" "I")))]
+  "(INTVAL (operands[2]) > 5 && optimize_size)"
+  {
+    operands[3] = gen_rtx_REG (SImode, MB_ABI_ASM_TEMP_REGNUM);
+
+    output_asm_insn ("ori\t%3,r0,%2", operands);
+    if (REGNO (operands[0]) != REGNO (operands[1]))
+        output_asm_insn ("addk\t%0,%1,r0", operands);
+
+    output_asm_insn ("addik\t%3,%3,-1", operands);
+    output_asm_insn ("bneid\t%3,.-4", operands);
+    return "sra\t%0,%0";
+  }
+  [(set_attr "type"    "arith")
+  (set_attr "mode"    "SI")
+  (set_attr "length"  "20")]
+)
+
 (define_insn "*ashrsi_inline"
   [(set (match_operand:SI 0 "register_operand" "=&d")
        (ashiftrt:SI (match_operand:SI 1 "register_operand"  "d")
@@ -1552,27 +1573,6 @@
   [(set_attr "type"	"bshift,bshift")
   (set_attr "mode"	"SI,SI")
   (set_attr "length"	"4,4")]
-)
-
-(define_insn "*lshrsi3_with_size_opt"
-  [(set (match_operand:SI 0 "register_operand" "=&d")
-       (lshiftrt:SI (match_operand:SI 1 "register_operand"  "d")
-                   (match_operand:SI 2 "immediate_operand" "I")))]
-  "(INTVAL (operands[2]) > 5 && optimize_size)"
-  {
-    operands[3] = gen_rtx_REG (SImode, MB_ABI_ASM_TEMP_REGNUM);
-
-    output_asm_insn ("ori\t%3,r0,%2", operands);
-    if (REGNO (operands[0]) != REGNO (operands[1]))
-        output_asm_insn ("addk\t%0,%1,r0", operands);
-
-    output_asm_insn ("addik\t%3,%3,-1", operands);
-    output_asm_insn ("bneid\t%3,.-4", operands);
-    return "srl\t%0,%0";
-  }
-  [(set_attr "type"    "multi")
-  (set_attr "mode"    "SI")
-  (set_attr "length"  "20")]
 )
 
 (define_insn "*lshrsi_inline"
