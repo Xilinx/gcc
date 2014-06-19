@@ -1465,7 +1465,7 @@
   (set_attr "length"	"4,4")]
 )
 
-(define_insn "*lshrsi3_with_size_opt"
+(define_insn "*ashrsi3_with_size_opt"
   [(set (match_operand:SI 0 "register_operand" "=&d")
        (ashiftrt:SI (match_operand:SI 1 "register_operand"  "d")
                    (match_operand:SI 2 "immediate_operand" "I")))]
