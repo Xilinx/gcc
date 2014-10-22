@@ -3238,7 +3238,8 @@ microblaze_asm_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   }
   else
   {
-    funexp = gen_rtx_MEM (FUNCTION_MODE, funexp);
+    if (MEM_P (funexp))
+      funexp = gen_rtx_MEM (FUNCTION_MODE, funexp);
     emit_move_insn (scratch, funexp);
   }
 
