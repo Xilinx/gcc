@@ -911,8 +911,8 @@ do {									 \
 #undef LIB_SPEC
 #define LIB_SPEC \
 "%{!nostdlib: \
-%{pg:-start-group -lxilprofile -lgloss -lc -lm -end-group } \
-%{!pg:-start-group -lgloss -lc -lm -end-group }} "
+%{pg:-start-group -lxilprofile -lgloss -lxil -lc -lm -end-group } \
+%{!pg:-start-group -lgloss -lxil -lc -lm -end-group }} "
 
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC "crtend.o%s crtn.o%s"
