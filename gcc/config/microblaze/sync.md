@@ -18,14 +18,19 @@
 ;; <http://www.gnu.org/licenses/>.
 
 (define_insn "atomic_compare_and_swapsi"
-  [(match_operand:SI 0 "register_operand" "=&d")	;; bool output
-   (match_operand:SI 1 "register_operand" "=&d")	;; val output
-   (match_operand:SI 2 "nonimmediate_operand" "+Q")	;; memory
-   (match_operand:SI 3 "register_operand" "d")		;; expected value
-   (match_operand:SI 4 "register_operand" "d")		;; desired value
-   (match_operand:SI 5 "const_int_operand" "")		;; is_weak
-   (match_operand:SI 6 "const_int_operand" "")		;; mod_s
-   (match_operand:SI 7 "const_int_operand" "")		;; mod_f
+  [(set (match_operand:SI 0 "register_operand" "=&d")		;; bool output
+        (unspec_volatile:SI
+          [(match_operand:SI 2 "nonimmediate_operand" "+Q")	;; memory
+           (match_operand:SI 3 "register_operand" "d")		;; expected value
+           (match_operand:SI 4 "register_operand" "d")]		;; desired value
+          UNSPECV_CAS_BOOL))
+   (set (match_operand:SI 1 "register_operand" "=&d")		;; val output
+        (unspec_volatile:SI [(const_int 0)] UNSPECV_CAS_VAL))
+   (set (match_dup 2)
+        (unspec_volatile:SI [(const_int 0)] UNSPECV_CAS_MEM))
+   (match_operand:SI 5 "const_int_operand" "")			;; is_weak
+   (match_operand:SI 6 "const_int_operand" "")			;; mod_s
+   (match_operand:SI 7 "const_int_operand" "")			;; mod_f
    (clobber (match_scratch:SI 8 "=&d"))]
   ""
   {

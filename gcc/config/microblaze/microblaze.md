@@ -41,6 +41,9 @@
   (UNSPEC_CMP		104)    ;; signed compare
   (UNSPEC_CMPU		105)    ;; unsigned compare
   (UNSPEC_TLS           106)    ;; jump table
+  (UNSPECV_CAS_BOOL     201)    ;; compare and swap (bool)
+  (UNSPECV_CAS_VAL      202)    ;; compare and swap (val)
+  (UNSPECV_CAS_MEM      203)    ;; compare and swap (mem)
 ])
 
 
