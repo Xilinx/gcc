@@ -1682,7 +1682,7 @@
   [(set (pc)
 	(if_then_else (match_operator 0 "ordered_comparison_operator"
 		       [(match_operand:SI 1 "register_operand")
-		        (match_operand:SI 2 "arith_operand")])
+		        (match_operand:SI 2 "arith_operand" "I,i")])
 		      (label_ref (match_operand 3 ""))
 		      (pc)))]
   ""
@@ -1690,6 +1690,19 @@
   microblaze_expand_conditional_branch (SImode, operands);
   DONE;
 })
+
+(define_expand "cbranchsi4_reg"
+  [(set (pc)
+          (if_then_else (match_operator 0 "ordered_comparison_operator"
+                        [(match_operand:SI 1 "register_operand")
+                         (match_operand:SI 2 "register_operand")])
+                        (label_ref (match_operand 3 ""))
+                        (pc)))]
+""
+{
+  microblaze_expand_conditional_branch_reg (SImode, operands);
+   DONE;
+ })
 
 (define_expand "cbranchsf4"
   [(set (pc)
